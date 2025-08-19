@@ -123,7 +123,6 @@ function CartSheet() {
                         onClick={() =>
                           updateCartMutation.mutate({
                             product_id: cartLine.product_id,
-                            gameserver_id: cartLine.selected_gameserver_id,
                             quantity: -1,
                             increment: true,
                           })
@@ -155,8 +154,6 @@ function CartSheet() {
                               onClick={() =>
                                 updateCartMutation.mutate({
                                   product_id: cartLine.product_id,
-                                  gameserver_id:
-                                    cartLine.selected_gameserver_id,
                                   quantity,
                                   increment: false,
                                 })
@@ -176,7 +173,6 @@ function CartSheet() {
                         onClick={() =>
                           updateCartMutation.mutate({
                             product_id: cartLine.product_id,
-                            gameserver_id: cartLine.selected_gameserver_id,
                             quantity: 1,
                             increment: true,
                           })

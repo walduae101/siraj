@@ -7,8 +7,6 @@ export default interface Customer {
   profile: Profile;
   steam_id: string;
   steam: Steam;
-  minecraft_uuid: string | null;
-  minecraft: unknown;
   name: string | undefined;
   metadata: Record<string, string>;
   created_at: string;

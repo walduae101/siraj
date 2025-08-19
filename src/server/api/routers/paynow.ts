@@ -64,24 +64,6 @@ export const paynowRouter = createTRPCRouter({
     .input(z.any())
     .mutation(({ ctx, input }) => PayNowService.checkoutFromCart(ctx, input)),
 
-  minecraftLogin: publicProcedure
-    .input(
-      z.object({
-        username: z.string().trim().max(64),
-        platform: z.enum(["bedrock", "java"]),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const customerId = await PayNowService.findOrCreateMinecraftCustomer(
-        input.username,
-        input.platform,
-      );
-
-      const token = await PayNowService.generateAuthToken(customerId);
-
-      PayNowService.setAuthCookie(ctx, token);
-    }),
-
   steamLogin: publicProcedure
     .input(
       z.object({

@@ -81,11 +81,7 @@ export default function AuthCard() {
         ) : (
           <>
             <p className="flex items-center gap-3 py-4 font-semibold text-sm">
-              {store?.game?.includes("minecraft") ? (
-                <UserIcon className="h-6 w-6" />
-              ) : (
-                <SteamLogoIcon className="h-6 w-6" />
-              )}
+              <UserIcon className="h-6 w-6" />
               تسجيل الدخول
             </p>
 
