@@ -26,7 +26,6 @@ export default function DefaultLayout({
 }: { children: React.ReactNode }) {
   const { data: store } = api.paynow.getStore.useQuery();
   const { data: modules } = api.paynow.getModules.useQuery();
-  const { data: playerCount } = api.gsa.getPlayerCount.useQuery();
 
   const handleCopy = async () => {
     try {
@@ -101,10 +100,9 @@ export default function DefaultLayout({
                       <div
                         className={twMerge(
                           "-top-3 -right-3 absolute rounded-4xl bg-destructive px-2 transition-opacity duration-300",
-                          (playerCount ?? 0) > 0 ? "opacity-100" : "opacity-0",
                         )}
                       >
-                        <p className="font-semibold">{playerCount}</p>
+                        <p className="font-semibold">0</p>
                       </div>
 
                       <PlayIcon weight="fill" height={36} width={36} />

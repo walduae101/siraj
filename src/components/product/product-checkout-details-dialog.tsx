@@ -143,11 +143,11 @@ export default function ProductCheckoutDetailsDialog({
                 </SelectTrigger>
 
                 <SelectContent>
-                  {product.gameservers.map((gs) => (
+                  {/* product.gameservers.map((gs) => (
                     <SelectItem key={gs.id} value={gs.id}>
                       {gs.name}
                     </SelectItem>
-                  ))}
+                  )) */}
                 </SelectContent>
               </Select>
             </div>
