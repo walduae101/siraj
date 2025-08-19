@@ -19,9 +19,9 @@ export const env = createEnv({
     // OpenAI
     OPENAI_API_KEY: z.string(),
 
-    GAMESERVER_GAME: z.enum(["source", "minecraft"]),
-    GAMESERVER_IP: z.string(),
-    GAMESERVER_PORT: z.string(),
+    GAMESERVER_GAME: z.enum(["source", "minecraft"]).optional(),
+    GAMESERVER_IP: z.string().optional(),
+    GAMESERVER_PORT: z.string().optional(),
   },
 
   /**

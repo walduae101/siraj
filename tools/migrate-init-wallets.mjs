@@ -1,0 +1,57 @@
+import 'dotenv/config';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import fs from 'fs';
+
+const creds = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
+  : null;
+
+if (!creds) {
+  console.error('FIREBASE_SERVICE_ACCOUNT_JSON not set or invalid.');
+  process.exit(1);
+}
+
+if (!getApps().length) {
+  initializeApp({ credential: cert(creds), projectId: creds.project_id });
+}
+
+const db = getFirestore();
+
+async function listAllAuthUsers(nextPageToken) {
+  const auth = getAuth();
+  const users = [];
+  let pageToken = nextPageToken;
+  do {
+    const result = await auth.listUsers(1000, pageToken);
+    users.push(...result.users);
+    pageToken = result.pageToken;
+  } while (pageToken);
+  return users;
+}
+
+async function main() {
+  const users = await listAllAuthUsers();
+  for (const user of users) {
+    const ref = db.collection('users').doc(user.uid).collection('wallet').doc('points');
+    const snap = await ref.get();
+    if (!snap.exists) {
+      await ref.set({
+        paidBalance: 0,
+        promoBalance: 0,
+        promoLots: [],
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        v: 1,
+      });
+      console.log(`Initialized wallet for ${user.uid}`);
+    }
+  }
+  console.log('Migration complete.');
+}
+
+main().catch(e => {
+  console.error(e);
+  process.exit(1);
+});

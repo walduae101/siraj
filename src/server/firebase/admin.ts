@@ -1,4 +1,4 @@
-import { env } from "~/env-server";
+import { env } from "../../env-server";
 
 import { type App, cert, getApps, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
