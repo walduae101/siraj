@@ -12,6 +12,19 @@ const config = {
     // Force unique build ID to bust caches
     return `siraj-env-fixed-${Date.now()}`;
   },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
+        ],
+      },
+    ];
+  },
   webpack: (cfg, { isServer }) => {
     if (!isServer) {
       cfg.resolve = cfg.resolve || {};
