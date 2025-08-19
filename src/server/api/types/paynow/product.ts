@@ -1,4 +1,3 @@
-import type Gameserver from "./gameserver";
 import type Tag from "./tag";
 
 export default interface Product {
@@ -58,7 +57,6 @@ export default interface Product {
     customer_available: number;
   };
   tags: Tag[];
-  gameservers: Gameserver[];
   created_at: string;
   updated_at: string;
 }

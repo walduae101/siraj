@@ -49,6 +49,3 @@ For support, questions, or more information, join our Discord community.
 
 ## Contributing
 Contributions are welcome! If you'd like to improve Siraj or suggest new features, please fork the repository, make your changes, and submit a pull request.
-
-## Special thanks
-[GameServerAnalytics.com](https://gameserveranalytics.com/) for providing the API for server metrics.

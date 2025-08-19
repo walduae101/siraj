@@ -56,7 +56,6 @@ export default function PendingCartHandler() {
     const {
       productId,
       quantity,
-      gameServerId,
       subscription,
       giftUsernameOrSteamId,
     } = cartSidebar.pendingItem;
@@ -84,7 +83,6 @@ export default function PendingCartHandler() {
             {
               product_id: productId,
               quantity,
-              selected_gameserver_id: gameServerId,
               gift_to: giftTo,
             },
           ],
@@ -100,7 +98,6 @@ export default function PendingCartHandler() {
         .mutateAsync({
           product_id: productId,
           quantity,
-          gameserver_id: gameServerId,
           subscription,
         })
         .then(() => {
