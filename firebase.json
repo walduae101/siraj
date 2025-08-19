@@ -5,11 +5,11 @@
     "rewrites": [
       {
         "source": "/api/**",
-        "run": { "serviceId": "siraj-web", "region": "us-central1" }
+        "run": { "serviceId": "siraj", "region": "us-central1" }
       },
       {
         "source": "**",
-        "run": { "serviceId": "siraj-web", "region": "us-central1" }
+        "run": { "serviceId": "siraj", "region": "us-central1" }
       }
     ]
   }
