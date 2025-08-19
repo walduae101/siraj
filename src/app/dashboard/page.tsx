@@ -6,6 +6,8 @@ import { api } from "~/trpc/react";
 import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
 import { signOut } from "firebase/auth";
 import { getFirebaseAuth } from "~/lib/firebase/client";
+import { features } from "~/config/features";
+import { WalletWidget } from "~/components/points/WalletWidget";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,6 +32,29 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8" dir="rtl">
       <h1 className="mb-8 font-bold text-3xl">لوحة التحكم</h1>
+
+      {/* Points/Wallet Section */}
+      {features.pointsClient && (
+        <div className="rounded-lg border bg-card p-6 mb-6">
+          <h2 className="mb-4 font-semibold text-2xl">النقاط · Points</h2>
+          <WalletWidget uid={user.uid} locale="ar" />
+          <div className="mt-4 flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/account/points")}
+              className="flex-1"
+            >
+              عرض السجل الكامل
+            </Button>
+            <Button
+              onClick={() => router.push("/paywall")}
+              className="flex-1"
+            >
+              شراء نقاط
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Firebase Profile Section */}
