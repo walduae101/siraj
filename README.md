@@ -44,8 +44,5 @@ The website's color scheme is fully configurable by editing the CSS file located
 ## Deployment
 This project can be deployed on various platforms. For detailed deployment instructions, see the [T3 Stack Deployment Guide](https://create.t3.gg/en/deployment).
 
-## Support
-For support, questions, or more information, join our Discord community.
-
 ## Contributing
 Contributions are welcome! If you'd like to improve Siraj or suggest new features, please fork the repository, make your changes, and submit a pull request.
