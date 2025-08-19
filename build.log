@@ -1,0 +1,36 @@
+ظëWARNظë Unsupported engine: wanted: {"node":">=22.8.0"} (current: {"node":"v20.17.0","pnpm":"9.7.0"})
+
+> paynow-gg-headless-template@1.0.0 build C:\projects\siraj\headless-template
+> next build
+
+   ظû▓ Next.js 15.3.3
+
+   Creating an optimized production build ...
+ ظ£ô Compiled successfully in 29.0s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/5) ...
+   Generating static pages (1/5) 
+   Generating static pages (2/5) 
+   Generating static pages (3/5) 
+ ظ£ô Generating static pages (5/5)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+ظ¤î ظùï /                                    2.45 kB         142 kB
+ظ¤£ ظùï /_not-found                            147 B         102 kB
+ظ¤£ ╞ْ /api/trpc/[trpc]                       147 B         102 kB
+ظ¤£ ╞ْ /auth/[provider]/login                 147 B         102 kB
+ظ¤£ ╞ْ /auth/[provider]/return                147 B         102 kB
+ظ¤£ ╞ْ /category/[slug]                     15.5 kB         182 kB
+ظ¤¤ ظùï /tools                               3.13 kB         139 kB
++ First Load JS shared by all             102 kB
+  ظ¤£ chunks/54bc3f48-e5bd98e9276bc11a.js  53.2 kB
+  ظ¤£ chunks/932-f1566b24b18cb81c.js       46.3 kB
+  ظ¤¤ other shared chunks (total)             2 kB
+
+
+ظùï  (Static)   prerendered as static content
+╞ْ  (Dynamic)  server-rendered on demand
+
