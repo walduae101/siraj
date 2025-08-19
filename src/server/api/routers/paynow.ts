@@ -75,9 +75,7 @@ export const paynowRouter = createTRPCRouter({
 
       const steamId = await SteamService.resolveSteamIdFromOpenIdQS(query);
 
-      const customerId = await PayNowService.findOrCreateSteamCustomer(steamId);
-
-      const token = await PayNowService.generateAuthToken(customerId);
+      const token = await PayNowService.generateAuthToken(steamId);
 
       return token;
     }),
