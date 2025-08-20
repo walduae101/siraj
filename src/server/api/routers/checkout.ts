@@ -8,8 +8,8 @@ import {
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { checkoutStub } from "~/server/services/checkoutStub";
-import { createCheckoutSession } from "~/server/services/paynowProvider";
 import { type Sku, skuMap } from "~/server/services/skuMap";
+import PayNowService from "~/server/api/services/paynow";
 
 export const checkoutRouter = createTRPCRouter({
   preview: protectedProcedure.input(checkoutPreviewInput).query(({ input }) => {
@@ -43,13 +43,66 @@ export const checkoutRouter = createTRPCRouter({
       if (!userId) throw new Error("UNAUTHORIZED");
 
       const productId = skuMap[input.sku].productId;
-      const sess = await createCheckoutSession({
-        productId,
-        qty: input.qty,
-        uid: userId,
-        successUrl: input.successUrl,
-        cancelUrl: input.cancelUrl,
-      });
-      return { url: sess.url };
+      
+      // Ensure user has PayNow customer account
+      const db = await getDb();
+      const userDoc = db.collection("userMappings").doc(userId);
+      let mapping = (await userDoc.get()).data() as { paynowCustomerId?: string } | undefined;
+      
+      if (!mapping?.paynowCustomerId) {
+        // Create PayNow customer if doesn't exist
+        const resp = await fetch("https://api.paynow.gg/v1/customers", {
+          method: "POST",
+          headers: {
+            Authorization: `APIKey ${(process.env.PAYNOW_API_KEY ?? "")
+              .replace(/["']/g, "")
+              .replace(/[^\x20-\x7E]/g, "")
+              .trim()}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ 
+            email: ctx.user?.email ?? `user-${userId}@siraj.life`
+          }),
+        });
+        
+        if (!resp.ok) {
+          const errorText = await resp.text();
+          throw new Error(`PayNow create customer failed: ${resp.status} - ${errorText}`);
+        }
+        
+        const customerData = await resp.json();
+        mapping = { paynowCustomerId: customerData.id };
+        await userDoc.set(mapping, { merge: true });
+        console.log(`Created PayNow customer for ${userId} -> ${customerData.id}`);
+      }
+      
+      // Update context with customer token for Storefront API
+      const enhancedCtx = {
+        ...ctx,
+        payNowStorefrontHeaders: {
+          ...ctx.payNowStorefrontHeaders,
+          Authorization: `Customer ${mapping.paynowCustomerId}`,
+        },
+      };
+      
+      const checkoutData = {
+        subscription: input.sku.startsWith("sub_"),
+        lines: [{
+          product_id: productId,
+          quantity: input.qty,
+          gift_to: null,
+          gift_to_customer_id: null,
+          selected_gameserver_id: null,
+        }],
+      };
+      
+      try {
+        const result = await PayNowService.checkout(enhancedCtx, checkoutData);
+        return { url: result.url };
+      } catch (error) {
+        console.error("PayNow checkout failed:", error);
+        throw new Error(`PayNow checkout failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }),
 });
