@@ -69,14 +69,15 @@ export const checkoutRouter = createTRPCRouter({
         },
       };
       
+      const isSubscription = input.sku.startsWith("sub_");
       const checkoutData = {
-        subscription: input.sku.startsWith("sub_"),
+        subscription: isSubscription,
         lines: [{
           product_id: productId,
           quantity: input.qty,
-          gift_to: null,
-          gift_to_customer_id: null,
-          selected_gameserver_id: null,
+          subscription: isSubscription,
+          // Only include optional fields if they have values
+          ...(input.sku.includes("gameserver") ? { selected_gameserver_id: null } : {}),
         }],
       };
       
