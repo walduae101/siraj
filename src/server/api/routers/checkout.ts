@@ -50,31 +50,14 @@ export const checkoutRouter = createTRPCRouter({
       let mapping = (await userDoc.get()).data() as { paynowCustomerId?: string } | undefined;
       
       if (!mapping?.paynowCustomerId) {
-        // Create PayNow customer if doesn't exist
-        const resp = await fetch("https://api.paynow.gg/v1/customers", {
-          method: "POST",
-          headers: {
-            Authorization: `APIKey ${(process.env.PAYNOW_API_KEY ?? "")
-              .replace(/["']/g, "")
-              .replace(/[^\x20-\x7E]/g, "")
-              .trim()}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({ 
-            email: ctx.user?.email ?? `user-${userId}@siraj.life`
-          }),
-        });
+        // Use existing PayNow service method for customer creation
+        const email = ctx.user?.email ?? `user-${userId}@siraj.life`;
+        const name = ctx.user?.email?.split('@')[0] ?? `User-${userId}`;
         
-        if (!resp.ok) {
-          const errorText = await resp.text();
-          throw new Error(`PayNow create customer failed: ${resp.status} - ${errorText}`);
-        }
-        
-        const customerData = await resp.json();
-        mapping = { paynowCustomerId: customerData.id };
+        const customerId = await PayNowService.findOrCreateCustomerByEmail(email, name);
+        mapping = { paynowCustomerId: customerId };
         await userDoc.set(mapping, { merge: true });
-        console.log(`Created PayNow customer for ${userId} -> ${customerData.id}`);
+        console.log(`Created/found PayNow customer for ${userId} -> ${customerId}`);
       }
       
       // Update context with customer token for Storefront API
