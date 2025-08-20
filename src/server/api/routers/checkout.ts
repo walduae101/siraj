@@ -9,12 +9,20 @@ import {
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { checkoutStub } from "~/server/services/checkoutStub";
-import { PayNowService, getOrderByCheckoutId } from "~/server/services/paynow";
+import { createCheckout, ensureCustomerId, getOrder } from "~/server/services/paynowMgmt";
 import { pointsService } from "~/server/services/points";
 import type { PayNowSku } from "~/server/services/paynowProducts";
 import { env } from "~/env-server";
 
 const productPoints = JSON.parse(process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON ?? "{}") as Record<string, number>;
+
+const ProductMap = (() => {
+  try { 
+    return JSON.parse(env.PAYNOW_PRODUCTS_JSON ?? "{}") as Record<string, string>; 
+  } catch { 
+    return {} as Record<string, string>; 
+  }
+})();
 
 export const checkoutRouter = createTRPCRouter({
   preview: protectedProcedure.input(checkoutPreviewInput).query(({ input }) => {
@@ -24,20 +32,24 @@ export const checkoutRouter = createTRPCRouter({
 
   complete: protectedProcedure
     .input(z.object({
-      checkoutId: z.string(),
+      orderId: z.string().optional(),
+      checkoutId: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const uid = ctx.user?.uid ?? ctx.userId;
       if (!uid) throw new Error("No user in context");
 
-      const order = await getOrderByCheckoutId(env.PAYNOW_STORE_ID, input.checkoutId);
-      if (!order) throw new Error("Order not found for checkout_id");
+      // Support both order_id and checkout_id for flexibility
+      const orderId = input.orderId || input.checkoutId;
+      if (!orderId) throw new Error("No order ID provided");
+
+      const order = await getOrder(orderId);
+      if (!order) throw new Error("Order not found");
 
       // Only credit once: use order.pretty_id as idempotency key
-      // PayNow docs: `pretty_id` looks like pn-xxxxx (visible in success URL)
       // Credit only when paid/complete
-      if (order.payment_state !== "paid" || order.state !== "completed") {
-        throw new Error(`Order not paid/complete (state=${order.state}, payment=${order.payment_state})`);
+      if (order.payment_state !== "paid" || order.status !== "completed") {
+        throw new Error(`Order not paid/complete (status=${order.status}, payment=${order.payment_state})`);
       }
 
       let totalCredited = 0;
@@ -52,37 +64,51 @@ export const checkoutRouter = createTRPCRouter({
             kind: "paid",                           // never expires
             amount: delta,
             source: "paynow:order",
-            actionId: `${order.pretty_id}_${pid}_${qty}`,
+            actionId: `${order.pretty_id || order.id}_${pid}_${qty}`,
           });
           totalCredited += delta;
         }
       }
-      return { ok: true, credited: totalCredited, orderId: order.pretty_id };
+      return { ok: true, credited: totalCredited, orderId: order.pretty_id || order.id };
     }),
 
   create: protectedProcedure
     .input(
       z.object({
-        sku: z.custom<PayNowSku>(),
-        qty: z.number().int().min(1).max(10).optional(),
-        successUrl: z.string().url(),
-        cancelUrl: z.string().url(),
+        sku: z.string().optional(),
+        productId: z.string().optional(),
+        qty: z.number().int().min(1).max(10).default(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (!features.liveCheckout) throw new Error("Live checkout disabled");
-      const userId = ctx.user?.uid ?? ctx.userId;
-      if (!userId) throw new Error("UNAUTHORIZED");
-
       const db = await getDb();
-      const { id, url } = await PayNowService.createCheckout(db, {
-        uid: userId,
-        sku: input.sku,
-        qty: input.qty,
-        name: ctx.user?.email?.split("@")[0],
-        email: ctx.user?.email,
+      const uid = ctx.user?.uid ?? ctx.userId;
+      if (!uid) throw new Error("Not authenticated");
+
+      // Resolve product ID from SKU or direct productId
+      const productId = input.productId ?? ProductMap[input.sku ?? ""] ?? "";
+      if (!productId) throw new Error("Unknown product");
+
+      // Ensure we have a PayNow customer ID
+      const customerId = await ensureCustomerId(db, uid, { 
+        name: ctx.user?.email?.split("@")[0] || uid, 
+        email: ctx.user?.email 
+      });
+      
+      // Build URLs
+      const baseUrl = process.env.NEXT_PUBLIC_WEBSITE_URL || "https://siraj.life";
+      const successUrl = new URL("/checkout/success", baseUrl).toString();
+      const cancelUrl = new URL("/paywall", baseUrl).toString();
+      
+      // Create the checkout session
+      const session = await createCheckout({ 
+        customerId, 
+        productId, 
+        qty: input.qty, 
+        successUrl, 
+        cancelUrl 
       });
 
-      return { url };
+      return { url: session.url, checkoutId: session.id };
     }),
 });

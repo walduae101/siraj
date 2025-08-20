@@ -47,9 +47,7 @@ export function BuyButton({
     }
     createCheckout.mutate({
       sku,
-      qty,
-      successUrl: `${window.location.origin}/checkout/success`,
-      cancelUrl: `${window.location.origin}/paywall`,
+      qty
     });
   };
 

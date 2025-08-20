@@ -6,14 +6,16 @@ import { api } from "~/trpc/react";
 
 function SuccessContent() {
   const params = useSearchParams();
+  const orderId = params.get("order_id") || "";
   const checkoutId = params.get("checkout_id") || "";
   const complete = api.checkout?.complete.useMutation();
 
   React.useEffect(() => {
-    if (checkoutId && complete && !complete.isSuccess && !complete.isPending) {
-      complete.mutate({ checkoutId });
+    const id = orderId || checkoutId;
+    if (id && complete && !complete.isSuccess && !complete.isPending) {
+      complete.mutate({ orderId, checkoutId });
     }
-  }, [checkoutId, complete]);
+  }, [orderId, checkoutId, complete]);
 
   if (!complete) {
     return (

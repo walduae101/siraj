@@ -35,19 +35,22 @@ function CheckoutStartContent() {
   }, []);
 
   const allowedSkus = [
-    "points_1000",
-    "points_5000",
-    "points_10000",
-    "sub_monthly",
-    "sub_yearly",
+    "points_20",
+    "points_50",
+    "points_150",
+    "points_500",
+    "sub_basic_monthly",
+    "sub_pro_monthly",
+    "sub_basic_annual",
+    "sub_pro_annual",
   ] as const;
   type Sku = (typeof allowedSkus)[number];
   const validSku = allowedSkus.includes(sku as Sku) ? (sku as Sku) : undefined;
 
-  const { data, isLoading, error } = api.checkout?.preview.useQuery(
-    { sku: validSku || "points_1000", qty },
-    { enabled: features.stubCheckout && !!api.checkout && !!validSku },
-  ) || { data: undefined, isLoading: false, error: null };
+  // Skip preview for live checkout - go directly to PayNow
+  const data = null;
+  const isLoading = false;
+  const error = null;
 
   const router = useRouter();
   const createCheckout = api.checkout?.create.useMutation({
@@ -59,8 +62,8 @@ function CheckoutStartContent() {
   }) || { mutate: () => {}, isPending: false, error: null };
 
   // Early returns after all hooks are called
-  if (!features.liveCheckout || !api.checkout) {
-    return <p>Live checkout disabled</p>;
+  if (!api.checkout) {
+    return <p>Checkout system not available</p>;
   }
   if (!validSku) {
     return <p>Invalid SKU</p>;
@@ -72,41 +75,21 @@ function CheckoutStartContent() {
       return;
     }
     createCheckout.mutate({ 
-      sku: validSku as any, // Type conversion for PayNowSku
-      qty,
-      successUrl: `${window.location.origin}/checkout/success`,
-      cancelUrl: `${window.location.origin}/paywall`
+      sku: validSku, // Use SKU mapping
+      qty
     });
   };
 
-  if (isLoading) return <p>Loading…</p>;
-  if (error || !data) return <p>Failed to load.</p>;
-
   return (
     <main className="container mx-auto max-w-2xl space-y-6 p-6">
-      <h1 className="font-semibold text-2xl">Confirm Purchase</h1>
+      <h1 className="font-semibold text-2xl">Processing Checkout</h1>
       <div className="rounded-xl border p-4">
         <p className="mb-2">
-          SKU: <b>{data.sku}</b>
+          Product: <b>{validSku}</b>
         </p>
         <p className="mb-2">
-          Qty: <b>{data.qty}</b>
+          Quantity: <b>{qty}</b>
         </p>
-        <p className="mb-2">
-          Total:{" "}
-          <b>
-            {data.line.total} {data.currency}
-          </b>
-        </p>
-        {data.grant.type === "points" ? (
-          <p>
-            Grant: <b>{data.grant.amount}</b> points (perpetual)
-          </p>
-        ) : (
-          <p>
-            Grant: <b>{data.grant.days}</b> days subscription
-          </p>
-        )}
       </div>
       <button
         type="button"
