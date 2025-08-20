@@ -16,7 +16,7 @@ export const clientEnv = createEnv({
     NEXT_PUBLIC_FIREBASE_API_KEY: z.string(),
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string(),
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string(),
-    NEXT_PUBLIC_FIREBASE_APP_ID: z.string().optional(),
+    NEXT_PUBLIC_FIREBASE_APP_ID: z.string(),
   },
 
   runtimeEnv: {

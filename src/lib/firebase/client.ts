@@ -7,9 +7,19 @@ const cfg = {
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
 };
+
+// Validate required config
+if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId) {
+  console.error("Firebase configuration missing required values:", {
+    apiKey: !!cfg.apiKey,
+    authDomain: !!cfg.authDomain,
+    projectId: !!cfg.projectId,
+    appId: !!cfg.appId,
+  });
+}
 
 let app: FirebaseApp | undefined;
 export function getFirebaseApp(): FirebaseApp {
