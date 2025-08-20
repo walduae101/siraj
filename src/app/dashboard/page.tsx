@@ -37,7 +37,7 @@ export default function DashboardPage() {
       {features.pointsClient && (
         <div className="rounded-lg border bg-card p-6 mb-6">
           <h2 className="mb-4 font-semibold text-2xl">النقاط · Points</h2>
-          <WalletWidget uid={user.uid} locale="ar" />
+          <WalletWidget locale="ar" />
           <div className="mt-4 flex gap-2">
             <Button
               variant="outline"
