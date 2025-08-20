@@ -31,7 +31,8 @@ export const subscriptions = {
    * Creates/updates the subscription doc AND credits the first cycle immediately.
    */
   async recordPurchase(uid: string, productId: string, orderId: string) {
-    if (!env.FEAT_SUB_POINTS) {
+    const cfg = getConfig();
+    if (!cfg.features.FEAT_SUB_POINTS) {
       return { ok: false as const, reason: "feature-disabled" };
     }
 
@@ -83,14 +84,17 @@ export const subscriptions = {
     });
 
     // Credit first cycle immediately
+    const kind = cfg.subscriptions.pointsKind;
+    const expireDays = cfg.subscriptions.pointsExpireDays;
+    
     await pointsService.credit({
       uid,
-      kind: KIND,
+      kind: kind,
       amount: plan.pointsPerCycle,
       source: `subscription:${plan.name}:first-cycle`,
       expiresAt:
-        KIND === "promo"
-          ? new Date(Date.now() + EXPIRE_DAYS * 86400000)
+        kind === "promo"
+          ? new Date(Date.now() + expireDays * 86400000)
           : undefined,
       actionId: `${orderId}_first_cycle_${productId}`,
     });
@@ -128,14 +132,18 @@ export const subscriptions = {
       const plan = this.getPlan(sub.productId);
       if (!plan) continue;
 
+      const cfg = getConfig();
+      const kind = cfg.subscriptions.pointsKind;
+      const expireDays = cfg.subscriptions.pointsExpireDays;
+      
       await pointsService.credit({
         uid,
-        kind: KIND,
+        kind: kind,
         amount: plan.pointsPerCycle,
         source: `subscription:${plan.name}:cycle-topup`,
         expiresAt:
-          KIND === "promo"
-            ? new Date(Date.now() + EXPIRE_DAYS * 86400000)
+          kind === "promo"
+            ? new Date(Date.now() + expireDays * 86400000)
             : undefined,
         actionId: `${sub.orderId}_cycle_${Date.now()}_${sub.productId}`,
       });
@@ -179,14 +187,18 @@ export const subscriptions = {
       const plan = this.getPlan(sub.productId);
       if (!plan) continue;
 
+      const cfg = getConfig();
+      const kind = cfg.subscriptions.pointsKind;
+      const expireDays = cfg.subscriptions.pointsExpireDays;
+      
       await pointsService.credit({
         uid,
-        kind: KIND,
+        kind: kind,
         amount: plan.pointsPerCycle,
         source: `subscription:${plan.name}:cycle-topup`,
         expiresAt:
-          KIND === "promo"
-            ? new Date(Date.now() + EXPIRE_DAYS * 86400000)
+          kind === "promo"
+            ? new Date(Date.now() + expireDays * 86400000)
             : undefined,
         actionId: `${sub.orderId}_cycle_${Date.now()}_${sub.productId}`,
       });
