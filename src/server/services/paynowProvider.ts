@@ -15,7 +15,7 @@ function apiKey() {
 
 function headers(idem?: string) {
   return {
-    Authorization: `APIKey ${apiKey()}`,
+    Authorization: `apikey ${apiKey()}`,
     "content-type": "application/json",
     ...(idem ? { "idempotency-key": idem } : {}),
   };
