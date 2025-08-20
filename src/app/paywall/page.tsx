@@ -1,3 +1,4 @@
+"use client";
 import { features } from '~/config/features';
 import { pricing } from '~/lib/pricing';
 import { t } from '~/lib/i18n/t';
@@ -6,11 +7,6 @@ import { fmtNum } from '~/lib/i18n/num';
 import { WalletWidget } from '~/components/points/WalletWidget';
 import { Button } from '~/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/card';
-
-export const metadata = {
-  title: 'Paywall · Siraj',
-  description: 'Fair, transparent pricing — perpetual points and time-based access.',
-};
 
 function fmtCurrency(value: number, locale?: string, currency?: string) {
   try {
@@ -39,7 +35,7 @@ export default function PaywallPage() {
           {tt('paywall.intro', 'اختر ما يناسبك — نقاط دائمة لا تنتهي، أو اشتراك زمني منفصل.')}
         </p>
       </div>
-      <WalletWidget />
+      <WalletWidget locale={locale} />
       {!on && (
         <div className="rounded-2xl border p-4 text-sm">
           {tt('points.off', 'النقاط غير مفعّلة في هذه البيئة.')}
@@ -71,7 +67,7 @@ export default function PaywallPage() {
                 {tt('paywall.fairness', 'شفافية: سنعرض التكلفة قبل الخصم.')}
               </div>
               <Button asChild aria-label={tt('paywall.buyPoints', 'اشترِ النقاط')}>
-                <a href={`/checkout?sku=points_1000&qty=1`}>{tt('paywall.buy', 'شراء')}</a>
+                <a href={`/checkout/start?sku=points_1000&qty=1`}>{tt('paywall.buy', 'شراء')}</a>
               </Button>
             </CardFooter>
           </Card>
@@ -90,7 +86,7 @@ export default function PaywallPage() {
                 {tt('paywall.neverExpires', 'النقاط المدفوعة لا تنتهي.')}
               </div>
               <Button asChild aria-label={tt('paywall.buyPoints', 'اشترِ النقاط')}>
-                <a href={`/checkout?sku=points_5000&qty=1`}>{tt('paywall.buy', 'شراء')}</a>
+                <a href={`/checkout/start?sku=points_5000&qty=1`}>{tt('paywall.buy', 'شراء')}</a>
               </Button>
             </CardFooter>
           </Card>
@@ -109,7 +105,7 @@ export default function PaywallPage() {
                 {tt('paywall.transparency', 'نوضح الرصيد قبل/بعد أي عملية.')}
               </div>
               <Button asChild aria-label={tt('paywall.buyPoints', 'اشترِ النقاط')}>
-                <a href={`/checkout?sku=points_10000&qty=1`}>{tt('paywall.buy', 'شراء')}</a>
+                <a href={`/checkout/start?sku=points_10000&qty=1`}>{tt('paywall.buy', 'شراء')}</a>
               </Button>
             </CardFooter>
           </Card>
@@ -139,7 +135,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">{tt('paywall.cancelAnytime', 'يمكن الإلغاء في أي وقت.')}</div>
               <Button asChild aria-label={tt('paywall.subscribe', 'اشترك')}>
-                <a href={`/checkout?sku=sub_monthly&qty=1`}>{tt('paywall.subscribe', 'اشتراك')}</a>
+                <a href={`/checkout/start?sku=sub_monthly&qty=1`}>{tt('paywall.subscribe', 'اشتراك')}</a>
               </Button>
             </CardFooter>
           </Card>
@@ -156,7 +152,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">{tt('paywall.bestValue', 'أفضل قيمة سنوية.')}</div>
               <Button asChild aria-label={tt('paywall.subscribe', 'اشترك')}>
-                <a href={`/checkout?sku=sub_yearly&qty=1`}>{tt('paywall.subscribe', 'اشتراك')}</a>
+                <a href={`/checkout/start?sku=sub_yearly&qty=1`}>{tt('paywall.subscribe', 'اشتراك')}</a>
               </Button>
             </CardFooter>
           </Card>

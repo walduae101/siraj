@@ -1,13 +1,21 @@
+"use client";
 import { features } from '~/config/features';
 import { WalletWidget } from '~/components/points/WalletWidget';
 import { LedgerTable } from '~/components/points/LedgerTable';
-
-export const metadata = { title: 'Points | الحساب' };
+import { useFirebaseUser } from '~/components/auth/useFirebaseUser';
 
 export default function PointsPage() {
+  const { user } = useFirebaseUser();
   const on = features.pointsClient;
-  // TODO: Replace 'me' with actual user UID from auth context/session
-  const uid = 'me';
+  
+  if (!user?.uid) {
+    return (
+      <div className="container mx-auto max-w-4xl px-4 py-6">
+        <p className="text-center opacity-70">الرجاء تسجيل الدخول · Please sign in</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="container mx-auto max-w-4xl px-4 py-6 space-y-6">
       <div className="space-y-1">
@@ -16,11 +24,11 @@ export default function PointsPage() {
           {on ? 'سجل رصيدك وحركاتك، بكل شفافية.' : 'النقاط غير مفعلة في هذه البيئة.'}
         </p>
       </div>
-      <WalletWidget uid={uid} />
+      <WalletWidget />
       {on && (
         <section className="space-y-3">
           <h2 className="text-lg font-medium">السجل · Ledger</h2>
-          <LedgerTable uid={uid} pageSize={20} />
+          <LedgerTable uid={user.uid} pageSize={20} />
         </section>
       )}
     </div>

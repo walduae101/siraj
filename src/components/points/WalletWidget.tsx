@@ -3,12 +3,14 @@ import { t } from '~/lib/i18n/t';
 import { features } from '~/config/features';
 import { fmtNum } from '~/lib/i18n/num';
 import { api } from '~/trpc/react';
+import { useFirebaseUser } from '~/components/auth/useFirebaseUser';
 
-export function WalletWidget({ uid = 'me', locale = 'ar' }: { uid?: string; locale?: string }) {
-  if (!features.pointsClient || !api.points) return null;
+export function WalletWidget({ locale = 'ar' }: { locale?: string }) {
+  const { user } = useFirebaseUser();
+  if (!features.pointsClient || !api.points || !user?.uid) return null;
   const safeLocale: "en" | "ar" = locale === "ar" ? "ar" : "en";
   const tt = t(safeLocale);
-  const { data } = api.points.getWallet.useQuery({ uid }, { staleTime: 10_000 });
+  const { data } = api.points.getWallet.useQuery({ uid: user.uid }, { staleTime: 10_000 });
   if (!data) return null;
   const soonest = data.promoLots?.filter((l: any) => l.amountRemaining > 0)?.sort((a: any, b: any) => a.expiresAt.toMillis() - b.expiresAt.toMillis())[0];
   const Dir = locale === "ar" ? "rtl" : "ltr";

@@ -1,3 +1,4 @@
+"use client";
 import { WalletWidget } from "~/components/points/WalletWidget";
 
 export default function Success() {
