@@ -9,8 +9,8 @@ import {
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { checkoutStub } from "~/server/services/checkoutStub";
-import { type Sku, skuMap } from "~/server/services/skuMap";
-import PayNowService from "~/server/api/services/paynow";
+import { PayNowService } from "~/server/services/paynow";
+import { type PayNowSku } from "~/server/services/paynowProducts";
 
 export const checkoutRouter = createTRPCRouter({
   preview: protectedProcedure.input(checkoutPreviewInput).query(({ input }) => {
@@ -32,8 +32,8 @@ export const checkoutRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
       z.object({
-        sku: z.custom<Sku>(),
-        qty: z.number().int().min(1).max(10).default(1),
+        sku: z.custom<PayNowSku>(),
+        qty: z.number().int().min(1).max(10).optional(),
         successUrl: z.string().url(),
         cancelUrl: z.string().url(),
       }),
@@ -42,90 +42,16 @@ export const checkoutRouter = createTRPCRouter({
       if (!features.liveCheckout) throw new Error("Live checkout disabled");
       const userId = ctx.user?.uid ?? ctx.userId;
       if (!userId) throw new Error("UNAUTHORIZED");
-
-      const productId = skuMap[input.sku].productId;
       
-      // Ensure user has PayNow customer account
       const db = await getDb();
-      const userDoc = db.collection("userMappings").doc(userId);
-      let mapping = (await userDoc.get()).data() as { paynowCustomerId?: string } | undefined;
+      const { id, url } = await PayNowService.createCheckout(db, {
+        uid: userId,
+        sku: input.sku,
+        qty: input.qty,
+        name: ctx.user?.email?.split('@')[0],
+        email: ctx.user?.email,
+      });
       
-      if (!mapping?.paynowCustomerId) {
-        // Use existing PayNow service method for customer creation
-        const email = ctx.user?.email ?? `user-${userId}@siraj.life`;
-        const name = ctx.user?.email?.split('@')[0] ?? `User-${userId}`;
-        
-        const customerId = await PayNowService.findOrCreateCustomerByEmail(email, name);
-        mapping = { paynowCustomerId: customerId };
-        await userDoc.set(mapping, { merge: true });
-        console.log(`Created/found PayNow customer for ${userId} -> ${customerId}`);
-      }
-      
-      // Generate proper auth token for Storefront API
-      if (!mapping.paynowCustomerId) {
-        throw new Error("PayNow customer ID not found after creation");
-      }
-      const authToken = await PayNowService.generateAuthToken(mapping.paynowCustomerId);
-      
-      // PayNow requires customer IP or country code for server-side requests
-      const forwardedFor = ctx.headers.get('x-forwarded-for') as string | null;
-      const realIp = ctx.headers.get('x-real-ip') as string | null;
-      const cfIp = ctx.headers.get('cf-connecting-ip') as string | null;
-      
-      // Get the first available IP or use localhost as fallback
-      const rawIp = forwardedFor || realIp || cfIp || '127.0.0.1';
-      
-      // Handle multiple IPs (x-forwarded-for can contain comma-separated list)
-      // @ts-ignore - rawIp is guaranteed to be a string due to fallback
-      const customerIp = rawIp.split(',')[0].trim();
-      
-      const enhancedCtx = {
-        ...ctx,
-        payNowStorefrontHeaders: {
-          ...ctx.payNowStorefrontHeaders,
-          Authorization: `Customer ${authToken}`,
-          'x-paynow-customer-ip': customerIp,
-          'x-paynow-customer-countrycode': 'AE', // Default to UAE
-        },
-      };
-      
-      const isSubscription = input.sku.startsWith("sub_");
-      
-      // PayNow checkout payload - match the exact structure from their docs
-      const checkoutData = {
-        subscription: isSubscription,
-        lines: [{
-          product_id: productId,
-          quantity: input.qty,
-          // Don't duplicate subscription flag in line items
-          // Only include gameserver_id if it's a gameserver product
-          ...(input.sku.includes("gameserver") ? { selected_gameserver_id: null } : {}),
-        }],
-        // Explicit redirects as required by Storefront Checkout
-        success_url: input.successUrl,
-        cancel_url: input.cancelUrl,
-      };
-      
-      try {
-        console.log("[checkout.create] Sending to PayNow:", JSON.stringify({
-          headers: enhancedCtx.payNowStorefrontHeaders,
-          payload: checkoutData,
-          customerId: mapping.paynowCustomerId,
-          authToken: authToken.substring(0, 10) + "..."
-        }, null, 2));
-        
-        const result = await PayNowService.checkout(enhancedCtx, checkoutData);
-        return { url: result.url };
-      } catch (error: unknown) {
-        console.error("[checkout.create] PayNow checkout failed:", error);
-        // If upstream already produced a TRPCError, propagate as-is for client visibility
-        if (error instanceof TRPCError) throw error;
-        if (typeof error === "object" && error && "message" in error) {
-          // @ts-ignore
-          const msg: string = error.message ?? "Checkout failed";
-          throw new TRPCError({ code: "BAD_REQUEST", message: msg });
-        }
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Checkout failed" });
-      }
+      return { url };
     }),
 });

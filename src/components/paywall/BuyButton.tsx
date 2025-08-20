@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import type { Sku } from "~/server/services/skuMap";
+import type { PayNowSku } from "~/server/services/paynowProducts";
 import { api } from "~/trpc/react";
 
 interface BuyButtonProps {
-  sku: Sku;
+  sku: PayNowSku;
   qty?: number;
   children: React.ReactNode;
   disabled?: boolean;

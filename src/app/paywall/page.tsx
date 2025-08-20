@@ -178,7 +178,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">يمكن الإلغاء في أي وقت.</div>
               {features.liveCheckout ? (
-                <BuyButton sku="sub_basic_m" aria-label="اشترك">
+                <BuyButton sku="sub_basic_monthly" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
@@ -199,7 +199,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">مزايا احترافية متقدمة.</div>
               {features.liveCheckout ? (
-                <BuyButton sku="sub_pro_m" aria-label="اشترك">
+                <BuyButton sku="sub_pro_monthly" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
@@ -220,7 +220,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">أفضل قيمة سنوية.</div>
               {features.liveCheckout ? (
-                <BuyButton sku="sub_basic_y" aria-label="اشترك">
+                <BuyButton sku="sub_basic_yearly" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
@@ -241,7 +241,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">الخطة الأقوى والأوفر.</div>
               {features.liveCheckout ? (
-                <BuyButton sku="sub_pro_y" aria-label="اشترك">
+                <BuyButton sku="sub_pro_yearly" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
