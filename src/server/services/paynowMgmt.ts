@@ -1,7 +1,7 @@
 // Minimal, robust PayNow Management client
-import { env } from "~/env-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { TRPCError } from "@trpc/server";
+import { getConfig } from "~/server/config";
 
 const API = "https://api.paynow.gg";
 
@@ -9,11 +9,10 @@ function clean(key: string) {
   return (key ?? "").replace(/["'\r\n]/g, "").trim();
 }
 
-const apiKey = clean(env.PAYNOW_API_KEY);
-const storeId = clean(env.PAYNOW_STORE_ID);
-
 function headers() {
-  if (!apiKey) throw new Error("PAYNOW_API_KEY missing");
+  const cfg = getConfig();
+  const apiKey = clean(cfg.paynow.apiKey);
+  if (!apiKey) throw new Error("PayNow API key missing in config");
   return {
     "content-type": "application/json",
     // 'apikey' is case-insensitive per docs
@@ -34,6 +33,8 @@ export async function ensureCustomerId(
   }
 
   // Create a customer (management API)
+  const cfg = getConfig();
+  const storeId = clean(cfg.paynow.storeId);
   const res = await fetch(`${API}/v1/stores/${storeId}/customers`, {
     method: "POST",
     headers: headers(),
@@ -82,6 +83,8 @@ export async function createCheckout(args: {
     ],
   };
   
+  const cfg = getConfig();
+  const storeId = clean(cfg.paynow.storeId);
   const res = await fetch(`${API}/v1/stores/${storeId}/checkouts`, {
     method: "POST",
     headers: headers(),
@@ -102,6 +105,8 @@ export async function createCheckout(args: {
 
 // Get order (to verify on success page if needed)
 export async function getOrder(orderId: string) {
+  const cfg = getConfig();
+  const storeId = clean(cfg.paynow.storeId);
   const res = await fetch(`${API}/v1/stores/${storeId}/orders/${orderId}`, {
     headers: headers(),
   });

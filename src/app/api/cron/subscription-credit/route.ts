@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { env } from "~/env-server";
+import { getConfig } from "~/server/config";
 import { subscriptions } from "~/server/services/subscriptions";
 
 export const runtime = "nodejs";
@@ -7,7 +7,8 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   // Verify cron authentication
   const key = req.headers.get("x-cron-key");
-  if (!key || !env.CRON_SECRET || key !== env.CRON_SECRET) {
+  const cfg = getConfig();
+  if (!key || !cfg.subscriptions.cronSecret || key !== cfg.subscriptions.cronSecret) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

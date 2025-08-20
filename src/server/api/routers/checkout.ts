@@ -12,17 +12,9 @@ import { checkoutStub } from "~/server/services/checkoutStub";
 import { createCheckout, ensureCustomerId, getOrder } from "~/server/services/paynowMgmt";
 import { pointsService } from "~/server/services/points";
 import type { PayNowSku } from "~/server/services/paynowProducts";
-import { env } from "~/env-server";
+import { getConfig, getProductId } from "~/server/config";
 
 const productPoints = JSON.parse(process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON ?? "{}") as Record<string, number>;
-
-const ProductMap = (() => {
-  try { 
-    return JSON.parse(env.PAYNOW_PRODUCTS_JSON ?? "{}") as Record<string, string>; 
-  } catch { 
-    return {} as Record<string, string>; 
-  }
-})();
 
 export const checkoutRouter = createTRPCRouter({
   preview: protectedProcedure.input(checkoutPreviewInput).query(({ input }) => {
@@ -86,9 +78,10 @@ export const checkoutRouter = createTRPCRouter({
       if (!uid) throw new Error("Not authenticated");
 
       // Resolve product ID from SKU or direct productId
-      const productId = input.productId ?? ProductMap[input.sku ?? ""] ?? "";
+      const productId = input.productId ?? getProductId(input.sku ?? "") ?? "";
       if (!productId) {
-        const keys = Object.keys(ProductMap).join(", ");
+        const cfg = getConfig();
+        const keys = Object.keys(cfg.paynow.products).join(", ");
         throw new Error(`Unknown product (sku=${input.sku}, productId=${input.productId}). Known SKUs: [${keys}]`);
       }
 

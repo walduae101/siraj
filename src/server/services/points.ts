@@ -15,7 +15,8 @@ function nowTs() {
 export const pointsService = {
   async getWallet(uid: string) {
     // Optional lazy top-up safety net for subscriptions
-    if (env.SUB_TOPUP_LAZY) {
+    const cfg = await import("~/server/config").then(m => m.getConfig());
+    if (cfg.subscriptions.topupLazy) {
       try {
         // Dynamically import to avoid circular dependency
         const { subscriptions } = await import("./subscriptions");

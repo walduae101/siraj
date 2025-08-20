@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
-import { env } from "~/env-server";
 import { pointsService } from "~/server/services/points";
+import { getConfig, getSubscriptionPlan } from "~/server/config";
 import { addMonths } from "./util-date";
 
 type Cycle = "month" | "year";
@@ -21,33 +21,9 @@ type SubDoc = {
   totalGranted: number; // cumulative points granted by this sub
 };
 
-function loadPlans(): Record<string, Plan> {
-  try {
-    const raw = env.SUB_PLAN_POINTS_JSON ?? "{}";
-    const obj = JSON.parse(raw);
-    return obj;
-  } catch {
-    return {};
-  }
-}
-
-const PLANS: Record<string, Plan> = loadPlans();
-
-const KIND = (env.SUB_POINTS_KIND === "paid" ? "paid" : "promo") as
-  | "paid"
-  | "promo";
-const EXPIRE_DAYS = Math.max(1, Number(env.SUB_POINTS_EXPIRE_DAYS ?? 365));
-
 export const subscriptions = {
-  getPlan(productId: string): Plan | null {
-    const p = PLANS[productId];
-    return p
-      ? {
-          name: p.name,
-          cycle: p.cycle,
-          pointsPerCycle: Number(p.pointsPerCycle || 0),
-        }
-      : null;
+  getPlan(productId: string) {
+    return getSubscriptionPlan(productId);
   },
 
   /**
@@ -133,7 +109,8 @@ export const subscriptions = {
    * Credit **one** user's due sub(s) if nextCreditAt <= now.
    */
   async creditDueForUser(uid: string) {
-    if (!env.FEAT_SUB_POINTS) {
+    const cfg = getConfig();
+    if (!cfg.features.FEAT_SUB_POINTS) {
       return { ok: true as const, credited: 0 };
     }
 
@@ -178,7 +155,8 @@ export const subscriptions = {
    * Cron: credit all due across the project (batched).
    */
   async creditAllDue(limit = 300) {
-    if (!env.FEAT_SUB_POINTS) {
+    const cfg = getConfig();
+    if (!cfg.features.FEAT_SUB_POINTS) {
       return { ok: true as const, processed: 0 };
     }
 

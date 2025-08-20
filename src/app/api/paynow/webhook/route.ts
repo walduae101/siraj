@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { pointsService } from "~/server/services/points";
 import { subscriptions } from "~/server/services/subscriptions";
-import { env } from "~/env-server";
+import { getConfig } from "~/server/config";
 
 const productPoints = JSON.parse(process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON ?? "{}") as Record<string, number>;
 
@@ -11,9 +11,10 @@ const productPoints = JSON.parse(process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_P
 function verify(reqBody: string, headers: Headers) {
   const sig = headers.get("PayNow-Signature");
   const ts  = headers.get("PayNow-Timestamp");
-  if (!sig || !ts || !env.PAYNOW_WEBHOOK_SECRET) return false;
+  const cfg = getConfig();
+  if (!sig || !ts || !cfg.paynow.webhookSecret) return false;
   const payload = `${ts}.${reqBody}`;
-  const mac = crypto.createHmac("sha256", env.PAYNOW_WEBHOOK_SECRET).update(payload).digest("hex");
+  const mac = crypto.createHmac("sha256", cfg.paynow.webhookSecret).update(payload).digest("hex");
   return crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(sig));
 }
 
