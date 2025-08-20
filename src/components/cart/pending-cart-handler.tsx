@@ -43,7 +43,6 @@ export default function PendingCartHandler() {
     },
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: n/a
   useEffect(() => {
     if (!cartSidebar.pendingItem) {
       return;
@@ -51,7 +50,6 @@ export default function PendingCartHandler() {
 
     if (!auth) {
       authDialog.setOpen(true);
-
       return;
     }
 
@@ -119,7 +117,15 @@ export default function PendingCartHandler() {
     }
 
     handleAddToCart();
-  }, [auth, cartSidebar.pendingItem]);
+  }, [
+    auth, 
+    cartSidebar.pendingItem, 
+    authDialog, 
+    cartSidebar, 
+    store?.platform, 
+    checkoutMutation, 
+    updateCartMutation
+  ]);
 
   return null;
 }

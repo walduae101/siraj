@@ -45,6 +45,7 @@ export function LedgerTable({
     {
       getNextPageParam: (last) => last?.nextCursor,
       staleTime: 10_000,
+      enabled: !!uid && on, // Only run when uid is available and feature is enabled
     }
   );
 
