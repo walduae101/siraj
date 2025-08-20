@@ -23,27 +23,35 @@ export default function Page() {
     return () => unsub();
   }, [router]);
 
+  // Handle redirect result when user comes back from Google auth
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const auth = getFirebaseAuth();
+        const result = await getRedirectResult(auth);
+        
+        if (result?.user) {
+          // User authenticated successfully via redirect
+          router.replace("/dashboard");
+        }
+      } catch (e) {
+        console.error("Redirect result error", e);
+        setErr("Authentication failed");
+      }
+    };
+
+    handleRedirectResult();
+  }, [router]);
+
   async function login() {
     setBusy(true);
     setErr(null);
     const auth = getFirebaseAuth();
     const provider = new GoogleAuthProvider();
     try {
-      // Try popup first
-      await signInWithPopup(auth, provider).catch(async (e) => {
-        // Fallback to redirect if popup blocked
-        if (String(e?.message ?? "").toLowerCase().includes("popup")) {
-          await signInWithRedirect(auth, provider);
-          // control will resume on / after redirect; handle below
-          return;
-        }
-        throw e;
-      });
-
-      // If we are back from redirect, get result (no-op if popup succeeded)
-      await getRedirectResult(auth);
-
-      // If we got here with a signed-in user, router effect above will move us
+      // Use redirect-based auth to avoid COOP issues
+      await signInWithRedirect(auth, provider);
+      // The page will redirect and come back, so we don't need to handle the result here
     } catch (e: any) {
       setErr(e?.message ?? "Sign-in failed");
       setBusy(false);
