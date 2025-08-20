@@ -1,13 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { Button } from "~/components/ui/button";
-import { api } from "~/trpc/react";
-import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
 import { signOut } from "firebase/auth";
-import { getFirebaseAuth } from "~/lib/firebase/client";
-import { features } from "~/config/features";
+import { useRouter } from "next/navigation";
+import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
 import { WalletWidget } from "~/components/points/WalletWidget";
+import { Button } from "~/components/ui/button";
+import { features } from "~/config/features";
+import { getFirebaseAuth } from "~/lib/firebase/client";
+import { api } from "~/trpc/react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function DashboardPage() {
 
       {/* Points/Wallet Section */}
       {features.pointsClient && (
-        <div className="rounded-lg border bg-card p-6 mb-6">
+        <div className="mb-6 rounded-lg border bg-card p-6">
           <h2 className="mb-4 font-semibold text-2xl">النقاط · Points</h2>
           <WalletWidget locale="ar" />
           <div className="mt-4 flex gap-2">
@@ -48,10 +48,7 @@ export default function DashboardPage() {
             >
               عرض السجل الكامل
             </Button>
-            <Button
-              onClick={() => router.push("/paywall")}
-              className="flex-1"
-            >
+            <Button onClick={() => router.push("/paywall")} className="flex-1">
               شراء نقاط
             </Button>
           </div>
@@ -62,12 +59,12 @@ export default function DashboardPage() {
         {/* Firebase Profile Section */}
         <div className="rounded-lg border bg-card p-6">
           <h2 className="mb-4 font-semibold text-2xl">معلومات حساب جوجل</h2>
-          <div className="flex items-center gap-4 mb-4">
+          <div className="mb-4 flex items-center gap-4">
             {user.photoURL && (
               <img
                 src={user.photoURL}
                 alt={user.displayName || user.email || "User"}
-                className="rounded-full w-16 h-16 border"
+                className="h-16 w-16 rounded-full border"
               />
             )}
             <div>
@@ -99,7 +96,9 @@ export default function DashboardPage() {
             </p>
             <p>
               <strong>تاريخ الإنشاء:</strong>{" "}
-              {auth?.created_at ? new Date(auth.created_at).toLocaleDateString("ar-SA") : "-"}
+              {auth?.created_at
+                ? new Date(auth.created_at).toLocaleDateString("ar-SA")
+                : "-"}
             </p>
           </div>
         </div>

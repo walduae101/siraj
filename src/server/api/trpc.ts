@@ -6,6 +6,7 @@ import { ZodError } from "zod";
 
 import type Context from "./types/context";
 
+import { getAdminAuth } from "~/server/firebase/admin-lazy";
 import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
 
@@ -59,10 +60,25 @@ export const createTRPCContext = async ({
     payNowStorefrontHeaders.Authorization = `Customer ${sanitizedToken}`;
   }
 
+  // Extract Firebase auth token
+  let firebaseUser: any = null;
+  const authHeader = headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    try {
+      const auth = await getAdminAuth();
+      firebaseUser = await auth.verifyIdToken(token);
+      console.log("Firebase user authenticated:", firebaseUser.uid);
+    } catch (error) {
+      console.warn("Failed to verify Firebase token:", error);
+    }
+  }
+
   return {
     headers,
     resHeaders,
     payNowStorefrontHeaders,
+    firebaseUser,
   };
 };
 

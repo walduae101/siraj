@@ -33,9 +33,12 @@ function CartSheet() {
 
   const cartSidebar = useCartSidebar();
 
-  const { data: cart, isFetching: cartLoading } = api.paynow.getCart.useQuery(undefined, {
-    staleTime: 10_000,
-  });
+  const { data: cart, isFetching: cartLoading } = api.paynow.getCart.useQuery(
+    undefined,
+    {
+      staleTime: 10_000,
+    },
+  );
 
   const updateCartMutation = api.paynow.updateCartItem.useMutation({
     onSuccess: async () => {

@@ -6,6 +6,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import SuperJSON from "superjson";
+import { getFirebaseAuth } from "~/lib/firebase/client";
 
 import type { AppRouter } from "~/server/api/root";
 import { createQueryClient } from "./query-client";
@@ -41,9 +42,22 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
         httpLink({
           transformer: SuperJSON,
           url: `${getBaseUrl()}/api/trpc`,
-          headers: () => {
+          headers: async () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");
+
+            // Add Firebase auth token if user is authenticated
+            try {
+              const auth = getFirebaseAuth();
+              const user = auth.currentUser;
+              if (user) {
+                const token = await user.getIdToken();
+                headers.set("authorization", `Bearer ${token}`);
+              }
+            } catch (error) {
+              console.warn("Failed to get Firebase auth token:", error);
+            }
+
             return headers;
           },
         }),

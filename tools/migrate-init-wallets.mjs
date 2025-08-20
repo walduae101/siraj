@@ -1,15 +1,15 @@
-import 'dotenv/config';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import fs from 'fs';
+import "dotenv/config";
+import fs from "node:fs";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
+import { Timestamp, getFirestore } from "firebase-admin/firestore";
 
 const creds = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
   ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
   : null;
 
 if (!creds) {
-  console.error('FIREBASE_SERVICE_ACCOUNT_JSON not set or invalid.');
+  console.error("FIREBASE_SERVICE_ACCOUNT_JSON not set or invalid.");
   process.exit(1);
 }
 
@@ -34,7 +34,11 @@ async function listAllAuthUsers(nextPageToken) {
 async function main() {
   const users = await listAllAuthUsers();
   for (const user of users) {
-    const ref = db.collection('users').doc(user.uid).collection('wallet').doc('points');
+    const ref = db
+      .collection("users")
+      .doc(user.uid)
+      .collection("wallet")
+      .doc("points");
     const snap = await ref.get();
     if (!snap.exists) {
       await ref.set({
@@ -48,10 +52,10 @@ async function main() {
       console.log(`Initialized wallet for ${user.uid}`);
     }
   }
-  console.log('Migration complete.');
+  console.log("Migration complete.");
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error(e);
   process.exit(1);
 });

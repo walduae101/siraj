@@ -1,7 +1,7 @@
-// @ts-nocheck
-import { db } from "../src/server/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { Timestamp } from "firebase-admin/firestore";
+// @ts-nocheck
+import { db } from "../src/server/firebase/admin";
 
 async function listAllAuthUsers(nextPageToken?: string) {
   const auth = getAuth();
@@ -18,7 +18,11 @@ async function listAllAuthUsers(nextPageToken?: string) {
 async function main() {
   const users = await listAllAuthUsers();
   for (const user of users) {
-    const ref = db.collection("users").doc(user.uid).collection("wallet").doc("points");
+    const ref = db
+      .collection("users")
+      .doc(user.uid)
+      .collection("wallet")
+      .doc("points");
     const snap = await ref.get();
     if (!snap.exists) {
       await ref.set({
@@ -35,7 +39,7 @@ async function main() {
   console.log("Migration complete.");
 }
 
-main().catch(e => {
+main().catch((e) => {
   console.error(e);
   process.exit(1);
 });

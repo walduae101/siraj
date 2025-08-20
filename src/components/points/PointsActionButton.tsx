@@ -1,10 +1,10 @@
 "use client";
-import * as React from 'react';
-import { features } from '~/config/features';
-import { t } from '~/lib/i18n/t';
-import { ConfirmSpendDialog } from './ConfirmSpendDialog';
-import { Button } from '~/components/ui/button';
-import { api } from '~/trpc/react';
+import * as React from "react";
+import { Button } from "~/components/ui/button";
+import { features } from "~/config/features";
+import { t } from "~/lib/i18n/t";
+import { api } from "~/trpc/react";
+import { ConfirmSpendDialog } from "./ConfirmSpendDialog";
 
 type PointsActionButtonProps = {
   uid?: string;

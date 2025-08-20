@@ -1,12 +1,19 @@
-import { publicProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { publicProcedure } from "~/server/api/trpc";
 
 export const protectedProcedure = publicProcedure.use(({ ctx, next }) => {
-  const userId =
-    (ctx as any)?.auth?.userId ??
-    (ctx as any)?.session?.user?.id;
-  if (!userId) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
+  const firebaseUser = ctx.firebaseUser;
+  if (!firebaseUser || !firebaseUser.uid) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Firebase authentication required",
+    });
   }
-  return next();
+  return next({
+    ctx: {
+      ...ctx,
+      user: firebaseUser,
+      userId: firebaseUser.uid,
+    },
+  });
 });

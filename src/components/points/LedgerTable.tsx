@@ -1,18 +1,23 @@
-'use client';
-import * as React from 'react';
-import { features } from '~/config/features';
-import { t } from '~/lib/i18n/t';
-import { fmtNum } from '~/lib/i18n/num';
-import { api } from '~/trpc/react';
+"use client";
+import * as React from "react";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Badge } from "~/components/ui/badge";
+import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
-  Table, TableHeader, TableRow, TableHead, TableBody, TableCell,
-} from '~/components/ui/table';
-import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
-import { Skeleton } from '~/components/ui/skeleton';
-import { Alert, AlertTitle, AlertDescription } from '~/components/ui/alert';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { features } from "~/config/features";
+import { fmtNum } from "~/lib/i18n/num";
+import { t } from "~/lib/i18n/t";
+import { api } from "~/trpc/react";
 
-type Kind = 'all' | 'credit' | 'spend' | 'expire' | 'adjust';
+type Kind = "all" | "credit" | "spend" | "expire" | "adjust";
 
 type LedgerTableProps = {
   pageSize?: number;
@@ -35,7 +40,7 @@ export function LedgerTable({
   if (!on || !api.points) {
     return (
       <div className="rounded-2xl border p-4 text-sm opacity-70">
-        {tt('points.off', 'النقاط غير مفعّلة في هذه البيئة.')}
+        {tt("points.off", "النقاط غير مفعّلة في هذه البيئة.")}
       </div>
     );
   }
@@ -46,7 +51,7 @@ export function LedgerTable({
       getNextPageParam: (last) => last?.nextCursor,
       staleTime: 10_000,
       enabled: !!uid && on, // Only run when uid is available and feature is enabled
-    }
+    },
   );
 
   const rows = React.useMemo(
@@ -68,13 +73,17 @@ export function LedgerTable({
       )}
       {q.error && (
         <Alert className="mb-3">
-          <AlertTitle>{tt('errors.ledgerFailed', 'فشل تحميل السجل')}</AlertTitle>
-          <AlertDescription>{String(q.error.message ?? q.error)}</AlertDescription>
+          <AlertTitle>
+            {tt("errors.ledgerFailed", "فشل تحميل السجل")}
+          </AlertTitle>
+          <AlertDescription>
+            {String(q.error.message ?? q.error)}
+          </AlertDescription>
         </Alert>
       )}
       {!q.isLoading && rows.length === 0 && !q.error && (
         <div className="rounded-2xl border p-6 text-sm opacity-70">
-          {tt('ledger.empty', 'السجل فارغ.')}
+          {tt("ledger.empty", "السجل فارغ.")}
         </div>
       )}
       {rows.length > 0 && (
@@ -82,38 +91,58 @@ export function LedgerTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">{tt('ledger.date', 'التاريخ')}</TableHead>
-                <TableHead className="whitespace-nowrap">{tt('ledger.event', 'الحدث')}</TableHead>
-                <TableHead className="whitespace-nowrap text-right">{tt('ledger.deltaPaid', 'الفرق في الدفع')}</TableHead>
-                <TableHead className="whitespace-nowrap text-right">{tt('ledger.deltaPromo', 'الفرق في الترويج')}</TableHead>
-                <TableHead className="whitespace-nowrap text-right">{tt('ledger.balanceAfter', 'الرصيد بعد التغيير')}</TableHead>
+                <TableHead className="whitespace-nowrap">
+                  {tt("ledger.date", "التاريخ")}
+                </TableHead>
+                <TableHead className="whitespace-nowrap">
+                  {tt("ledger.event", "الحدث")}
+                </TableHead>
+                <TableHead className="whitespace-nowrap text-right">
+                  {tt("ledger.deltaPaid", "الفرق في الدفع")}
+                </TableHead>
+                <TableHead className="whitespace-nowrap text-right">
+                  {tt("ledger.deltaPromo", "الفرق في الترويج")}
+                </TableHead>
+                <TableHead className="whitespace-nowrap text-right">
+                  {tt("ledger.balanceAfter", "الرصيد بعد التغيير")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.map((r: any) => {
-                const ts = new Date(r.ts ?? r.createdAt ?? r.time ?? Date.now());
-                const kind: Kind = (r.type ?? r.kind ?? 'adjust') as Kind;
+                const ts = new Date(
+                  r.ts ?? r.createdAt ?? r.time ?? Date.now(),
+                );
+                const kind: Kind = (r.type ?? r.kind ?? "adjust") as Kind;
                 const dPaid = Number(r.delta?.paid ?? 0);
                 const dPromo = Number(r.delta?.promo ?? 0);
-                const aPaid = Number(r.balanceAfter?.paid ?? r.after?.paid ?? 0);
-                const aPromo = Number(r.balanceAfter?.promo ?? r.after?.promo ?? 0);
+                const aPaid = Number(
+                  r.balanceAfter?.paid ?? r.after?.paid ?? 0,
+                );
+                const aPromo = Number(
+                  r.balanceAfter?.promo ?? r.after?.promo ?? 0,
+                );
                 const posPaid = dPaid > 0;
                 const posPromo = dPromo > 0;
                 const eventLabel =
                   r.note ??
                   r.reason ??
                   r.actionId ??
-                  ({
-                    credit: tt('ledger.eventCredit', 'الفوائد'),
-                    spend: tt('ledger.eventSpend', 'المصروفات'),
-                    expire: tt('ledger.eventExpire', 'التاريخ الإنتهاء'),
-                    adjust: tt('ledger.eventAdjust', 'التعديل'),
-                    all: tt('ledger.eventAdjust', 'التعديل'),
-                  }[kind]);
+                  {
+                    credit: tt("ledger.eventCredit", "الفوائد"),
+                    spend: tt("ledger.eventSpend", "المصروفات"),
+                    expire: tt("ledger.eventExpire", "التاريخ الإنتهاء"),
+                    adjust: tt("ledger.eventAdjust", "التعديل"),
+                    all: tt("ledger.eventAdjust", "التعديل"),
+                  }[kind];
                 const badgeVariant =
-                  kind === 'credit' ? 'default' :
-                  kind === 'spend'  ? 'destructive' :
-                  kind === 'expire' ? 'secondary' : 'outline';
+                  kind === "credit"
+                    ? "default"
+                    : kind === "spend"
+                      ? "destructive"
+                      : kind === "expire"
+                        ? "secondary"
+                        : "outline";
                 return (
                   <TableRow key={r.id}>
                     <TableCell className="whitespace-nowrap">
@@ -127,19 +156,36 @@ export function LedgerTable({
                         </span>
                       </div>
                       {!!r.expiry && (
-                        <div className="text-xs opacity-70 mt-0.5">
-                          {tt('ledger.expiry', 'التاريخ الإنتهاء')}: {new Date(r.expiry).toLocaleDateString(locale)}
+                        <div className="mt-0.5 text-xs opacity-70">
+                          {tt("ledger.expiry", "التاريخ الإنتهاء")}:{" "}
+                          {new Date(r.expiry).toLocaleDateString(locale)}
                         </div>
                       )}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
-                      <span className={posPaid ? 'text-emerald-600' : dPaid < 0 ? 'text-rose-600' : ''}>
-                        {(dPaid > 0 ? '+' : '') + n(dPaid)}
+                      <span
+                        className={
+                          posPaid
+                            ? "text-emerald-600"
+                            : dPaid < 0
+                              ? "text-rose-600"
+                              : ""
+                        }
+                      >
+                        {(dPaid > 0 ? "+" : "") + n(dPaid)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
-                      <span className={posPromo ? 'text-emerald-600' : dPromo < 0 ? 'text-rose-600' : ''}>
-                        {(dPromo > 0 ? '+' : '') + n(dPromo)}
+                      <span
+                        className={
+                          posPromo
+                            ? "text-emerald-600"
+                            : dPromo < 0
+                              ? "text-rose-600"
+                              : ""
+                        }
+                      >
+                        {(dPromo > 0 ? "+" : "") + n(dPromo)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
@@ -156,8 +202,11 @@ export function LedgerTable({
               onClick={() => q.fetchNextPage()}
               disabled={!q.hasNextPage || q.isFetchingNextPage}
             >
-              {q.isFetchingNextPage ? tt('common.loading', 'جاري التحميل…') + '…' :
-               q.hasNextPage ? tt('ledger.loadMore', 'تحميل المزيد') : tt('ledger.end', 'النهاية')}
+              {q.isFetchingNextPage
+                ? `${tt("common.loading", "جاري التحميل…")}…`
+                : q.hasNextPage
+                  ? tt("ledger.loadMore", "تحميل المزيد")
+                  : tt("ledger.end", "النهاية")}
             </Button>
           </div>
         </div>

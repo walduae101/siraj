@@ -1,6 +1,10 @@
-import { firestore } from "firebase-admin";
 import crypto from "node:crypto";
-import { checkoutCompleteInput, checkoutPreviewInput, type SkuType } from "~/server/api/schema/checkout";
+import { firestore } from "firebase-admin";
+import {
+  type SkuType,
+  checkoutCompleteInput,
+  checkoutPreviewInput,
+} from "~/server/api/schema/checkout";
 import { pointsService } from "~/server/services/points";
 
 const currency = process.env.NEXT_PUBLIC_CURRENCY ?? "AED";
@@ -34,7 +38,9 @@ export const checkoutStub = {
     const points = POINTS_MAP[sku];
     const planDays = ttlForPlan(sku);
     return {
-      sku, qty, currency,
+      sku,
+      qty,
+      currency,
       line: { unitPrice, qty, total },
       grant: points
         ? { type: "points" as const, amount: points * qty }
@@ -64,21 +70,28 @@ export const checkoutStub = {
         const profileRef = db.collection("profiles").doc(userId);
         const profSnap = await tx.get(profileRef);
         const now = new Date();
-        const days = (preview.grant.days ?? 0);
+        const days = preview.grant.days ?? 0;
         const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-        tx.set(profileRef, {
-          subscription: {
-            plan: preview.sku === "sub_monthly" ? "monthly" : "yearly",
-            status: "active",
-            startedAt: firestore.Timestamp.fromDate(now),
-            expiresAt: firestore.Timestamp.fromDate(expiresAt),
-            provider: "stub",
-            clientRef,
+        tx.set(
+          profileRef,
+          {
+            subscription: {
+              plan: preview.sku === "sub_monthly" ? "monthly" : "yearly",
+              status: "active",
+              startedAt: firestore.Timestamp.fromDate(now),
+              expiresAt: firestore.Timestamp.fromDate(expiresAt),
+              provider: "stub",
+              clientRef,
+            },
           },
-        }, { merge: true });
+          { merge: true },
+        );
         // Optionally log info to ledger (if you have logInfo)
       }
-      tx.set(guardRef, { userId, createdAt: firestore.FieldValue.serverTimestamp() });
+      tx.set(guardRef, {
+        userId,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
       return { ok: true, clientRef, preview };
     });
   },

@@ -70,7 +70,7 @@ export default function AuthDialogGoogle({
       try {
         const auth = getFirebaseAuth();
         const result = await getRedirectResult(auth);
-        
+
         if (result?.user) {
           const idToken = await result.user.getIdToken(true);
           await googleLogin.mutateAsync({ idToken });

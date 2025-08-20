@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getFirebaseAuth } from "~/lib/firebase";
 import {
   GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
   getRedirectResult,
   onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getFirebaseAuth } from "~/lib/firebase";
 
 export default function Page() {
   const [busy, setBusy] = useState(false);
@@ -29,7 +29,7 @@ export default function Page() {
       try {
         const auth = getFirebaseAuth();
         const result = await getRedirectResult(auth);
-        
+
         if (result?.user) {
           // User authenticated successfully via redirect
           router.replace("/dashboard");
@@ -59,27 +59,42 @@ export default function Page() {
   }
 
   return (
-    <main style={{display:"grid",placeItems:"center",minHeight:"100dvh",padding:"2rem"}}>
-      <div style={{maxWidth:420,width:"100%",textAlign:"center"}}>
+    <main
+      style={{
+        display: "grid",
+        placeItems: "center",
+        minHeight: "100dvh",
+        padding: "2rem",
+      }}
+    >
+      <div style={{ maxWidth: 420, width: "100%", textAlign: "center" }}>
         <h1>Siraj Life — Sign in</h1>
-        <p style={{opacity:.7,margin:"0.5rem 0 1.25rem"}}>
+        <p style={{ opacity: 0.7, margin: "0.5rem 0 1.25rem" }}>
           Continue with your Google account.
         </p>
         <button
           onClick={login}
           disabled={busy}
           style={{
-            width:"100%",padding:"0.75rem 1rem",fontSize:"1rem",
-            borderRadius:12,border:"1px solid #ddd",cursor: busy?"not-allowed":"pointer"
+            width: "100%",
+            padding: "0.75rem 1rem",
+            fontSize: "1rem",
+            borderRadius: 12,
+            border: "1px solid #ddd",
+            cursor: busy ? "not-allowed" : "pointer",
           }}
           aria-describedby="login-desc"
         >
           {busy ? "Signing in…" : "Continue with Google"}
         </button>
-        <p id="login-desc" style={{opacity:.6,marginTop:"0.75rem"}}>
+        <p id="login-desc" style={{ opacity: 0.6, marginTop: "0.75rem" }}>
           We&apos;ll redirect you to a success page after sign-in.
         </p>
-        {err && <p role="alert" style={{color:"crimson",marginTop:"0.75rem"}}>{err}</p>}
+        {err && (
+          <p role="alert" style={{ color: "crimson", marginTop: "0.75rem" }}>
+            {err}
+          </p>
+        )}
       </div>
     </main>
   );

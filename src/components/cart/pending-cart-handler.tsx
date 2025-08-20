@@ -55,12 +55,8 @@ export default function PendingCartHandler() {
 
     cartSidebar.setPendingItemLoading(true);
 
-    const {
-      productId,
-      quantity,
-      subscription,
-      giftUsernameOrSteamId,
-    } = cartSidebar.pendingItem;
+    const { productId, quantity, subscription, giftUsernameOrSteamId } =
+      cartSidebar.pendingItem;
 
     const handleDirectCheckout = () => {
       const customerProfilePlatform =
@@ -118,13 +114,13 @@ export default function PendingCartHandler() {
 
     handleAddToCart();
   }, [
-    auth, 
-    cartSidebar.pendingItem, 
-    authDialog, 
-    cartSidebar, 
-    store?.platform, 
-    checkoutMutation, 
-    updateCartMutation
+    auth,
+    cartSidebar.pendingItem,
+    authDialog,
+    cartSidebar,
+    store?.platform,
+    checkoutMutation,
+    updateCartMutation,
   ]);
 
   return null;
