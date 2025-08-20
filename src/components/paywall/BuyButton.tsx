@@ -31,6 +31,11 @@ export function BuyButton({
     },
     onError: (error) => {
       console.error("Checkout failed:", error);
+      console.error("Full error details:", {
+        message: error.message,
+        data: error.data,
+        shape: error.shape,
+      });
       setIsRedirecting(false);
     },
   });
