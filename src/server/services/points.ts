@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
+import { env } from "~/env-server";
 import { db } from "../firebase/admin"; // server-only admin
 
 const WALLETS = (uid: string) =>
@@ -13,6 +14,21 @@ function nowTs() {
 
 export const pointsService = {
   async getWallet(uid: string) {
+    // Optional lazy top-up safety net for subscriptions
+    if (env.SUB_TOPUP_LAZY) {
+      try {
+        // Dynamically import to avoid circular dependency
+        const { subscriptions } = await import("./subscriptions");
+        await subscriptions.creditDueForUser(uid);
+      } catch (error) {
+        // Silently continue if subscription top-up fails
+        console.warn(
+          "[points.getWallet] Lazy top-up failed:",
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+
     const snap = await WALLETS(uid).get();
     if (!snap.exists) {
       const init = {

@@ -22,6 +22,23 @@ export const env = createEnv({
     GAMESERVER_GAME: z.enum(["source", "minecraft"]).optional(),
     GAMESERVER_IP: z.string().optional(),
     GAMESERVER_PORT: z.string().optional(),
+
+    // Subscription Points System
+    FEAT_SUB_POINTS: z
+      .string()
+      .optional()
+      .transform((val) => val === "1"),
+    SUB_PLAN_POINTS_JSON: z.string().optional().default("{}"),
+    SUB_POINTS_KIND: z.enum(["paid", "promo"]).optional().default("promo"),
+    SUB_POINTS_EXPIRE_DAYS: z
+      .string()
+      .optional()
+      .transform((val) => Number(val) || 365),
+    SUB_TOPUP_LAZY: z
+      .string()
+      .optional()
+      .transform((val) => val === "1"),
+    CRON_SECRET: z.string().optional(),
   },
 
   /**
@@ -42,6 +59,12 @@ export const env = createEnv({
     GAMESERVER_GAME: process.env.GAMESERVER_GAME,
     GAMESERVER_IP: process.env.GAMESERVER_IP,
     GAMESERVER_PORT: process.env.GAMESERVER_PORT,
+    FEAT_SUB_POINTS: process.env.FEAT_SUB_POINTS,
+    SUB_PLAN_POINTS_JSON: process.env.SUB_PLAN_POINTS_JSON,
+    SUB_POINTS_KIND: process.env.SUB_POINTS_KIND,
+    SUB_POINTS_EXPIRE_DAYS: process.env.SUB_POINTS_EXPIRE_DAYS,
+    SUB_TOPUP_LAZY: process.env.SUB_TOPUP_LAZY,
+    CRON_SECRET: process.env.CRON_SECRET,
   },
 
   /**

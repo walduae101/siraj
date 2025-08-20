@@ -1,7 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { env } from "~/env-combined";
-import { PAYNOW_PRODUCTS, type PayNowSku, isSubscription } from "./paynowProducts";
 import type { Firestore } from "firebase-admin/firestore";
+import { env } from "~/env-combined";
+import {
+  PAYNOW_PRODUCTS,
+  type PayNowSku,
+  isSubscription,
+} from "./paynowProducts";
 
 const BASE = "https://api.paynow.gg";
 const STORE_ID = env.NEXT_PUBLIC_PAYNOW_STORE_ID || "321641745957789696";
@@ -27,18 +31,25 @@ async function readJson(res: Response) {
 }
 
 export type CreateCheckoutInput = {
-  uid: string;           // our user id
-  sku: PayNowSku;        // which product
-  qty?: number;          // default 1
-  name?: string;         // optional customer name
-  email?: string;        // optional customer email
+  uid: string; // our user id
+  sku: PayNowSku; // which product
+  qty?: number; // default 1
+  name?: string; // optional customer name
+  email?: string; // optional customer email
 };
 
 export class PayNowService {
-  static async getOrCreateCustomerId(db: Firestore, uid: string, name?: string, email?: string) {
+  static async getOrCreateCustomerId(
+    db: Firestore,
+    uid: string,
+    name?: string,
+    email?: string,
+  ) {
     const ref = db.collection("userMappings").doc(uid);
     const snap = await ref.get();
-    const existing = snap.exists ? (snap.data()?.paynowCustomerId as string | undefined) : undefined;
+    const existing = snap.exists
+      ? (snap.data()?.paynowCustomerId as string | undefined)
+      : undefined;
     if (existing) return existing;
 
     // Create customer with only allowed fields (email in metadata)
@@ -46,41 +57,51 @@ export class PayNowService {
       name: name?.slice(0, 64) ?? uid,
       metadata: { uid, ...(email ? { email } : {}) },
     };
-    
+
     const res = await fetch(`${BASE}/v1/stores/${STORE_ID}/customers`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify(body),
     });
-    
+
     const { json, raw } = await readJson(res);
     if (!res.ok) {
-      console.error("[paynow] create customer failed", { status: res.status, body: raw?.slice(0, 400) });
+      console.error("[paynow] create customer failed", {
+        status: res.status,
+        body: raw?.slice(0, 400),
+      });
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: `PayNow create customer failed (${res.status})`,
         cause: raw?.slice(0, 400),
       });
     }
-    
+
     const customerId = (json as { id: string })?.id;
     if (!customerId) throw new Error("No customer ID in response");
-    
+
     await ref.set({ paynowCustomerId: customerId }, { merge: true });
     return customerId;
   }
 
   static async createCheckout(db: Firestore, input: CreateCheckoutInput) {
-    const customerId = await this.getOrCreateCustomerId(db, input.uid, input.name, input.email);
+    const customerId = await this.getOrCreateCustomerId(
+      db,
+      input.uid,
+      input.name,
+      input.email,
+    );
     const productId = PAYNOW_PRODUCTS[input.sku];
     if (!productId) throw new Error(`Unknown SKU: ${input.sku}`);
 
     const body = {
-      lines: [{
-        product_id: productId,
-        quantity: Math.max(1, input.qty ?? 1),
-        ...(isSubscription(input.sku) ? { subscription: true } : {}),
-      }],
+      lines: [
+        {
+          product_id: productId,
+          quantity: Math.max(1, input.qty ?? 1),
+          ...(isSubscription(input.sku) ? { subscription: true } : {}),
+        },
+      ],
       customer_id: customerId,
       auto_redirect: false, // we'll redirect client-side
       return_url: `${process.env.NEXT_PUBLIC_WEBSITE_URL ?? "https://siraj.life"}/checkout/success`,
@@ -92,17 +113,20 @@ export class PayNowService {
       headers: headers(),
       body: JSON.stringify(body),
     });
-    
+
     const { json, raw } = await readJson(res);
     if (!res.ok) {
-      console.error("[paynow] checkout failed", { status: res.status, body: raw?.slice(0, 400) });
+      console.error("[paynow] checkout failed", {
+        status: res.status,
+        body: raw?.slice(0, 400),
+      });
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: `PayNow create checkout failed (${res.status})`,
         cause: raw?.slice(0, 400),
       });
     }
-    
+
     return json as { id: string; url: string; token?: string };
   }
 }

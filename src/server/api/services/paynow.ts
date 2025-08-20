@@ -157,9 +157,9 @@ export default class PayNowService {
       console.log("[PayNowService.checkout] Request details:", {
         url: "/checkouts",
         headers: ctx.payNowStorefrontHeaders,
-        data: input
+        data: input,
       });
-      
+
       return await PayNowService.request<{ url: string }>({
         method: "POST",
         url: "/store/checkouts",
@@ -172,13 +172,14 @@ export default class PayNowService {
           status: err.response?.status,
           statusText: err.response?.statusText,
           data: err.response?.data,
-          headers: err.response?.headers
+          headers: err.response?.headers,
         });
-        
+
         if (err.response?.status === 400) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: err.response.data.message || err.response.data || "Bad Request",
+            message:
+              err.response.data.message || err.response.data || "Bad Request",
           });
         }
       }

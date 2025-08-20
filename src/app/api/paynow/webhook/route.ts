@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { pointsService } from "~/server/services/points";
 import { skuMap } from "~/server/services/skuMap";
+import { subscriptions } from "~/server/services/subscriptions";
 
 function verifySignature(raw: string, sig: string) {
   const secret = (process.env.PAYNOW_WEBHOOK_SECRET ?? "").trim();
@@ -40,7 +41,15 @@ export async function POST(req: NextRequest) {
       const sku = Object.entries(skuMap).find(
         ([, v]) => v.productId === pid,
       )?.[0];
-      if (!sku) continue;
+      if (!sku) {
+        // Check if this is a subscription product directly
+        const plan = subscriptions.getPlan(pid);
+        if (plan) {
+          await subscriptions.recordPurchase(uid, pid, evt.data.id);
+        }
+        continue;
+      }
+
       const skuData = skuMap[sku as keyof typeof skuMap];
       if (!skuData) continue;
       const grant = skuData.grant;
@@ -54,25 +63,30 @@ export async function POST(req: NextRequest) {
           actionId: `${evt.data.id}_${pid}_${item.quantity}`,
         });
       } else {
-        // minimal subscription flag
-        // (extend with your own subscription model if needed)
-        await db.runTransaction(async (tx) => {
-          const prof = db.collection("profiles").doc(uid);
-          tx.set(
-            prof,
-            {
-              subscription: {
-                plan: grant.plan,
-                cycle: grant.cycle,
-                status: "active",
-                provider: "paynow",
-                orderId: evt.data.id,
-                at: new Date(),
+        // Check for subscription plan in new system first
+        const plan = subscriptions.getPlan(pid);
+        if (plan) {
+          await subscriptions.recordPurchase(uid, pid, evt.data.id);
+        } else {
+          // Fall back to minimal subscription flag for legacy handling
+          await db.runTransaction(async (tx) => {
+            const prof = db.collection("profiles").doc(uid);
+            tx.set(
+              prof,
+              {
+                subscription: {
+                  plan: grant.plan,
+                  cycle: grant.cycle,
+                  status: "active",
+                  provider: "paynow",
+                  orderId: evt.data.id,
+                  at: new Date(),
+                },
               },
-            },
-            { merge: true },
-          );
-        });
+              { merge: true },
+            );
+          });
+        }
       }
     }
 
