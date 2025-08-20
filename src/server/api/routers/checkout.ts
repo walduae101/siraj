@@ -7,6 +7,9 @@ import {
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { checkoutStub } from "~/server/services/checkoutStub";
+import { z } from "zod";
+import { skuMap, type Sku } from "~/server/services/skuMap";
+import { createCheckoutSession } from "~/server/services/paynowProvider";
 
 export const checkoutRouter = createTRPCRouter({
   preview: protectedProcedure.input(checkoutPreviewInput).query(({ input }) => {
@@ -23,5 +26,28 @@ export const checkoutRouter = createTRPCRouter({
       const db = await getDb();
       // ✅ take the UID from input (stub-only)
       return checkoutStub.complete(db, input.uid, input);
+    }),
+
+  create: protectedProcedure
+    .input(z.object({
+      sku: z.custom<Sku>(),
+      qty: z.number().int().min(1).max(10).default(1),
+      successUrl: z.string().url(),
+      cancelUrl: z.string().url(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (!features.liveCheckout) throw new Error("Live checkout disabled");
+      const userId = ctx.user?.uid ?? ctx.userId;
+      if (!userId) throw new Error("UNAUTHORIZED");
+
+      const productId = skuMap[input.sku].productId;
+      const sess = await createCheckoutSession({
+        productId,
+        qty: input.qty,
+        uid: userId,
+        successUrl: input.successUrl,
+        cancelUrl: input.cancelUrl,
+      });
+      return { url: sess.url };
     }),
 });

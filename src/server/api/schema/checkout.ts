@@ -1,11 +1,22 @@
 import { z } from "zod";
 
 export const Sku = z.enum([
+  // Legacy stub SKUs
   "points_1000",
   "points_5000",
   "points_10000",
   "sub_monthly",
   "sub_yearly",
+  
+  // PayNow SKUs
+  "points_20",
+  "points_50",
+  "points_150",
+  "points_500",
+  "sub_basic_m",
+  "sub_pro_m",
+  "sub_basic_y",
+  "sub_pro_y",
 ]);
 
 export const checkoutPreviewInput = z.object({

@@ -6,6 +6,7 @@ import { pricing } from "~/lib/pricing";
 
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
+import { BuyButton } from "~/components/paywall/BuyButton";
 import {
   Card,
   CardContent,
@@ -67,74 +68,134 @@ export default function PaywallPage() {
         <div className="flex flex-col gap-4 md:flex-row md:gap-6">
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>{tt("paywall.p1k.title", "١٬٠٠٠ نقطة")}</CardTitle>
+              <CardTitle>{tt("paywall.p20.title", "٢٠ نقطة - حزمة المبتدئين")}</CardTitle>
               <CardDescription>
-                {tt("paywall.p1k.desc", "للإنجازات الخفيفة، صالحة للأبد.")}
+                {tt("paywall.p20.desc", "للتجربة والبداية، صالحة للأبد.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
-              {fmtCurrency(pricing.points.p1k, locale, currency)}
+              {fmtCurrency(pricing.points.p20, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">
                 {tt("paywall.fairness", "شفافية: سنعرض التكلفة قبل الخصم.")}
               </div>
-              <Button
-                asChild
-                aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
-              >
-                <a href={"/checkout/start?sku=points_1000&qty=1"}>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="points_20"
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
                   {tt("paywall.buy", "شراء")}
-                </a>
-              </Button>
+                </BuyButton>
+              ) : (
+                <Button
+                  asChild
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
+                  <a href={"/checkout/start?sku=points_1000&qty=1"}>
+                    {tt("paywall.buy", "شراء")}
+                  </a>
+                </Button>
+              )}
             </CardFooter>
           </Card>
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>{tt("paywall.p5k.title", "٥٬٠٠٠ نقطة")}</CardTitle>
+              <CardTitle>{tt("paywall.p50.title", "٥٠ نقطة - حزمة ٥٠")}</CardTitle>
               <CardDescription>
-                {tt("paywall.p5k.desc", "سعر أوفر، صالحة للأبد.")}
+                {tt("paywall.p50.desc", "سعر أوفر، صالحة للأبد.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
-              {fmtCurrency(pricing.points.p5k, locale, currency)}
+              {fmtCurrency(pricing.points.p50, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">
                 {tt("paywall.neverExpires", "النقاط المدفوعة لا تنتهي.")}
               </div>
-              <Button
-                asChild
-                aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
-              >
-                <a href={"/checkout/start?sku=points_5000&qty=1"}>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="points_50"
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
                   {tt("paywall.buy", "شراء")}
-                </a>
-              </Button>
+                </BuyButton>
+              ) : (
+                <Button
+                  asChild
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
+                  <a href={"/checkout/start?sku=points_5000&qty=1"}>
+                    {tt("paywall.buy", "شراء")}
+                  </a>
+                </Button>
+              )}
             </CardFooter>
           </Card>
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>{tt("paywall.p10k.title", "١٠٬٠٠٠ نقطة")}</CardTitle>
+              <CardTitle>{tt("paywall.p150.title", "١٥٠ نقطة - حزمة ١٥٠")}</CardTitle>
               <CardDescription>
-                {tt("paywall.p10k.desc", "أفضل قيمة، صالحة للأبد.")}
+                {tt("paywall.p150.desc", "قيمة ممتازة، صالحة للأبد.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
-              {fmtCurrency(pricing.points.p10k, locale, currency)}
+              {fmtCurrency(pricing.points.p150, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">
                 {tt("paywall.transparency", "نوضح الرصيد قبل/بعد أي عملية.")}
               </div>
-              <Button
-                asChild
-                aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
-              >
-                <a href={"/checkout/start?sku=points_10000&qty=1"}>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="points_150"
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
                   {tt("paywall.buy", "شراء")}
-                </a>
-              </Button>
+                </BuyButton>
+              ) : (
+                <Button
+                  asChild
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
+                  <a href={"/checkout/start?sku=points_10000&qty=1"}>
+                    {tt("paywall.buy", "شراء")}
+                  </a>
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+          <Card className="flex-1">
+            <CardHeader>
+              <CardTitle>{tt("paywall.p500.title", "٥٠٠ نقطة - حزمة ٥٠٠")}</CardTitle>
+              <CardDescription>
+                {tt("paywall.p500.desc", "أفضل قيمة، صالحة للأبد.")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="font-semibold text-2xl">
+              {fmtCurrency(pricing.points.p500, locale, currency)}
+            </CardContent>
+            <CardFooter className="flex items-center justify-between">
+              <div className="text-xs opacity-70">
+                {tt("paywall.bestValue", "أفضل قيمة للنقاط.")}
+              </div>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="points_500"
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
+                  {tt("paywall.buy", "شراء")}
+                </BuyButton>
+              ) : (
+                <Button
+                  asChild
+                  aria-label={tt("paywall.buyPoints", "اشترِ النقاط")}
+                >
+                  <a href={"/checkout/start?sku=points_10000&qty=1"}>
+                    {tt("paywall.buy", "شراء")}
+                  </a>
+                </Button>
+              )}
             </CardFooter>
           </Card>
         </div>
@@ -155,65 +216,122 @@ export default function PaywallPage() {
         <div className="flex flex-col gap-4 md:flex-row md:gap-6">
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>{tt("paywall.monthly", "شهري · Monthly")}</CardTitle>
+              <CardTitle>{tt("paywall.basicMonthly", "خطة أساسية شهرية")}</CardTitle>
               <CardDescription>
-                {tt("paywall.monthlyDesc", "للتجربة أو الاستخدام المرن.")}
+                {tt("paywall.basicMonthlyDesc", "للاستخدام الأساسي والتجربة.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
-              {fmtCurrency(pricing.subs.monthly, locale, currency)}
+              {fmtCurrency(pricing.subs.basicMonthly, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">
                 {tt("paywall.cancelAnytime", "يمكن الإلغاء في أي وقت.")}
               </div>
-              <Button asChild aria-label={tt("paywall.subscribe", "اشترك")}>
-                <a href={"/checkout/start?sku=sub_monthly&qty=1"}>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="sub_basic_m"
+                  aria-label={tt("paywall.subscribe", "اشترك")}
+                >
                   {tt("paywall.subscribe", "اشتراك")}
-                </a>
-              </Button>
+                </BuyButton>
+              ) : (
+                <Button asChild aria-label={tt("paywall.subscribe", "اشترك")}>
+                  <a href={"/checkout/start?sku=sub_monthly&qty=1"}>
+                    {tt("paywall.subscribe", "اشتراك")}
+                  </a>
+                </Button>
+              )}
             </CardFooter>
           </Card>
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>{tt("paywall.yearly", "سنوي · Yearly")}</CardTitle>
+              <CardTitle>{tt("paywall.proMonthly", "خطة احترافية شهرية")}</CardTitle>
               <CardDescription>
-                {tt("paywall.yearlyDesc", "أفضل توفير على المدى الطويل.")}
+                {tt("paywall.proMonthlyDesc", "للمستخدمين المتقدمين.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
-              {fmtCurrency(pricing.subs.yearly, locale, currency)}
+              {fmtCurrency(pricing.subs.proMonthly, locale, currency)}
+            </CardContent>
+            <CardFooter className="flex items-center justify-between">
+              <div className="text-xs opacity-70">
+                {tt("paywall.proFeatures", "مزايا احترافية متقدمة.")}
+              </div>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="sub_pro_m"
+                  aria-label={tt("paywall.subscribe", "اشترك")}
+                >
+                  {tt("paywall.subscribe", "اشتراك")}
+                </BuyButton>
+              ) : (
+                <Button asChild aria-label={tt("paywall.subscribe", "اشترك")}>
+                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>
+                    {tt("paywall.subscribe", "اشتراك")}
+                  </a>
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+          <Card className="flex-1">
+            <CardHeader>
+              <CardTitle>{tt("paywall.basicYearly", "خطة أساسية سنوية")}</CardTitle>
+              <CardDescription>
+                {tt("paywall.basicYearlyDesc", "توفير أكبر للاستخدام الأساسي.")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="font-semibold text-2xl">
+              {fmtCurrency(pricing.subs.basicYearly, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">
                 {tt("paywall.bestValue", "أفضل قيمة سنوية.")}
               </div>
-              <Button asChild aria-label={tt("paywall.subscribe", "اشترك")}>
-                <a href={"/checkout/start?sku=sub_yearly&qty=1"}>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="sub_basic_y"
+                  aria-label={tt("paywall.subscribe", "اشترك")}
+                >
                   {tt("paywall.subscribe", "اشتراك")}
-                </a>
-              </Button>
+                </BuyButton>
+              ) : (
+                <Button asChild aria-label={tt("paywall.subscribe", "اشترك")}>
+                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>
+                    {tt("paywall.subscribe", "اشتراك")}
+                  </a>
+                </Button>
+              )}
             </CardFooter>
           </Card>
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>
-                {tt("paywall.org", "مؤسسات · Institutional")}
-              </CardTitle>
+              <CardTitle>{tt("paywall.proYearly", "خطة احترافية سنوية")}</CardTitle>
               <CardDescription>
-                {tt("paywall.orgDesc", "حزم فرق ومدارس وجهات خيرية.")}
+                {tt("paywall.proYearlyDesc", "أفضل قيمة للمحترفين.")}
               </CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
-              {tt("paywall.contact", "تواصل معنا")}
+              {fmtCurrency(pricing.subs.proYearly, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">
-                {tt("paywall.tailored", "عقود عادلة ومخصّصة.")}
+                {tt("paywall.ultimate", "الخطة الأقوى والأوفر.")}
               </div>
-              <Button asChild aria-label={tt("paywall.contactUs", "تواصل")}>
-                <a href="/contact">{tt("paywall.contactUs", "تواصل")}</a>
-              </Button>
+              {features.liveCheckout ? (
+                <BuyButton
+                  sku="sub_pro_y"
+                  aria-label={tt("paywall.subscribe", "اشترك")}
+                >
+                  {tt("paywall.subscribe", "اشتراك")}
+                </BuyButton>
+              ) : (
+                <Button asChild aria-label={tt("paywall.subscribe", "اشترك")}>
+                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>
+                    {tt("paywall.subscribe", "اشتراك")}
+                  </a>
+                </Button>
+              )}
             </CardFooter>
           </Card>
         </div>

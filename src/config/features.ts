@@ -4,4 +4,5 @@ export const features = {
   stubCheckout:
     process.env.STUB_CHECKOUT === "1" ||
     process.env.NEXT_PUBLIC_STUB_CHECKOUT === "1",
+  liveCheckout: process.env.PAYNOW_LIVE === "1", // flip this to go live
 };
