@@ -87,7 +87,10 @@ export const checkoutRouter = createTRPCRouter({
 
       // Resolve product ID from SKU or direct productId
       const productId = input.productId ?? ProductMap[input.sku ?? ""] ?? "";
-      if (!productId) throw new Error("Unknown product");
+      if (!productId) {
+        const keys = Object.keys(ProductMap).join(", ");
+        throw new Error(`Unknown product (sku=${input.sku}, productId=${input.productId}). Known SKUs: [${keys}]`);
+      }
 
       // Ensure we have a PayNow customer ID
       const customerId = await ensureCustomerId(db, uid, { 

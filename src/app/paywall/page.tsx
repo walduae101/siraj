@@ -220,7 +220,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">أفضل قيمة سنوية.</div>
               {features.liveCheckout ? (
-                <BuyButton sku="sub_basic_yearly" aria-label="اشترك">
+                <BuyButton sku="sub_basic_annual" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
@@ -241,7 +241,7 @@ export default function PaywallPage() {
             <CardFooter className="flex items-center justify-between">
               <div className="text-xs opacity-70">الخطة الأقوى والأوفر.</div>
               {features.liveCheckout ? (
-                <BuyButton sku="sub_pro_yearly" aria-label="اشترك">
+                <BuyButton sku="sub_pro_annual" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
