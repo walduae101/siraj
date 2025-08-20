@@ -75,8 +75,8 @@ export const checkoutRouter = createTRPCRouter({
       const rawIp = forwardedFor || realIp || cfIp || '127.0.0.1';
       
       // Handle multiple IPs (x-forwarded-for can contain comma-separated list)
-      // Force TypeScript to treat as string since we have a fallback
-      const customerIp = (rawIp as string).split(',')[0].trim();
+      // @ts-ignore - rawIp is guaranteed to be a string due to fallback
+      const customerIp = rawIp.split(',')[0].trim();
       
       const enhancedCtx = {
         ...ctx,
