@@ -65,11 +65,20 @@ export const checkoutRouter = createTRPCRouter({
         throw new Error("PayNow customer ID not found after creation");
       }
       const authToken = await PayNowService.generateAuthToken(mapping.paynowCustomerId);
+      
+      // PayNow requires customer IP or country code for server-side requests
+      const clientIp = ctx.headers.get('x-forwarded-for') || 
+                      ctx.headers.get('x-real-ip') || 
+                      ctx.headers.get('cf-connecting-ip') || 
+                      '127.0.0.1';
+      
       const enhancedCtx = {
         ...ctx,
         payNowStorefrontHeaders: {
           ...ctx.payNowStorefrontHeaders,
           Authorization: `Customer ${authToken}`,
+          'x-paynow-customer-ip': clientIp.split(',')[0].trim(), // Get first IP if multiple
+          'x-paynow-customer-countrycode': 'AE', // Default to UAE
         },
       };
       
@@ -88,10 +97,25 @@ export const checkoutRouter = createTRPCRouter({
       };
       
       try {
+        console.log("[checkout.create] Sending to PayNow:", JSON.stringify({
+          headers: enhancedCtx.payNowStorefrontHeaders,
+          payload: checkoutData,
+          customerId: mapping.paynowCustomerId,
+          authToken: authToken.substring(0, 10) + "..."
+        }, null, 2));
+        
         const result = await PayNowService.checkout(enhancedCtx, checkoutData);
         return { url: result.url };
       } catch (error) {
-        console.error("PayNow checkout failed:", error);
+        console.error("[checkout.create] PayNow checkout failed:", error);
+        if (error instanceof Error && error.message.includes("Request failed")) {
+          console.error("[checkout.create] Full error details:", {
+            message: error.message,
+            stack: error.stack,
+            // @ts-ignore
+            response: error.response?.data || error.response
+          });
+        }
         throw new Error(`PayNow checkout failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }),

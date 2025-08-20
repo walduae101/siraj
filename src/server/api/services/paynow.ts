@@ -154,6 +154,12 @@ export default class PayNowService {
     },
   ) {
     try {
+      console.log("[PayNowService.checkout] Request details:", {
+        url: "/checkouts",
+        headers: ctx.payNowStorefrontHeaders,
+        data: input
+      });
+      
       return await PayNowService.request<{ url: string }>({
         method: "POST",
         url: "/checkouts",
@@ -161,11 +167,20 @@ export default class PayNowService {
         data: input,
       });
     } catch (err) {
-      if (err instanceof AxiosError && err.response?.status === 400) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: err.response.data.message,
+      if (err instanceof AxiosError) {
+        console.error("[PayNowService.checkout] Error response:", {
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          headers: err.response?.headers
         });
+        
+        if (err.response?.status === 400) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: err.response.data.message || err.response.data || "Bad Request",
+          });
+        }
       }
       throw err;
     }
