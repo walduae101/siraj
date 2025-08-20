@@ -162,7 +162,7 @@ export default class PayNowService {
       
       return await PayNowService.request<{ url: string }>({
         method: "POST",
-        url: "/checkouts",
+        url: "/store/checkouts",
         headers: ctx.payNowStorefrontHeaders,
         data: input,
       });
