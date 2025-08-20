@@ -74,13 +74,15 @@ export const checkoutRouter = createTRPCRouter({
       };
       
       const isSubscription = input.sku.startsWith("sub_");
+      
+      // PayNow checkout payload - match the exact structure from their docs
       const checkoutData = {
         subscription: isSubscription,
         lines: [{
           product_id: productId,
           quantity: input.qty,
-          subscription: isSubscription,
-          // Only include optional fields if they have values
+          // Don't duplicate subscription flag in line items
+          // Only include gameserver_id if it's a gameserver product
           ...(input.sku.includes("gameserver") ? { selected_gameserver_id: null } : {}),
         }],
       };
