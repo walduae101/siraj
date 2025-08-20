@@ -2,5 +2,5 @@ export default interface Context {
   headers: Headers;
   resHeaders: Headers;
   payNowStorefrontHeaders: Record<string, string>;
-  firebaseUser: any | null;
+  firebaseUser: { uid: string; email?: string; [key: string]: unknown } | null;
 }

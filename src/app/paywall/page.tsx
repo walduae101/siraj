@@ -4,9 +4,9 @@ import { fmtNum } from "~/lib/i18n/num";
 import { t } from "~/lib/i18n/t";
 import { pricing } from "~/lib/pricing";
 
+import { BuyButton } from "~/components/paywall/BuyButton";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
-import { BuyButton } from "~/components/paywall/BuyButton";
 import {
   Card,
   CardContent,
@@ -20,16 +20,16 @@ function fmtCurrency(value: number, locale?: string, currency?: string) {
   try {
     // Use ar-AE locale with English digits for proper formatting
     return new Intl.NumberFormat("ar-AE-u-nu-latn", {
-      style: "currency", 
+      style: "currency",
       currency: currency || "USD",
       maximumFractionDigits: 2,
       minimumFractionDigits: 2,
     }).format(value);
   } catch {
     // Fallback with manual formatting for USD with comma thousands separator
-    const formatted = value.toLocaleString("en-US", { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
+    const formatted = value.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
     return `$${formatted}`;
   }
@@ -70,9 +70,7 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>٢٠ نقطة - حزمة المبتدئين</CardTitle>
-              <CardDescription>
-                للتجربة والبداية، صالحة للأبد.
-              </CardDescription>
+              <CardDescription>للتجربة والبداية، صالحة للأبد.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.points.p20, locale, currency)}
@@ -82,20 +80,12 @@ export default function PaywallPage() {
                 شفافية: سنعرض التكلفة قبل الخصم.
               </div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="points_20"
-                  aria-label="اشترِ النقاط"
-                >
+                <BuyButton sku="points_20" aria-label="اشترِ النقاط">
                   شراء
                 </BuyButton>
               ) : (
-                <Button
-                  asChild
-                  aria-label="اشترِ النقاط"
-                >
-                  <a href={"/checkout/start?sku=points_1000&qty=1"}>
-                    شراء
-                  </a>
+                <Button asChild aria-label="اشترِ النقاط">
+                  <a href={"/checkout/start?sku=points_1000&qty=1"}>شراء</a>
                 </Button>
               )}
             </CardFooter>
@@ -103,9 +93,7 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>٥٠ نقطة - حزمة ٥٠</CardTitle>
-              <CardDescription>
-                سعر أوفر، صالحة للأبد.
-              </CardDescription>
+              <CardDescription>سعر أوفر، صالحة للأبد.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.points.p50, locale, currency)}
@@ -115,20 +103,12 @@ export default function PaywallPage() {
                 النقاط المدفوعة لا تنتهي.
               </div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="points_50"
-                  aria-label="اشترِ النقاط"
-                >
+                <BuyButton sku="points_50" aria-label="اشترِ النقاط">
                   شراء
                 </BuyButton>
               ) : (
-                <Button
-                  asChild
-                  aria-label="اشترِ النقاط"
-                >
-                  <a href={"/checkout/start?sku=points_5000&qty=1"}>
-                    شراء
-                  </a>
+                <Button asChild aria-label="اشترِ النقاط">
+                  <a href={"/checkout/start?sku=points_5000&qty=1"}>شراء</a>
                 </Button>
               )}
             </CardFooter>
@@ -136,9 +116,7 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>١٥٠ نقطة - حزمة ١٥٠</CardTitle>
-              <CardDescription>
-                قيمة ممتازة، صالحة للأبد.
-              </CardDescription>
+              <CardDescription>قيمة ممتازة، صالحة للأبد.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.points.p150, locale, currency)}
@@ -148,20 +126,12 @@ export default function PaywallPage() {
                 نوضح الرصيد قبل/بعد أي عملية.
               </div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="points_150"
-                  aria-label="اشترِ النقاط"
-                >
+                <BuyButton sku="points_150" aria-label="اشترِ النقاط">
                   شراء
                 </BuyButton>
               ) : (
-                <Button
-                  asChild
-                  aria-label="اشترِ النقاط"
-                >
-                  <a href={"/checkout/start?sku=points_10000&qty=1"}>
-                    شراء
-                  </a>
+                <Button asChild aria-label="اشترِ النقاط">
+                  <a href={"/checkout/start?sku=points_10000&qty=1"}>شراء</a>
                 </Button>
               )}
             </CardFooter>
@@ -169,32 +139,20 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>٥٠٠ نقطة - حزمة ٥٠٠</CardTitle>
-              <CardDescription>
-                أفضل قيمة، صالحة للأبد.
-              </CardDescription>
+              <CardDescription>أفضل قيمة، صالحة للأبد.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.points.p500, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
-              <div className="text-xs opacity-70">
-                أفضل قيمة للنقاط.
-              </div>
+              <div className="text-xs opacity-70">أفضل قيمة للنقاط.</div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="points_500"
-                  aria-label="اشترِ النقاط"
-                >
+                <BuyButton sku="points_500" aria-label="اشترِ النقاط">
                   شراء
                 </BuyButton>
               ) : (
-                <Button
-                  asChild
-                  aria-label="اشترِ النقاط"
-                >
-                  <a href={"/checkout/start?sku=points_10000&qty=1"}>
-                    شراء
-                  </a>
+                <Button asChild aria-label="اشترِ النقاط">
+                  <a href={"/checkout/start?sku=points_10000&qty=1"}>شراء</a>
                 </Button>
               )}
             </CardFooter>
@@ -212,29 +170,20 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>خطة أساسية شهرية</CardTitle>
-              <CardDescription>
-                للاستخدام الأساسي والتجربة.
-              </CardDescription>
+              <CardDescription>للاستخدام الأساسي والتجربة.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.subs.basicMonthly, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
-              <div className="text-xs opacity-70">
-                يمكن الإلغاء في أي وقت.
-              </div>
+              <div className="text-xs opacity-70">يمكن الإلغاء في أي وقت.</div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="sub_basic_m"
-                  aria-label="اشترك"
-                >
+                <BuyButton sku="sub_basic_m" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
                 <Button asChild aria-label="اشترك">
-                  <a href={"/checkout/start?sku=sub_monthly&qty=1"}>
-                    اشتراك
-                  </a>
+                  <a href={"/checkout/start?sku=sub_monthly&qty=1"}>اشتراك</a>
                 </Button>
               )}
             </CardFooter>
@@ -242,29 +191,20 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>خطة احترافية شهرية</CardTitle>
-              <CardDescription>
-                للمستخدمين المتقدمين.
-              </CardDescription>
+              <CardDescription>للمستخدمين المتقدمين.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.subs.proMonthly, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
-              <div className="text-xs opacity-70">
-                مزايا احترافية متقدمة.
-              </div>
+              <div className="text-xs opacity-70">مزايا احترافية متقدمة.</div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="sub_pro_m"
-                  aria-label="اشترك"
-                >
+                <BuyButton sku="sub_pro_m" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
                 <Button asChild aria-label="اشترك">
-                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>
-                    اشتراك
-                  </a>
+                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>اشتراك</a>
                 </Button>
               )}
             </CardFooter>
@@ -272,29 +212,20 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>خطة أساسية سنوية</CardTitle>
-              <CardDescription>
-                توفير أكبر للاستخدام الأساسي.
-              </CardDescription>
+              <CardDescription>توفير أكبر للاستخدام الأساسي.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.subs.basicYearly, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
-              <div className="text-xs opacity-70">
-                أفضل قيمة سنوية.
-              </div>
+              <div className="text-xs opacity-70">أفضل قيمة سنوية.</div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="sub_basic_y"
-                  aria-label="اشترك"
-                >
+                <BuyButton sku="sub_basic_y" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
                 <Button asChild aria-label="اشترك">
-                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>
-                    اشتراك
-                  </a>
+                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>اشتراك</a>
                 </Button>
               )}
             </CardFooter>
@@ -302,29 +233,20 @@ export default function PaywallPage() {
           <Card className="flex-1">
             <CardHeader>
               <CardTitle>خطة احترافية سنوية</CardTitle>
-              <CardDescription>
-                أفضل قيمة للمحترفين.
-              </CardDescription>
+              <CardDescription>أفضل قيمة للمحترفين.</CardDescription>
             </CardHeader>
             <CardContent className="font-semibold text-2xl">
               {fmtCurrency(pricing.subs.proYearly, locale, currency)}
             </CardContent>
             <CardFooter className="flex items-center justify-between">
-              <div className="text-xs opacity-70">
-                الخطة الأقوى والأوفر.
-              </div>
+              <div className="text-xs opacity-70">الخطة الأقوى والأوفر.</div>
               {features.liveCheckout ? (
-                <BuyButton
-                  sku="sub_pro_y"
-                  aria-label="اشترك"
-                >
+                <BuyButton sku="sub_pro_y" aria-label="اشترك">
                   اشتراك
                 </BuyButton>
               ) : (
                 <Button asChild aria-label="اشترك">
-                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>
-                    اشتراك
-                  </a>
+                  <a href={"/checkout/start?sku=sub_yearly&qty=1"}>اشتراك</a>
                 </Button>
               )}
             </CardFooter>
@@ -332,22 +254,14 @@ export default function PaywallPage() {
         </div>
       </section>
       <section className="rounded-2xl border p-4 text-sm leading-6 opacity-90">
-        <h3 className="mb-2 font-medium">
-          الوضوح والأمانة
-        </h3>
+        <h3 className="mb-2 font-medium">الوضوح والأمانة</h3>
         <ul className="list-disc space-y-1 ps-5">
-          <li>
-            النقاط المدفوعة لا تنتهي صلاحيتها.
-          </li>
+          <li>النقاط المدفوعة لا تنتهي صلاحيتها.</li>
           <li>
             النقاط الترويجية قد تنتهي — نعرض تاريخ الانتهاء بوضوح في المحفظة.
           </li>
-          <li>
-            قبل أي خصم، نعرض التكلفة والرصيد قبل/بعد.
-          </li>
-          <li>
-            الاشتراك الزمني منفصل عن رصيد النقاط.
-          </li>
+          <li>قبل أي خصم، نعرض التكلفة والرصيد قبل/بعد.</li>
+          <li>الاشتراك الزمني منفصل عن رصيد النقاط.</li>
         </ul>
       </section>
     </div>

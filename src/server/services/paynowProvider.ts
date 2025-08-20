@@ -1,17 +1,19 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 const API = "https://api.paynow.gg/v1";
 const STORE_ID = process.env.PAYNOW_STORE_ID ?? "321641745957789696";
 
 function apiKey() {
-  const k = (process.env.PAYNOW_API_KEY ?? "").replace(/[\r\n"'\u0000-\u001F\u007F]/g,"").trim();
+  const k = (process.env.PAYNOW_API_KEY ?? "")
+    .replace(/[\r\n"']/g, "")
+    .trim();
   if (!k) throw new Error("PAYNOW_API_KEY missing");
   return k;
 }
 
 function headers(idem?: string) {
   return {
-    "authorization": `APIKey ${apiKey()}`,
+    authorization: `APIKey ${apiKey()}`,
     "content-type": "application/json",
     ...(idem ? { "idempotency-key": idem } : {}),
   };
@@ -21,7 +23,7 @@ function headers(idem?: string) {
 export async function createCheckoutSession(opts: {
   productId: string;
   qty?: number;
-  uid: string;            // for metadata
+  uid: string; // for metadata
   successUrl: string;
   cancelUrl: string;
 }) {
@@ -31,23 +33,23 @@ export async function createCheckoutSession(opts: {
     lineItems: [{ productId: opts.productId, quantity: opts.qty ?? 1 }],
     successUrl: opts.successUrl,
     cancelUrl: opts.cancelUrl,
-    metadata: { uid: opts.uid },   // comes back in webhook
+    metadata: { uid: opts.uid }, // comes back in webhook
   };
-  
+
   const res = await fetch(`${API}/checkouts`, {
     method: "POST",
     headers: headers(idem),
     body: JSON.stringify(body),
   });
-  
+
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`PayNow checkout failed: ${res.status} - ${errorText}`);
   }
-  
+
   const data = await res.json();
-  return { 
-    url: data?.url ?? data?.hostedUrl ?? "", 
-    checkoutId: data?.id ?? "" 
+  return {
+    url: data?.url ?? data?.hostedUrl ?? "",
+    checkoutId: data?.id ?? "",
   };
 }

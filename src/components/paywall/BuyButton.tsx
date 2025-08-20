@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "~/components/ui/button";
-import { api } from "~/trpc/react";
-import type { Sku } from "~/server/services/skuMap";
 import { useState } from "react";
+import { Button } from "~/components/ui/button";
+import type { Sku } from "~/server/services/skuMap";
+import { api } from "~/trpc/react";
 
 interface BuyButtonProps {
   sku: Sku;
@@ -13,15 +13,15 @@ interface BuyButtonProps {
   "aria-label"?: string;
 }
 
-export function BuyButton({ 
-  sku, 
-  qty = 1, 
-  children, 
+export function BuyButton({
+  sku,
+  qty = 1,
+  children,
   disabled = false,
   "aria-label": ariaLabel,
 }: BuyButtonProps) {
   const [isRedirecting, setIsRedirecting] = useState(false);
-  
+
   const createCheckout = api.checkout?.create?.useMutation({
     onSuccess: (res) => {
       if (res?.url) {

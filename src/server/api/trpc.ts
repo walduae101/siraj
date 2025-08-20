@@ -61,7 +61,7 @@ export const createTRPCContext = async ({
   }
 
   // Extract Firebase auth token
-  let firebaseUser: any = null;
+  let firebaseUser: { uid: string; email?: string; [key: string]: unknown } | null = null;
   const authHeader = headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);

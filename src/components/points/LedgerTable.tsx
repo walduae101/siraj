@@ -109,91 +109,102 @@ export function LedgerTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r: any) => {
-                const ts = new Date(
-                  r.ts ?? r.createdAt ?? r.time ?? Date.now(),
-                );
-                const kind: Kind = (r.type ?? r.kind ?? "adjust") as Kind;
-                const dPaid = Number(r.delta?.paid ?? 0);
-                const dPromo = Number(r.delta?.promo ?? 0);
-                const aPaid = Number(
-                  r.balanceAfter?.paid ?? r.after?.paid ?? 0,
-                );
-                const aPromo = Number(
-                  r.balanceAfter?.promo ?? r.after?.promo ?? 0,
-                );
-                const posPaid = dPaid > 0;
-                const posPromo = dPromo > 0;
-                const eventLabel =
-                  r.note ??
-                  r.reason ??
-                  r.actionId ??
-                  {
-                    credit: tt("ledger.eventCredit", "الفوائد"),
-                    spend: tt("ledger.eventSpend", "المصروفات"),
-                    expire: tt("ledger.eventExpire", "التاريخ الإنتهاء"),
-                    adjust: tt("ledger.eventAdjust", "التعديل"),
-                    all: tt("ledger.eventAdjust", "التعديل"),
-                  }[kind];
-                const badgeVariant =
-                  kind === "credit"
-                    ? "default"
-                    : kind === "spend"
-                      ? "destructive"
-                      : kind === "expire"
-                        ? "secondary"
-                        : "outline";
-                return (
-                  <TableRow key={r.id}>
-                    <TableCell className="whitespace-nowrap">
-                      {ts.toLocaleString(locale)}
-                    </TableCell>
-                    <TableCell className="max-w-[28ch]">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={badgeVariant}>{kind}</Badge>
-                        <span className="truncate" title={eventLabel}>
-                          {eventLabel}
-                        </span>
-                      </div>
-                      {!!r.expiry && (
-                        <div className="mt-0.5 text-xs opacity-70">
-                          {tt("ledger.expiry", "التاريخ الإنتهاء")}:{" "}
-                          {new Date(r.expiry).toLocaleDateString(locale)}
+              {rows.map(
+                (r: {
+                  id: string;
+                  type: string;
+                  amount: number;
+                  createdAt: any;
+                  ts?: any;
+                  time?: any;
+                  channel?: string;
+                  action?: string;
+                }) => {
+                  const ts = new Date(
+                    r.ts ?? r.createdAt ?? r.time ?? Date.now(),
+                  );
+                  const kind: Kind = (r.type ?? r.kind ?? "adjust") as Kind;
+                  const dPaid = Number(r.delta?.paid ?? 0);
+                  const dPromo = Number(r.delta?.promo ?? 0);
+                  const aPaid = Number(
+                    r.balanceAfter?.paid ?? r.after?.paid ?? 0,
+                  );
+                  const aPromo = Number(
+                    r.balanceAfter?.promo ?? r.after?.promo ?? 0,
+                  );
+                  const posPaid = dPaid > 0;
+                  const posPromo = dPromo > 0;
+                  const eventLabel =
+                    r.note ??
+                    r.reason ??
+                    r.actionId ??
+                    {
+                      credit: tt("ledger.eventCredit", "الفوائد"),
+                      spend: tt("ledger.eventSpend", "المصروفات"),
+                      expire: tt("ledger.eventExpire", "التاريخ الإنتهاء"),
+                      adjust: tt("ledger.eventAdjust", "التعديل"),
+                      all: tt("ledger.eventAdjust", "التعديل"),
+                    }[kind];
+                  const badgeVariant =
+                    kind === "credit"
+                      ? "default"
+                      : kind === "spend"
+                        ? "destructive"
+                        : kind === "expire"
+                          ? "secondary"
+                          : "outline";
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell className="whitespace-nowrap">
+                        {ts.toLocaleString(locale)}
+                      </TableCell>
+                      <TableCell className="max-w-[28ch]">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={badgeVariant}>{kind}</Badge>
+                          <span className="truncate" title={eventLabel}>
+                            {eventLabel}
+                          </span>
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      <span
-                        className={
-                          posPaid
-                            ? "text-emerald-600"
-                            : dPaid < 0
-                              ? "text-rose-600"
-                              : ""
-                        }
-                      >
-                        {(dPaid > 0 ? "+" : "") + n(dPaid)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      <span
-                        className={
-                          posPromo
-                            ? "text-emerald-600"
-                            : dPromo < 0
-                              ? "text-rose-600"
-                              : ""
-                        }
-                      >
-                        {(dPromo > 0 ? "+" : "") + n(dPromo)}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
-                      {n(aPaid)}/{n(aPromo)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                        {!!r.expiry && (
+                          <div className="mt-0.5 text-xs opacity-70">
+                            {tt("ledger.expiry", "التاريخ الإنتهاء")}:{" "}
+                            {new Date(r.expiry).toLocaleDateString(locale)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        <span
+                          className={
+                            posPaid
+                              ? "text-emerald-600"
+                              : dPaid < 0
+                                ? "text-rose-600"
+                                : ""
+                          }
+                        >
+                          {(dPaid > 0 ? "+" : "") + n(dPaid)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        <span
+                          className={
+                            posPromo
+                              ? "text-emerald-600"
+                              : dPromo < 0
+                                ? "text-rose-600"
+                                : ""
+                          }
+                        >
+                          {(dPromo > 0 ? "+" : "") + n(dPromo)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">
+                        {n(aPaid)}/{n(aPromo)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                },
+              )}
             </TableBody>
           </Table>
           <div className="flex items-center justify-center p-3">

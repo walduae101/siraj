@@ -7,7 +7,7 @@ export const Sku = z.enum([
   "points_10000",
   "sub_monthly",
   "sub_yearly",
-  
+
   // PayNow SKUs
   "points_20",
   "points_50",

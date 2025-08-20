@@ -5,7 +5,7 @@ import { db } from "../src/server/firebase/admin";
 
 async function listAllAuthUsers(nextPageToken?: string) {
   const auth = getAuth();
-  const users: any[] = [];
+  const users: { uid: string; email?: string }[] = [];
   let pageToken = nextPageToken;
   do {
     const result = await auth.listUsers(1000, pageToken);

@@ -52,8 +52,8 @@ export default function Page() {
       // Use redirect-based auth to avoid COOP issues
       await signInWithRedirect(auth, provider);
       // The page will redirect and come back, so we don't need to handle the result here
-    } catch (e: any) {
-      setErr(e?.message ?? "Sign-in failed");
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Sign-in failed");
       setBusy(false);
     }
   }
@@ -73,6 +73,7 @@ export default function Page() {
           Continue with your Google account.
         </p>
         <button
+          type="button"
           onClick={login}
           disabled={busy}
           style={{

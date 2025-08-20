@@ -14,25 +14,32 @@ function verifySignature(raw: string, sig: string) {
 
 export async function POST(req: NextRequest) {
   const raw = await req.text();
-  const sig = req.headers.get("paynow-signature") || req.headers.get("x-signature") || "";
+  const sig =
+    req.headers.get("paynow-signature") || req.headers.get("x-signature") || "";
 
   try {
     if (!verifySignature(raw, sig)) {
-      return NextResponse.json({ ok:false, err:"bad signature" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, err: "bad signature" },
+        { status: 400 },
+      );
     }
     const evt = JSON.parse(raw); // shape per paynow docs
     // Expect evt.type like "order.completed", evt.data with { metadata.uid, items[], productId, ... }
-    if (evt.type !== "order.completed") return NextResponse.json({ ok:true });
+    if (evt.type !== "order.completed") return NextResponse.json({ ok: true });
 
     const db = await getDb();
 
     const uid = evt?.data?.metadata?.uid as string | undefined;
-    if (!uid) return NextResponse.json({ ok:false, err:"no uid" }, { status: 200 });
+    if (!uid)
+      return NextResponse.json({ ok: false, err: "no uid" }, { status: 200 });
 
     // loop items and grant
     for (const item of evt.data.items ?? []) {
       const pid = String(item.productId);
-      const sku = Object.entries(skuMap).find(([,v]) => v.productId === pid)?.[0];
+      const sku = Object.entries(skuMap).find(
+        ([, v]) => v.productId === pid,
+      )?.[0];
       if (!sku) continue;
       const skuData = skuMap[sku as keyof typeof skuMap];
       if (!skuData) continue;
@@ -51,22 +58,27 @@ export async function POST(req: NextRequest) {
         // (extend with your own subscription model if needed)
         await db.runTransaction(async (tx) => {
           const prof = db.collection("profiles").doc(uid);
-          tx.set(prof, {
-            subscription: {
-              plan: grant.plan, cycle: grant.cycle,
-              status: "active",
-              provider: "paynow",
-              orderId: evt.data.id,
-              at: new Date(),
+          tx.set(
+            prof,
+            {
+              subscription: {
+                plan: grant.plan,
+                cycle: grant.cycle,
+                status: "active",
+                provider: "paynow",
+                orderId: evt.data.id,
+                at: new Date(),
+              },
             },
-          }, { merge: true });
+            { merge: true },
+          );
         });
       }
     }
 
-    return NextResponse.json({ ok:true });
+    return NextResponse.json({ ok: true });
   } catch (e: unknown) {
     console.error("[paynow.webhook]", e instanceof Error ? e.message : e);
-    return NextResponse.json({ ok:false }, { status: 200 });
+    return NextResponse.json({ ok: false }, { status: 200 });
   }
 }

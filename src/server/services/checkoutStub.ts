@@ -15,7 +15,7 @@ const PRICES = {
   points_10000: Number(process.env.NEXT_PUBLIC_PRICE_POINTS_10000 ?? 65),
   sub_monthly: Number(process.env.NEXT_PUBLIC_PRICE_SUB_MONTHLY ?? 19),
   sub_yearly: Number(process.env.NEXT_PUBLIC_PRICE_SUB_YEARLY ?? 180),
-  
+
   // PayNow prices (for stub fallback)
   points_20: Number(process.env.NEXT_PUBLIC_PRICE_POINTS_20 ?? 5),
   points_50: Number(process.env.NEXT_PUBLIC_PRICE_POINTS_50 ?? 10),
@@ -34,7 +34,7 @@ const POINTS_MAP: Record<SkuType, number | null> = {
   points_10000: 10000,
   sub_monthly: null,
   sub_yearly: null,
-  
+
   // PayNow SKUs (for stub compatibility)
   points_20: 20,
   points_50: 50,
@@ -50,11 +50,11 @@ function ttlForPlan(sku: SkuType) {
   // Legacy stub subscriptions
   if (sku === "sub_monthly") return 30;
   if (sku === "sub_yearly") return 365;
-  
+
   // PayNow subscriptions
   if (sku === "sub_basic_m" || sku === "sub_pro_m") return 30;
   if (sku === "sub_basic_y" || sku === "sub_pro_y") return 365;
-  
+
   return null;
 }
 

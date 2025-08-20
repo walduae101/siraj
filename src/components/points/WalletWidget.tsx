@@ -21,9 +21,12 @@ export function WalletWidget({ locale = "ar" }: { locale?: string }) {
   if (!features.pointsClient || !api.points || !user?.uid) return null;
   if (!data) return null;
   const soonest = data.promoLots
-    ?.filter((l: any) => l.amountRemaining > 0)
+    ?.filter((l: { amountRemaining: number }) => l.amountRemaining > 0)
     ?.sort(
-      (a: any, b: any) => a.expiresAt.toMillis() - b.expiresAt.toMillis(),
+      (
+        a: { expiresAt: { toMillis(): number } },
+        b: { expiresAt: { toMillis(): number } },
+      ) => a.expiresAt.toMillis() - b.expiresAt.toMillis(),
     )[0];
   const Dir = locale === "ar" ? "rtl" : "ltr";
   return (
