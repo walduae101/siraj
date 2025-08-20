@@ -60,12 +60,13 @@ export const checkoutRouter = createTRPCRouter({
         console.log(`Created/found PayNow customer for ${userId} -> ${customerId}`);
       }
       
-      // Update context with customer token for Storefront API
+      // Generate proper auth token for Storefront API
+      const authToken = await PayNowService.generateAuthToken(mapping.paynowCustomerId);
       const enhancedCtx = {
         ...ctx,
         payNowStorefrontHeaders: {
           ...ctx.payNowStorefrontHeaders,
-          Authorization: `Customer ${mapping.paynowCustomerId}`,
+          Authorization: `Customer ${authToken}`,
         },
       };
       
