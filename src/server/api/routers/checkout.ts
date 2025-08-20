@@ -67,15 +67,16 @@ export const checkoutRouter = createTRPCRouter({
       const authToken = await PayNowService.generateAuthToken(mapping.paynowCustomerId);
       
       // PayNow requires customer IP or country code for server-side requests
-      const forwardedFor = ctx.headers.get('x-forwarded-for');
-      const realIp = ctx.headers.get('x-real-ip');
-      const cfIp = ctx.headers.get('cf-connecting-ip');
+      const forwardedFor = ctx.headers.get('x-forwarded-for') as string | null;
+      const realIp = ctx.headers.get('x-real-ip') as string | null;
+      const cfIp = ctx.headers.get('cf-connecting-ip') as string | null;
       
       // Get the first available IP or use localhost as fallback
-      const rawIp = String(forwardedFor || realIp || cfIp || '127.0.0.1');
+      const rawIp = forwardedFor || realIp || cfIp || '127.0.0.1';
       
       // Handle multiple IPs (x-forwarded-for can contain comma-separated list)
-      const customerIp = rawIp.split(',')[0].trim();
+      // Force TypeScript to treat as string since we have a fallback
+      const customerIp = (rawIp as string).split(',')[0].trim();
       
       const enhancedCtx = {
         ...ctx,
