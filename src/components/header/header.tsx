@@ -35,7 +35,9 @@ const navItems = [
 ];
 
 export default function Header() {
-  const { data: auth } = api.paynow.getAuth.useQuery();
+  const { data: auth } = api.paynow.getAuth.useQuery(undefined, {
+    staleTime: 30_000, // Cache auth state for 30 seconds
+  });
   const router = useRouter();
 
   const authDialog = useAuthDialog();

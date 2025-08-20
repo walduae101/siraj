@@ -20,8 +20,12 @@ export default function CategoryPage({
 
   const cartSidebar = useCartSidebar();
 
-  const { data: navlinks } = api.paynow.getNavlinks.useQuery();
-  const { data: products } = api.paynow.getProducts.useQuery();
+  const { data: navlinks } = api.paynow.getNavlinks.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const { data: products } = api.paynow.getProducts.useQuery(undefined, {
+    staleTime: 30_000,
+  });
 
   const navlink = useMemo(() => {
     if (!navlinks) {

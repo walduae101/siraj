@@ -9,7 +9,9 @@ import HoverAnimateImage from "../hover-image";
 import { Card, CardTitle } from "../ui/card";
 
 export default function NavlinkCards() {
-  const { data: navlinks } = api.paynow.getNavlinks.useQuery();
+  const { data: navlinks } = api.paynow.getNavlinks.useQuery(undefined, {
+    staleTime: 60_000, // Navlinks change infrequently
+  });
 
   if (!navlinks?.length) {
     return null;
@@ -25,7 +27,9 @@ export default function NavlinkCards() {
 }
 
 function NavlinkCard({ navlink }: { navlink: Navlink }) {
-  const { data: tags } = api.paynow.getTags.useQuery();
+  const { data: tags } = api.paynow.getTags.useQuery(undefined, {
+    staleTime: 60_000, // Tags change infrequently
+  });
 
   const tag = tags?.find((x) => x.id === navlink.tag_id);
 

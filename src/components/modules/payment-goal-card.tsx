@@ -7,7 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 export default function PaymentGoalCard({
   module,
 }: { module: Module<"payment_goal"> }) {
-  const { data: store } = api.paynow.getStore.useQuery();
+  const { data: store } = api.paynow.getStore.useQuery(undefined, {
+    staleTime: 60_000,
+  });
 
   const goal = (module.data.settings.goalTarget / 100).toFixed(2);
   const revenue = (+(module.data.revenue ?? "0") / 100).toFixed(2);

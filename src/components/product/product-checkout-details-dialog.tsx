@@ -50,7 +50,9 @@ export default function ProductCheckoutDetailsDialog({
   setDetails,
   onConfirm,
 }: Props) {
-  const { data: store } = api.paynow.getStore.useQuery();
+  const { data: store } = api.paynow.getStore.useQuery(undefined, {
+    staleTime: 60_000,
+  });
   const [open, setOpen] = useState(false);
 
   const form = useForm<FormData>({

@@ -24,8 +24,12 @@ import Header from "./../../components/header/header";
 export default function DefaultLayout({
   children,
 }: { children: React.ReactNode }) {
-  const { data: store } = api.paynow.getStore.useQuery();
-  const { data: modules } = api.paynow.getModules.useQuery();
+  const { data: store } = api.paynow.getStore.useQuery(undefined, {
+    staleTime: 60_000, // Store data changes infrequently
+  });
+  const { data: modules } = api.paynow.getModules.useQuery(undefined, {
+    staleTime: 60_000, // Modules data changes infrequently
+  });
 
   const handleCopy = async () => {
     try {
