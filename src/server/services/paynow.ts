@@ -1,24 +1,27 @@
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
-import { env } from "~/env-combined";
+import { env } from "~/env-server";
 import {
   PAYNOW_PRODUCTS,
   type PayNowSku,
   isSubscription,
 } from "./paynowProducts";
 
-const BASE = "https://api.paynow.gg";
-const STORE_ID = env.NEXT_PUBLIC_PAYNOW_STORE_ID || "321641745957789696";
-if (!STORE_ID) throw new Error("PAYNOW_STORE_ID missing");
+const BASE = "https://api.paynow.gg/v1";
+const STORE_ID = env.PAYNOW_STORE_ID;
 
-function headers() {
+function authHeaders() {
+  // "apikey " prefix is case-insensitive; make sure no newlines in the secret
   const key = (env.PAYNOW_API_KEY ?? "").replace(/[^\x20-\x7E]/g, "").trim();
-  if (!key) throw new Error("PAYNOW_API_KEY missing");
-  return {
-    Authorization: `apikey ${key}`, // case-insensitive, but keep canonical
+  return { 
+    Authorization: `apikey ${key}`,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
+}
+
+function headers() {
+  return authHeaders();
 }
 
 async function readJson(res: Response) {
@@ -129,4 +132,16 @@ export class PayNowService {
 
     return json as { id: string; url: string; token?: string };
   }
+}
+
+/**
+ * Fetch order by checkout ID for payment completion
+ */
+export async function getOrderByCheckoutId(storeId: string, checkoutId: string) {
+  const url = `${BASE}/stores/${storeId}/orders?checkout_id=${encodeURIComponent(checkoutId)}&limit=1`;
+  const res = await fetch(url, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`PayNow orders fetch failed: ${res.status}`);
+  const data = await res.json();
+  // API returns {orders: Order[]}
+  return Array.isArray(data?.orders) ? data.orders[0] ?? null : null;
 }

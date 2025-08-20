@@ -1,98 +1,63 @@
 import crypto from "node:crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getDb } from "~/server/firebase/admin-lazy";
 import { pointsService } from "~/server/services/points";
-import { skuMap } from "~/server/services/skuMap";
 import { subscriptions } from "~/server/services/subscriptions";
+import { env } from "~/env-server";
 
-function verifySignature(raw: string, sig: string) {
-  const secret = (process.env.PAYNOW_WEBHOOK_SECRET ?? "").trim();
-  if (!secret) throw new Error("PAYNOW_WEBHOOK_SECRET missing");
-  const h = crypto.createHmac("sha256", secret).update(raw).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(h), Buffer.from(sig));
+const productPoints = JSON.parse(process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON ?? "{}") as Record<string, number>;
+
+// HMAC verification per docs (headers: PayNow-Signature, PayNow-Timestamp)
+function verify(reqBody: string, headers: Headers) {
+  const sig = headers.get("PayNow-Signature");
+  const ts  = headers.get("PayNow-Timestamp");
+  if (!sig || !ts || !env.PAYNOW_WEBHOOK_SECRET) return false;
+  const payload = `${ts}.${reqBody}`;
+  const mac = crypto.createHmac("sha256", env.PAYNOW_WEBHOOK_SECRET).update(payload).digest("hex");
+  return crypto.timingSafeEqual(Buffer.from(mac), Buffer.from(sig));
 }
 
 export async function POST(req: NextRequest) {
   const raw = await req.text();
-  const sig =
-    req.headers.get("paynow-signature") || req.headers.get("x-signature") || "";
+  
+  if (!verify(raw, req.headers)) {
+    return new NextResponse("invalid signature", { status: 401 });
+  }
+  
+  const evt = JSON.parse(raw);
 
-  try {
-    if (!verifySignature(raw, sig)) {
-      return NextResponse.json(
-        { ok: false, err: "bad signature" },
-        { status: 400 },
-      );
-    }
-    const evt = JSON.parse(raw); // shape per paynow docs
-    // Expect evt.type like "order.completed", evt.data with { metadata.uid, items[], productId, ... }
-    if (evt.type !== "order.completed") return NextResponse.json({ ok: true });
+  // We care about on_order_completed for top-ups
+  if (evt?.event === "on_order_completed") {
+    const order = evt?.data?.order;
+    const pretty = order?.pretty_id;
+    const uid = order?.customer?.metadata?.uid || order?.customer?.email; // how you linked customers → users
+    if (!uid) return NextResponse.json({ ok: true, skipped: "no-uid" });
 
-    const db = await getDb();
-
-    const uid = evt?.data?.metadata?.uid as string | undefined;
-    if (!uid)
-      return NextResponse.json({ ok: false, err: "no uid" }, { status: 200 });
-
-    // loop items and grant
-    for (const item of evt.data.items ?? []) {
-      const pid = String(item.productId);
-      const sku = Object.entries(skuMap).find(
-        ([, v]) => v.productId === pid,
-      )?.[0];
-      if (!sku) {
-        // Check if this is a subscription product directly
-        const plan = subscriptions.getPlan(pid);
-        if (plan) {
-          await subscriptions.recordPurchase(uid, pid, evt.data.id);
-        }
-        continue;
-      }
-
-      const skuData = skuMap[sku as keyof typeof skuMap];
-      if (!skuData) continue;
-      const grant = skuData.grant;
-
-      if (grant.type === "points") {
+    let credited = 0;
+    for (const line of order?.lines ?? []) {
+      const pid = String(line.product_id);
+      const qty = Number(line.quantity ?? 1);
+      const pts = productPoints[pid];
+      if (pts && qty > 0) {
+        const delta = pts * qty;
         await pointsService.credit({
           uid,
           kind: "paid",
-          amount: grant.amount * (item.quantity ?? 1),
-          source: "paynow",
-          actionId: `${evt.data.id}_${pid}_${item.quantity}`,
+          amount: delta,
+          source: "paynow:webhook",
+          actionId: `${pretty}_${pid}_${qty}`,
         });
-      } else {
-        // Check for subscription plan in new system first
-        const plan = subscriptions.getPlan(pid);
-        if (plan) {
-          await subscriptions.recordPurchase(uid, pid, evt.data.id);
-        } else {
-          // Fall back to minimal subscription flag for legacy handling
-          await db.runTransaction(async (tx) => {
-            const prof = db.collection("profiles").doc(uid);
-            tx.set(
-              prof,
-              {
-                subscription: {
-                  plan: grant.plan,
-                  cycle: grant.cycle,
-                  status: "active",
-                  provider: "paynow",
-                  orderId: evt.data.id,
-                  at: new Date(),
-                },
-              },
-              { merge: true },
-            );
-          });
-        }
+        credited += delta;
+      }
+      
+      // Also check for subscription plans
+      const plan = subscriptions.getPlan(pid);
+      if (plan) {
+        await subscriptions.recordPurchase(uid, pid, pretty || order?.id);
       }
     }
-
-    return NextResponse.json({ ok: true });
-  } catch (e: unknown) {
-    console.error("[paynow.webhook]", e instanceof Error ? e.message : e);
-    return NextResponse.json({ ok: false }, { status: 200 });
+    return NextResponse.json({ ok: true, credited });
   }
+
+  return NextResponse.json({ ok: true });
 }

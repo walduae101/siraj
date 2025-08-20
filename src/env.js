@@ -26,6 +26,10 @@ export const env = createEnv({
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string(),
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string(),
     NEXT_PUBLIC_FIREBASE_APP_ID: z.string().optional(),
+
+    // PayNow Points Mapping
+    NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON: z.string().optional().default("{}"),
+    NEXT_PUBLIC_SUB_PLAN_POINTS_JSON: z.string().optional().default("{}"),
   },
 
   /**
@@ -46,6 +50,8 @@ export const env = createEnv({
     NEXT_PUBLIC_FIREBASE_PROJECT_ID:
       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON: process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON,
+    NEXT_PUBLIC_SUB_PLAN_POINTS_JSON: process.env.NEXT_PUBLIC_SUB_PLAN_POINTS_JSON,
   },
 
   /**

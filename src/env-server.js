@@ -11,6 +11,8 @@ export const env = createEnv({
     NODE_ENV: z.enum(["development", "test", "production"]),
 
     PAYNOW_API_KEY: z.string(),
+    PAYNOW_STORE_ID: z.string(),
+    PAYNOW_WEBHOOK_SECRET: z.string().optional(),
 
     // Firebase Admin / Backend
     FIREBASE_PROJECT_ID: z.string(),
@@ -53,6 +55,8 @@ export const env = createEnv({
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     PAYNOW_API_KEY: process.env.PAYNOW_API_KEY,
+    PAYNOW_STORE_ID: process.env.PAYNOW_STORE_ID,
+    PAYNOW_WEBHOOK_SECRET: process.env.PAYNOW_WEBHOOK_SECRET,
     FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID,
     FIREBASE_SERVICE_ACCOUNT_JSON: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,

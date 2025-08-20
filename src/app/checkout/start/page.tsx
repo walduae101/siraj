@@ -50,13 +50,17 @@ function CheckoutStartContent() {
   ) || { data: undefined, isLoading: false, error: null };
 
   const router = useRouter();
-  const complete = api.checkout?.complete.useMutation({
-    onSuccess: () => router.push("/checkout/success"),
+  const createCheckout = api.checkout?.create.useMutation({
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url; // Redirect to PayNow hosted checkout
+      }
+    },
   }) || { mutate: () => {}, isPending: false, error: null };
 
   // Early returns after all hooks are called
-  if (!features.stubCheckout || !api.checkout) {
-    return <p>Checkout disabled</p>;
+  if (!features.liveCheckout || !api.checkout) {
+    return <p>Live checkout disabled</p>;
   }
   if (!validSku) {
     return <p>Invalid SKU</p>;
@@ -67,7 +71,12 @@ function CheckoutStartContent() {
       alert("Please sign in first.");
       return;
     }
-    complete.mutate({ sku: validSku, qty, nonce, uid }); // ✅ pass uid
+    createCheckout.mutate({ 
+      sku: validSku as any, // Type conversion for PayNowSku
+      qty,
+      successUrl: `${window.location.origin}/checkout/success`,
+      cancelUrl: `${window.location.origin}/paywall`
+    });
   };
 
   if (isLoading) return <p>Loading…</p>;
@@ -103,13 +112,13 @@ function CheckoutStartContent() {
         type="button"
         className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
         onClick={onConfirm}
-        disabled={complete.isPending}
-        aria-busy={complete.isPending}
+        disabled={createCheckout.isPending}
+        aria-busy={createCheckout.isPending}
       >
-        {complete.isPending ? "Processing…" : "Confirm (stub)"}
+        {createCheckout.isPending ? "Redirecting to PayNow…" : "Proceed to Payment"}
       </button>
-      {complete.error && (
-        <p className="text-red-600 text-sm">{complete.error.message}</p>
+      {createCheckout.error && (
+        <p className="text-red-600 text-sm">{createCheckout.error.message}</p>
       )}
     </main>
   );
