@@ -10,7 +10,13 @@ export function WalletWidget({ locale = 'ar' }: { locale?: string }) {
   if (!features.pointsClient || !api.points || !user?.uid) return null;
   const safeLocale: "en" | "ar" = locale === "ar" ? "ar" : "en";
   const tt = t(safeLocale);
-  const { data } = api.points.getWallet.useQuery({ uid: user.uid }, { staleTime: 10_000 });
+  const { data } = api.points.getWallet.useQuery(
+    { uid: user.uid }, 
+    { 
+      staleTime: 10_000,
+      enabled: !!user?.uid // Only run query when user.uid is available
+    }
+  );
   if (!data) return null;
   const soonest = data.promoLots?.filter((l: any) => l.amountRemaining > 0)?.sort((a: any, b: any) => a.expiresAt.toMillis() - b.expiresAt.toMillis())[0];
   const Dir = locale === "ar" ? "rtl" : "ltr";
