@@ -72,10 +72,15 @@ export const checkoutRouter = createTRPCRouter({
       const cfIp = ctx.headers.get('cf-connecting-ip');
       
       // Get the first available IP or use localhost as fallback
-      const rawIp = forwardedFor || realIp || cfIp || '127.0.0.1';
+      let customerIp = '127.0.0.1'; // Default IP
       
-      // Handle multiple IPs (x-forwarded-for can contain comma-separated list)
-      const customerIp = rawIp.split(',')[0].trim();
+      if (forwardedFor) {
+        customerIp = forwardedFor.split(',')[0].trim();
+      } else if (realIp) {
+        customerIp = realIp.split(',')[0].trim();
+      } else if (cfIp) {
+        customerIp = cfIp.split(',')[0].trim();
+      }
       
       const enhancedCtx = {
         ...ctx,
