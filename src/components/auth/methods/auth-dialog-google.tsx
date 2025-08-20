@@ -55,26 +55,35 @@ export default function AuthDialogGoogle({
       const auth = getFirebaseAuth();
       const provider = new GoogleAuthProvider();
 
-      // Prefer popup; fallback to redirect if popup blocked
-      const result = await signInWithPopup(auth, provider).catch(async (e) => {
-        if (e?.message?.toLowerCase()?.includes("popup")) {
-          await signInWithRedirect(auth, provider);
-          return await getRedirectResult(auth); // will be non-null after redirect
-        }
-        throw e;
-      });
-
-      if (!result?.user) throw new Error("No Firebase user");
-      const idToken = await result.user.getIdToken(/* forceRefresh */ true);
-      await googleLogin.mutateAsync({ idToken });
-      // Success: refresh UI or route
-      window.location.href = "/";
+      // Use redirect-based auth to avoid COOP issues
+      await signInWithRedirect(auth, provider);
+      // The page will redirect and come back, so we don't need to handle the result here
     } catch (e) {
       console.error("Google auth failed", e);
-    } finally {
       setLoading(false);
     }
   };
+
+  // Handle redirect result when user comes back from Google auth
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const auth = getFirebaseAuth();
+        const result = await getRedirectResult(auth);
+        
+        if (result?.user) {
+          const idToken = await result.user.getIdToken(true);
+          await googleLogin.mutateAsync({ idToken });
+          setOpen(false);
+          router.push("/dashboard");
+        }
+      } catch (e) {
+        console.error("Redirect result error", e);
+      }
+    };
+
+    handleRedirectResult();
+  }, [googleLogin, setOpen, router]); // Run once on component mount
 
   useEffect(() => {
     if (open) {
