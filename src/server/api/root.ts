@@ -9,8 +9,8 @@ import { pointsRouter } from "./routers/points";
 export const appRouter = createTRPCRouter({
   paynow: paynowRouter,
   ai: aiRouter,
-  ...(features.pointsServer ? { points: pointsRouter } : {}),
-  ...(features.stubCheckout ? { checkout: checkoutRouter } : {}),
+  points: pointsRouter,
+  checkout: checkoutRouter,
 });
 
 export type AppRouter = typeof appRouter;

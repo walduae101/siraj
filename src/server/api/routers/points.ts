@@ -6,8 +6,12 @@ import { createTRPCRouter, publicProcedure } from "../trpc";
 
 export const pointsRouter = createTRPCRouter({
   getWallet: protectedProcedure
-    .input(z.object({ uid: z.string().min(1) }))
-    .query(({ input }) => pointsService.getWallet(input.uid)),
+    .input(z.object({ uid: z.string().min(1).optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const uid = input?.uid ?? ctx.user?.uid ?? ctx.userId;
+      if (!uid) throw new Error("No user ID available");
+      return pointsService.getWallet(uid);
+    }),
 
   previewSpend: protectedProcedure
     .input(zSpendPreview)
