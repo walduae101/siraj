@@ -61,6 +61,9 @@ export const checkoutRouter = createTRPCRouter({
       }
       
       // Generate proper auth token for Storefront API
+      if (!mapping.paynowCustomerId) {
+        throw new Error("PayNow customer ID not found after creation");
+      }
       const authToken = await PayNowService.generateAuthToken(mapping.paynowCustomerId);
       const enhancedCtx = {
         ...ctx,
