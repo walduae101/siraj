@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { features } from "~/config/features";
 import { protectedProcedure } from "~/server/api/protectedCompat";
 import {
@@ -100,6 +101,9 @@ export const checkoutRouter = createTRPCRouter({
           // Only include gameserver_id if it's a gameserver product
           ...(input.sku.includes("gameserver") ? { selected_gameserver_id: null } : {}),
         }],
+        // Explicit redirects as required by Storefront Checkout
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
       };
       
       try {
@@ -112,17 +116,16 @@ export const checkoutRouter = createTRPCRouter({
         
         const result = await PayNowService.checkout(enhancedCtx, checkoutData);
         return { url: result.url };
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("[checkout.create] PayNow checkout failed:", error);
-        if (error instanceof Error && error.message.includes("Request failed")) {
-          console.error("[checkout.create] Full error details:", {
-            message: error.message,
-            stack: error.stack,
-            // @ts-ignore
-            response: error.response?.data || error.response
-          });
+        // If upstream already produced a TRPCError, propagate as-is for client visibility
+        if (error instanceof TRPCError) throw error;
+        if (typeof error === "object" && error && "message" in error) {
+          // @ts-ignore
+          const msg: string = error.message ?? "Checkout failed";
+          throw new TRPCError({ code: "BAD_REQUEST", message: msg });
         }
-        throw new Error(`PayNow checkout failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Checkout failed" });
       }
     }),
 });
