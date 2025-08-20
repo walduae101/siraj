@@ -5,15 +5,17 @@ const STORE_ID = process.env.PAYNOW_STORE_ID ?? "321641745957789696";
 
 function apiKey() {
   const k = (process.env.PAYNOW_API_KEY ?? "")
-    .replace(/[\r\n"']/g, "")
+    .replace(/["']/g, "")
+    .replace(/[^\x20-\x7E]/g, "")
     .trim();
   if (!k) throw new Error("PAYNOW_API_KEY missing");
+  if (/[\r\n]/.test(k)) throw new Error("Invalid PAYNOW_API_KEY");
   return k;
 }
 
 function headers(idem?: string) {
   return {
-    authorization: `APIKey ${apiKey()}`,
+    Authorization: `APIKey ${apiKey()}`,
     "content-type": "application/json",
     ...(idem ? { "idempotency-key": idem } : {}),
   };
