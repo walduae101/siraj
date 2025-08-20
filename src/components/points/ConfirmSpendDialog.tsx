@@ -37,16 +37,14 @@ export function ConfirmSpendDialog(props: ConfirmSpendDialogProps) {
   const _confirmLabel = props.confirmLabel ?? tt('confirmSpend.confirm', 'تأكيد واستخدام النقاط');
   const _cancelLabel = props.cancelLabel ?? tt('common.cancel', 'إلغاء');
 
-  if (!features.pointsClient || !uid || !api.points) return null;
-
   const { data: preview, isLoading: previewLoading, error: previewError } =
-    api.points.previewSpend.useQuery(
-      { uid, cost },
-      { enabled: features.pointsClient && open && !!uid }
-    );
+    api.points?.previewSpend.useQuery(
+      { uid: uid || "", cost },
+      { enabled: features.pointsClient && !!api.points && open && !!uid }
+    ) || { data: undefined, isLoading: false, error: null };
 
   const utils = api.useUtils();
-  const spendMutation = api.points.spend.useMutation({
+  const spendMutation = api.points?.spend.useMutation({
     onSuccess: async () => {
       await Promise.all([
         utils.points?.getWallet?.invalidate?.(),
@@ -57,7 +55,7 @@ export function ConfirmSpendDialog(props: ConfirmSpendDialogProps) {
     onError: (err) => {
       props.onError?.(err);
     },
-  });
+  }) || { mutate: () => {}, isPending: false };
 
   const n = (v: number) => fmtNum(v, safeLocale);
   const soonestExpiry = React.useMemo(() => {
@@ -79,6 +77,9 @@ export function ConfirmSpendDialog(props: ConfirmSpendDialogProps) {
   const onConfirm = () => {
     spendMutation.mutate({ uid, cost, actionId: actionId ?? "", action: reason ?? "" });
   };
+
+  // Early return after all hooks are called
+  if (!features.pointsClient || !uid || !api.points) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

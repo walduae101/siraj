@@ -31,10 +31,6 @@ function CheckoutStartContent() {
     }
   }, []);
 
-  if (!features.stubCheckout || !api.checkout) {
-    return <p>Checkout disabled</p>;
-  }
-
   const allowedSkus = [
     "points_1000",
     "points_5000",
@@ -44,18 +40,24 @@ function CheckoutStartContent() {
   ] as const;
   type Sku = typeof allowedSkus[number];
   const validSku = allowedSkus.includes(sku as Sku) ? (sku as Sku) : undefined;
+  
+  const { data, isLoading, error } = api.checkout?.preview.useQuery(
+    { sku: validSku || "points_1000", qty },
+    { enabled: features.stubCheckout && !!api.checkout && !!validSku }
+  ) || { data: undefined, isLoading: false, error: null };
+
+  const router = useRouter();
+  const complete = api.checkout?.complete.useMutation({
+    onSuccess: () => router.push("/checkout/success"),
+  }) || { mutate: () => {}, isPending: false, error: null };
+
+  // Early returns after all hooks are called
+  if (!features.stubCheckout || !api.checkout) {
+    return <p>Checkout disabled</p>;
+  }
   if (!validSku) {
     return <p>Invalid SKU</p>;
   }
-  const { data, isLoading, error } = api.checkout.preview.useQuery(
-    { sku: validSku, qty },
-    { enabled: features.stubCheckout && !!validSku }
-  );
-
-  const router = useRouter();
-  const complete = api.checkout.complete.useMutation({
-    onSuccess: () => router.push("/checkout/success"),
-  });
 
   const onConfirm = () => {
     if (!uid) {

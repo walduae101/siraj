@@ -7,16 +7,18 @@ import { useFirebaseUser } from '~/components/auth/useFirebaseUser';
 
 export function WalletWidget({ locale = 'ar' }: { locale?: string }) {
   const { user } = useFirebaseUser();
-  if (!features.pointsClient || !api.points || !user?.uid) return null;
   const safeLocale: "en" | "ar" = locale === "ar" ? "ar" : "en";
   const tt = t(safeLocale);
-  const { data } = api.points.getWallet.useQuery(
-    { uid: user.uid }, 
+  const { data } = api.points?.getWallet.useQuery(
+    { uid: user?.uid || "" }, 
     { 
       staleTime: 10_000,
-      enabled: !!user?.uid // Only run query when user.uid is available
+      enabled: features.pointsClient && !!api.points && !!user?.uid // Only run when all conditions are met
     }
-  );
+  ) || { data: undefined };
+  
+  // Early returns after all hooks are called
+  if (!features.pointsClient || !api.points || !user?.uid) return null;
   if (!data) return null;
   const soonest = data.promoLots?.filter((l: any) => l.amountRemaining > 0)?.sort((a: any, b: any) => a.expiresAt.toMillis() - b.expiresAt.toMillis())[0];
   const Dir = locale === "ar" ? "rtl" : "ltr";
