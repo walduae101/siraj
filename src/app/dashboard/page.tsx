@@ -12,7 +12,9 @@ import { WalletWidget } from "~/components/points/WalletWidget";
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useFirebaseUser();
-  const { data: auth, isLoading } = api.paynow.getAuth.useQuery();
+  const { data: auth, isLoading } = api.paynow.getAuth.useQuery(undefined, {
+    enabled: !!user?.uid, // Only run when user is authenticated
+  });
 
   if (userLoading || isLoading) {
     return (

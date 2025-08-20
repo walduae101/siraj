@@ -18,9 +18,16 @@ export default function AuthCard() {
   const authDialog = useAuthDialog();
   const cartSidebar = useCartSidebar();
 
-  const { data: auth } = api.paynow.getAuth.useQuery();
-  const { data: cart } = api.paynow.getCart.useQuery();
-  const { data: store } = api.paynow.getStore.useQuery();
+  const { data: auth } = api.paynow.getAuth.useQuery(undefined, {
+    staleTime: 30_000, // Cache for 30 seconds
+  });
+  const { data: cart } = api.paynow.getCart.useQuery(undefined, {
+    enabled: !!auth?.id, // Only fetch cart when authenticated
+    staleTime: 10_000,
+  });
+  const { data: store } = api.paynow.getStore.useQuery(undefined, {
+    staleTime: 60_000, // Store data changes infrequently
+  });
 
   const totalItems = React.useMemo(
     () =>

@@ -13,8 +13,12 @@ export default function PendingCartHandler() {
 
   const utils = api.useUtils();
 
-  const { data: auth } = api.paynow.getAuth.useQuery();
-  const { data: store } = api.paynow.getStore.useQuery();
+  const { data: auth } = api.paynow.getAuth.useQuery(undefined, {
+    staleTime: 30_000,
+  });
+  const { data: store } = api.paynow.getStore.useQuery(undefined, {
+    staleTime: 60_000,
+  });
 
   const updateCartMutation = api.paynow.updateCartItem.useMutation({
     onSuccess: async () => {
