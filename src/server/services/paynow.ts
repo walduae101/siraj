@@ -1,31 +1,30 @@
+import { TRPCError } from "@trpc/server";
 import { env } from "~/env-combined";
 import { PAYNOW_PRODUCTS, type PayNowSku, isSubscription } from "./paynowProducts";
 import type { Firestore } from "firebase-admin/firestore";
 
-const BASE = "https://api.paynow.gg/v1/management";
+const BASE = "https://api.paynow.gg";
+const STORE_ID = env.NEXT_PUBLIC_PAYNOW_STORE_ID || "321641745957789696";
+if (!STORE_ID) throw new Error("PAYNOW_STORE_ID missing");
 
-function cleanKey(raw?: string) {
-  return (raw ?? "").replace(/["'\r\n]/g, "").trim();
-}
-
-function authHeader() {
-  const key = cleanKey(env.PAYNOW_API_KEY);
+function headers() {
+  const key = (env.PAYNOW_API_KEY ?? "").replace(/[^\x20-\x7E]/g, "").trim();
   if (!key) throw new Error("PAYNOW_API_KEY missing");
-  return { 
-    Authorization: `apikey ${key}`, 
-    Accept: "application/json", 
-    "Content-Type": "application/json" 
+  return {
+    Authorization: `apikey ${key}`, // case-insensitive, but keep canonical
+    "Content-Type": "application/json",
+    Accept: "application/json",
   };
 }
 
-function storeId() {
-  const id = cleanKey(env.NEXT_PUBLIC_PAYNOW_STORE_ID || "321641745957789696");
-  if (!id) throw new Error("PAYNOW_STORE_ID missing");
-  return id;
+async function readJson(res: Response) {
+  const text = await res.text();
+  try {
+    return { json: JSON.parse(text), raw: text };
+  } catch {
+    return { json: null, raw: text };
+  }
 }
-
-// ⚠️ Never log full api keys
-const redact = (s: string) => (s.length > 8 ? `${s.slice(0,2)}***${s.slice(-4)}` : "***");
 
 export type CreateCheckoutInput = {
   uid: string;           // our user id
@@ -36,62 +35,74 @@ export type CreateCheckoutInput = {
 };
 
 export class PayNowService {
-  // You already persist userMappings; reuse it. If path differs, adjust here.
   static async getOrCreateCustomerId(db: Firestore, uid: string, name?: string, email?: string) {
     const ref = db.collection("userMappings").doc(uid);
     const snap = await ref.get();
     const existing = snap.exists ? (snap.data()?.paynowCustomerId as string | undefined) : undefined;
     if (existing) return existing;
 
-    // Create a PayNow customer (minimal — name/metadata only)
-    const sid = storeId();
-    const res = await fetch(`${BASE}/stores/${sid}/customers`, {
+    // Create customer with only allowed fields (email in metadata)
+    const body = {
+      name: name?.slice(0, 64) ?? uid,
+      metadata: { uid, ...(email ? { email } : {}) },
+    };
+    
+    const res = await fetch(`${BASE}/v1/stores/${STORE_ID}/customers`, {
       method: "POST",
-      headers: authHeader(),
-      body: JSON.stringify({
-        name: name ?? uid,
-        metadata: { firebase_uid: uid, email },
-      }),
+      headers: headers(),
+      body: JSON.stringify(body),
     });
-
+    
+    const { json, raw } = await readJson(res);
     if (!res.ok) {
-      const body = await res.text();
-      console.error("[paynow] create customer failed", { status: res.status, body: body?.slice(0, 500) });
-      throw new Error("Failed to create PayNow customer");
+      console.error("[paynow] create customer failed", { status: res.status, body: raw?.slice(0, 400) });
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `PayNow create customer failed (${res.status})`,
+        cause: raw?.slice(0, 400),
+      });
     }
-    const json = await res.json() as { id: string };
-    await ref.set({ paynowCustomerId: json.id }, { merge: true });
-    return json.id;
+    
+    const customerId = (json as { id: string })?.id;
+    if (!customerId) throw new Error("No customer ID in response");
+    
+    await ref.set({ paynowCustomerId: customerId }, { merge: true });
+    return customerId;
   }
 
   static async createCheckout(db: Firestore, input: CreateCheckoutInput) {
-    const sid = storeId();
     const customerId = await this.getOrCreateCustomerId(db, input.uid, input.name, input.email);
     const productId = PAYNOW_PRODUCTS[input.sku];
     if (!productId) throw new Error(`Unknown SKU: ${input.sku}`);
 
-    const lines = [{
-      product_id: productId,
-      quantity: Math.max(1, input.qty ?? 1),
-      ...(isSubscription(input.sku) ? { subscription: true } : {}),
-    }];
+    const body = {
+      lines: [{
+        product_id: productId,
+        quantity: Math.max(1, input.qty ?? 1),
+        ...(isSubscription(input.sku) ? { subscription: true } : {}),
+      }],
+      customer_id: customerId,
+      auto_redirect: false, // we'll redirect client-side
+      return_url: `${process.env.NEXT_PUBLIC_WEBSITE_URL ?? "https://siraj.life"}/checkout/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_WEBSITE_URL ?? "https://siraj.life"}/paywall`,
+    };
 
-    const res = await fetch(`${BASE}/stores/${sid}/checkout`, {
+    const res = await fetch(`${BASE}/v1/stores/${STORE_ID}/checkouts`, {
       method: "POST",
-      headers: authHeader(),
-      body: JSON.stringify({ customer_id: customerId, lines }),
+      headers: headers(),
+      body: JSON.stringify(body),
     });
-
+    
+    const { json, raw } = await readJson(res);
     if (!res.ok) {
-      // Forward PayNow error detail up to client (without secrets)
-      let detail: any = undefined;
-      try { detail = await res.json(); } catch { detail = await res.text(); }
-      console.error("[paynow] checkout failed", { status: res.status, detail: typeof detail === "string" ? detail.slice(0,500) : detail });
-      // Translate 4xx to a clean error
-      throw new Error(typeof detail === "object" && detail?.message ? detail.message : `PayNow error ${res.status}`);
+      console.error("[paynow] checkout failed", { status: res.status, body: raw?.slice(0, 400) });
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: `PayNow create checkout failed (${res.status})`,
+        cause: raw?.slice(0, 400),
+      });
     }
-
-    const json = await res.json() as { id: string; url: string };
-    return json; // { id, url }
+    
+    return json as { id: string; url: string; token?: string };
   }
 }
