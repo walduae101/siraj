@@ -72,12 +72,15 @@ export const checkoutRouter = createTRPCRouter({
                       ctx.headers.get('cf-connecting-ip') || 
                       '127.0.0.1';
       
+      // Ensure clientIp is never null and handle multiple IPs
+      const customerIp = (clientIp || '127.0.0.1').split(',')[0].trim();
+      
       const enhancedCtx = {
         ...ctx,
         payNowStorefrontHeaders: {
           ...ctx.payNowStorefrontHeaders,
           Authorization: `Customer ${authToken}`,
-          'x-paynow-customer-ip': clientIp.split(',')[0].trim(), // Get first IP if multiple
+          'x-paynow-customer-ip': customerIp,
           'x-paynow-customer-countrycode': 'AE', // Default to UAE
         },
       };
