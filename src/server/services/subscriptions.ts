@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
-import { pointsService } from "~/server/services/points";
 import { getConfig, getSubscriptionPlan } from "~/server/config";
+import { pointsService } from "~/server/services/points";
 import { addMonths } from "./util-date";
 
 type Cycle = "month" | "year";
@@ -86,7 +86,7 @@ export const subscriptions = {
     // Credit first cycle immediately
     const kind = cfg.subscriptions.pointsKind;
     const expireDays = cfg.subscriptions.pointsExpireDays;
-    
+
     await pointsService.credit({
       uid,
       kind: kind,
@@ -135,7 +135,7 @@ export const subscriptions = {
       const cfg = getConfig();
       const kind = cfg.subscriptions.pointsKind;
       const expireDays = cfg.subscriptions.pointsExpireDays;
-      
+
       await pointsService.credit({
         uid,
         kind: kind,
@@ -190,7 +190,7 @@ export const subscriptions = {
       const cfg = getConfig();
       const kind = cfg.subscriptions.pointsKind;
       const expireDays = cfg.subscriptions.pointsExpireDays;
-      
+
       await pointsService.credit({
         uid,
         kind: kind,

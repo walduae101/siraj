@@ -4,14 +4,43 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
 
+    // User documents (read by owner, server-only writes)
+    match /users/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if false; // server-only
+    }
+
+    // User wallet points (read by owner, server-only writes)
     match /users/{uid}/wallet/points {
       allow read: if isSelf(uid);
       allow write: if false; // server-only (tRPC with Admin SDK)
     }
 
+    // User ledger/transaction history (read by owner, server-only writes)
     match /users/{uid}/ledger/{txId} {
       allow read: if isSelf(uid);
       allow write: if false; // server-only
+    }
+
+    // User subscriptions (read by owner, server-only writes)
+    match /users/{uid}/subscriptions/{subId} {
+      allow read: if isSelf(uid);
+      allow write: if false; // server-only
+    }
+
+    // User mappings (server-only)
+    match /userMappings/{uid} {
+      allow read, write: if false; // server-only
+    }
+
+    // PayNow customer mappings (server-only)
+    match /paynowCustomers/{customerId} {
+      allow read, write: if false; // server-only
+    }
+
+    // Webhook events (server-only)
+    match /webhookEvents/{eventId} {
+      allow read, write: if false; // server-only
     }
   }
 }

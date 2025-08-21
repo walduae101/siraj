@@ -13,7 +13,7 @@ const STORE_ID = env.PAYNOW_STORE_ID;
 function authHeaders() {
   // "apikey " prefix is case-insensitive; make sure no newlines in the secret
   const key = (env.PAYNOW_API_KEY ?? "").replace(/[^\x20-\x7E]/g, "").trim();
-  return { 
+  return {
     Authorization: `apikey ${key}`,
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -137,11 +137,14 @@ export class PayNowService {
 /**
  * Fetch order by checkout ID for payment completion
  */
-export async function getOrderByCheckoutId(storeId: string, checkoutId: string) {
+export async function getOrderByCheckoutId(
+  storeId: string,
+  checkoutId: string,
+) {
   const url = `${BASE}/stores/${storeId}/orders?checkout_id=${encodeURIComponent(checkoutId)}&limit=1`;
   const res = await fetch(url, { headers: authHeaders(), cache: "no-store" });
   if (!res.ok) throw new Error(`PayNow orders fetch failed: ${res.status}`);
   const data = await res.json();
   // API returns {orders: Order[]}
-  return Array.isArray(data?.orders) ? data.orders[0] ?? null : null;
+  return Array.isArray(data?.orders) ? (data.orders[0] ?? null) : null;
 }

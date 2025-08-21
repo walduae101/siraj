@@ -47,7 +47,7 @@ export function BuyButton({
     }
     createCheckout.mutate({
       sku,
-      qty
+      qty,
     });
   };
 

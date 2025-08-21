@@ -1,6 +1,6 @@
 "use client";
-import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import React, { Suspense } from "react";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { api } from "~/trpc/react";
 
@@ -31,7 +31,7 @@ function SuccessContent() {
       <main className="container mx-auto max-w-2xl space-y-6 p-6">
         <h1 className="font-semibold text-2xl">Purchase complete</h1>
         <p>Syncing your purchase...</p>
-        <div className="h-4 bg-gray-200 rounded animate-pulse" />
+        <div className="h-4 animate-pulse rounded bg-gray-200" />
       </main>
     );
   }
@@ -41,9 +41,12 @@ function SuccessContent() {
       <main className="container mx-auto max-w-2xl space-y-6 p-6">
         <h1 className="font-semibold text-2xl">Purchase complete</h1>
         <p className="text-red-600">
-          There was an issue processing your purchase. Please contact support if points don't appear in your wallet.
+          There was an issue processing your purchase. Please contact support if
+          points don't appear in your wallet.
         </p>
-        <p className="text-sm text-gray-500">Error: {complete.error?.message}</p>
+        <p className="text-gray-500 text-sm">
+          Error: {complete.error?.message}
+        </p>
         <WalletWidget />
         <a href="/account/points" className="mt-4 inline-block underline">
           View full history
@@ -57,7 +60,8 @@ function SuccessContent() {
       <h1 className="font-semibold text-2xl">Purchase complete</h1>
       {complete.isSuccess && complete.data && (
         <p className="text-green-600">
-          Your wallet has been updated with {complete.data.credited} points. Thank you!
+          Your wallet has been updated with {complete.data.credited} points.
+          Thank you!
         </p>
       )}
       <WalletWidget />
@@ -70,12 +74,14 @@ function SuccessContent() {
 
 export default function Success() {
   return (
-    <Suspense fallback={
-      <main className="container mx-auto max-w-2xl space-y-6 p-6">
-        <h1 className="font-semibold text-2xl">Purchase complete</h1>
-        <p>Loading...</p>
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className="container mx-auto max-w-2xl space-y-6 p-6">
+          <h1 className="font-semibold text-2xl">Purchase complete</h1>
+          <p>Loading...</p>
+        </main>
+      }
+    >
       <SuccessContent />
     </Suspense>
   );

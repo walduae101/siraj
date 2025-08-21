@@ -1,6 +1,7 @@
+import { TRPCError } from "@trpc/server";
 // Minimal, robust PayNow Management client
 import type { Firestore } from "firebase-admin/firestore";
-import { TRPCError } from "@trpc/server";
+import { Timestamp } from "firebase-admin/firestore";
 import { getConfig } from "~/server/config";
 
 const API = "https://api.paynow.gg";
@@ -22,14 +23,15 @@ function headers() {
 
 // Create (or reuse) a PayNow customer and cache id by uid in Firestore
 export async function ensureCustomerId(
-  db: Firestore, 
-  uid: string, 
-  opts: { name?: string; email?: string } = {}
+  db: Firestore,
+  uid: string,
+  opts: { name?: string; email?: string } = {},
 ) {
-  const ref = db.collection("paynowCustomers").doc(uid);
-  const cached = await ref.get();
-  if (cached.exists && cached.data()?.id) {
-    return cached.data()!.id as string;
+  // Check userMappings collection first
+  const userMappingRef = db.collection("userMappings").doc(uid);
+  const userMapping = await userMappingRef.get();
+  if (userMapping.exists && userMapping.data()?.paynowCustomerId) {
+    return userMapping.data()!.paynowCustomerId as string;
   }
 
   // Create a customer (management API)
@@ -38,12 +40,12 @@ export async function ensureCustomerId(
   const res = await fetch(`${API}/v1/stores/${storeId}/customers`, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({ 
-      name: opts.name || uid, 
-      metadata: { uid, email: opts.email } 
+    body: JSON.stringify({
+      name: opts.name || uid,
+      metadata: { uid, email: opts.email },
     }),
   });
-  
+
   if (!res.ok) {
     const bodyText = await res.text();
     throw new TRPCError({
@@ -52,14 +54,35 @@ export async function ensureCustomerId(
       cause: bodyText,
     });
   }
-  
+
   const json = await res.json();
-  const id = json?.id as string;
-  await ref.set(
-    { id, uid, email: opts.email ?? null, createdAt: Date.now() }, 
-    { merge: true }
+  const customerId = json?.id as string;
+
+  // Store mappings in both collections for proper indexing
+  await userMappingRef.set(
+    {
+      paynowCustomerId: customerId,
+      email: opts.email ?? null,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    },
+    { merge: true },
   );
-  return id;
+
+  await db
+    .collection("paynowCustomers")
+    .doc(customerId)
+    .set(
+      {
+        uid,
+        email: opts.email ?? null,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true },
+    );
+
+  return customerId;
 }
 
 // Create checkout (management API) — returns hosted checkout URL
@@ -76,13 +99,13 @@ export async function createCheckout(args: {
     cancel_url: args.cancelUrl,
     auto_redirect: false,
     lines: [
-      { 
-        product_id: args.productId, 
-        quantity: Math.max(1, args.qty ?? 1) 
-      }
+      {
+        product_id: args.productId,
+        quantity: Math.max(1, args.qty ?? 1),
+      },
     ],
   };
-  
+
   const cfg = getConfig();
   const storeId = clean(cfg.paynow.storeId);
   const res = await fetch(`${API}/v1/stores/${storeId}/checkouts`, {
@@ -90,7 +113,7 @@ export async function createCheckout(args: {
     headers: headers(),
     body: JSON.stringify(body),
   });
-  
+
   if (!res.ok) {
     const bodyText = await res.text();
     throw new TRPCError({
@@ -99,7 +122,7 @@ export async function createCheckout(args: {
       cause: bodyText,
     });
   }
-  
+
   return res.json() as Promise<{ id: string; url: string }>;
 }
 
@@ -110,7 +133,7 @@ export async function getOrder(orderId: string) {
   const res = await fetch(`${API}/v1/stores/${storeId}/orders/${orderId}`, {
     headers: headers(),
   });
-  
+
   if (!res.ok) {
     const bodyText = await res.text();
     throw new TRPCError({
@@ -119,22 +142,22 @@ export async function getOrder(orderId: string) {
       cause: bodyText,
     });
   }
-  
-  return res.json() as Promise<{ 
-    id: string; 
-    status: string; 
+
+  return res.json() as Promise<{
+    id: string;
+    status: string;
     payment_state?: string;
     pretty_id?: string;
-    lines: Array<{ 
-      product_id: string; 
-      quantity: number 
-    }>; 
+    lines: Array<{
+      product_id: string;
+      quantity: number;
+    }>;
     is_subscription: boolean;
     customer?: {
       metadata?: {
         uid?: string;
         email?: string;
-      }
-    }
+      };
+    };
   }>;
 }

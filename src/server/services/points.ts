@@ -3,10 +3,29 @@ import { Timestamp } from "firebase-admin/firestore";
 import { env } from "~/env-server";
 import { db } from "../firebase/admin"; // server-only admin
 
+const USERS = db.collection("users");
 const WALLETS = (uid: string) =>
   db.collection("users").doc(uid).collection("wallet").doc("points");
 const LEDGER = (uid: string) =>
   db.collection("users").doc(uid).collection("ledger");
+
+// Ensure user document exists before wallet operations
+async function ensureUserDocument(uid: string): Promise<void> {
+  const userRef = USERS.doc(uid);
+  const userDoc = await userRef.get();
+
+  if (!userDoc.exists) {
+    await userRef.set(
+      {
+        uid,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        status: "active",
+      },
+      { merge: true },
+    );
+  }
+}
 
 function nowTs() {
   return Timestamp.now();
@@ -14,8 +33,11 @@ function nowTs() {
 
 export const pointsService = {
   async getWallet(uid: string) {
+    // Ensure user document exists first
+    await ensureUserDocument(uid);
+
     // Optional lazy top-up safety net for subscriptions
-    const cfg = await import("~/server/config").then(m => m.getConfig());
+    const cfg = await import("~/server/config").then((m) => m.getConfig());
     if (cfg.subscriptions.topupLazy) {
       try {
         // Dynamically import to avoid circular dependency
@@ -91,6 +113,9 @@ export const pointsService = {
     action,
     actionId,
   }: { uid: string; cost: number; action: string; actionId: string }) {
+    // Ensure user document exists first
+    await ensureUserDocument(uid);
+
     return await db.runTransaction(async (tx) => {
       const ref = WALLETS(uid);
       const snap = await tx.get(ref);
@@ -192,6 +217,9 @@ export const pointsService = {
     expiresAt?: Date;
     actionId: string;
   }) {
+    // Ensure user document exists first
+    await ensureUserDocument(uid);
+
     return await db.runTransaction(async (tx) => {
       const ref = WALLETS(uid);
       const snap = await tx.get(ref);

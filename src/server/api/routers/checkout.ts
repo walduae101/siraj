@@ -7,14 +7,20 @@ import {
   checkoutPreviewInput,
 } from "~/server/api/schema/checkout";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { getConfig, getProductId } from "~/server/config";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { checkoutStub } from "~/server/services/checkoutStub";
-import { createCheckout, ensureCustomerId, getOrder } from "~/server/services/paynowMgmt";
-import { pointsService } from "~/server/services/points";
+import {
+  createCheckout,
+  ensureCustomerId,
+  getOrder,
+} from "~/server/services/paynowMgmt";
 import type { PayNowSku } from "~/server/services/paynowProducts";
-import { getConfig, getProductId } from "~/server/config";
+import { pointsService } from "~/server/services/points";
 
-const productPoints = JSON.parse(process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON ?? "{}") as Record<string, number>;
+const productPoints = JSON.parse(
+  process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON ?? "{}",
+) as Record<string, number>;
 
 export const checkoutRouter = createTRPCRouter({
   preview: protectedProcedure.input(checkoutPreviewInput).query(({ input }) => {
@@ -23,10 +29,12 @@ export const checkoutRouter = createTRPCRouter({
   }),
 
   complete: protectedProcedure
-    .input(z.object({
-      orderId: z.string().optional(),
-      checkoutId: z.string().optional(),
-    }))
+    .input(
+      z.object({
+        orderId: z.string().optional(),
+        checkoutId: z.string().optional(),
+      }),
+    )
     .mutation(async ({ input, ctx }) => {
       const uid = ctx.user?.uid ?? ctx.userId;
       if (!uid) throw new Error("No user in context");
@@ -41,7 +49,9 @@ export const checkoutRouter = createTRPCRouter({
       // Only credit once: use order.pretty_id as idempotency key
       // Credit only when paid/complete
       if (order.payment_state !== "paid" || order.status !== "completed") {
-        throw new Error(`Order not paid/complete (status=${order.status}, payment=${order.payment_state})`);
+        throw new Error(
+          `Order not paid/complete (status=${order.status}, payment=${order.payment_state})`,
+        );
       }
 
       let totalCredited = 0;
@@ -53,7 +63,7 @@ export const checkoutRouter = createTRPCRouter({
           const delta = pts * qty;
           await pointsService.credit({
             uid,
-            kind: "paid",                           // never expires
+            kind: "paid", // never expires
             amount: delta,
             source: "paynow:order",
             actionId: `${order.pretty_id || order.id}_${pid}_${qty}`,
@@ -61,7 +71,11 @@ export const checkoutRouter = createTRPCRouter({
           totalCredited += delta;
         }
       }
-      return { ok: true, credited: totalCredited, orderId: order.pretty_id || order.id };
+      return {
+        ok: true,
+        credited: totalCredited,
+        orderId: order.pretty_id || order.id,
+      };
     }),
 
   create: protectedProcedure
@@ -82,27 +96,30 @@ export const checkoutRouter = createTRPCRouter({
       if (!productId) {
         const cfg = getConfig();
         const keys = Object.keys(cfg.paynow.products).join(", ");
-        throw new Error(`Unknown product (sku=${input.sku}, productId=${input.productId}). Known SKUs: [${keys}]`);
+        throw new Error(
+          `Unknown product (sku=${input.sku}, productId=${input.productId}). Known SKUs: [${keys}]`,
+        );
       }
 
       // Ensure we have a PayNow customer ID
-      const customerId = await ensureCustomerId(db, uid, { 
-        name: ctx.user?.email?.split("@")[0] || uid, 
-        email: ctx.user?.email 
+      const customerId = await ensureCustomerId(db, uid, {
+        name: ctx.user?.email?.split("@")[0] || uid,
+        email: ctx.user?.email,
       });
-      
+
       // Build URLs
-      const baseUrl = process.env.NEXT_PUBLIC_WEBSITE_URL || "https://siraj.life";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_WEBSITE_URL || "https://siraj.life";
       const successUrl = new URL("/checkout/success", baseUrl).toString();
       const cancelUrl = new URL("/paywall", baseUrl).toString();
-      
+
       // Create the checkout session
-      const session = await createCheckout({ 
-        customerId, 
-        productId, 
-        qty: input.qty, 
-        successUrl, 
-        cancelUrl 
+      const session = await createCheckout({
+        customerId,
+        productId,
+        qty: input.qty,
+        successUrl,
+        cancelUrl,
       });
 
       return { url: session.url, checkoutId: session.id };

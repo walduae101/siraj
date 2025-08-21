@@ -74,9 +74,9 @@ function CheckoutStartContent() {
       alert("Please sign in first.");
       return;
     }
-    createCheckout.mutate({ 
+    createCheckout.mutate({
       sku: validSku, // Use SKU mapping
-      qty
+      qty,
     });
   };
 
@@ -98,7 +98,9 @@ function CheckoutStartContent() {
         disabled={createCheckout.isPending}
         aria-busy={createCheckout.isPending}
       >
-        {createCheckout.isPending ? "Redirecting to PayNow…" : "Proceed to Payment"}
+        {createCheckout.isPending
+          ? "Redirecting to PayNow…"
+          : "Proceed to Payment"}
       </button>
       {createCheckout.error && (
         <p className="text-red-600 text-sm">{createCheckout.error.message}</p>

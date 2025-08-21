@@ -8,7 +8,11 @@ export async function POST(req: Request) {
   // Verify cron authentication
   const key = req.headers.get("x-cron-key");
   const cfg = getConfig();
-  if (!key || !cfg.subscriptions.cronSecret || key !== cfg.subscriptions.cronSecret) {
+  if (
+    !key ||
+    !cfg.subscriptions.cronSecret ||
+    key !== cfg.subscriptions.cronSecret
+  ) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
