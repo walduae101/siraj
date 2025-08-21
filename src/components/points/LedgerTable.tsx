@@ -14,6 +14,7 @@ import {
 } from "~/components/ui/table";
 import { features } from "~/config/features";
 import { fmtNum } from "~/lib/i18n/num";
+import { formatDate, formatDateTime } from "~/lib/i18n/date";
 import { t } from "~/lib/i18n/t";
 import { api } from "~/trpc/react";
 
@@ -146,7 +147,7 @@ export function LedgerTable({
                 return (
                   <TableRow key={r.id}>
                     <TableCell className="whitespace-nowrap">
-                      {ts.toLocaleString(locale)}
+                      {formatDateTime(ts, safeLocale)}
                     </TableCell>
                     <TableCell className="max-w-[28ch]">
                       <div className="flex items-center gap-2">
@@ -158,7 +159,7 @@ export function LedgerTable({
                       {!!r.expiry && (
                         <div className="mt-0.5 text-xs opacity-70">
                           {tt("ledger.expiry", "التاريخ الإنتهاء")}:{" "}
-                          {new Date(r.expiry).toLocaleDateString(locale)}
+                          {formatDate(new Date(r.expiry), safeLocale)}
                         </div>
                       )}
                     </TableCell>

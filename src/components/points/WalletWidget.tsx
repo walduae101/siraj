@@ -2,6 +2,7 @@
 import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
 import { features } from "~/config/features";
 import { fmtNum } from "~/lib/i18n/num";
+import { formatDate } from "~/lib/i18n/date";
 import { t } from "~/lib/i18n/t";
 import { api } from "~/trpc/react";
 
@@ -47,7 +48,7 @@ export function WalletWidget({ locale = "ar" }: { locale?: string }) {
         {soonest && (
           <span className="text-amber-600 text-xs">
             {tt("wallet.earliestExpiry", "أقرب انتهاء")}:{" "}
-            {soonest.expiresAt.toDate().toLocaleDateString(locale)}
+            {formatDate(soonest.expiresAt.toDate(), safeLocale)}
           </span>
         )}
       </div>

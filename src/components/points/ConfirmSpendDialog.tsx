@@ -14,6 +14,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { features } from "~/config/features";
 import { fmtNum } from "~/lib/i18n/num";
+import { formatDate } from "~/lib/i18n/date";
 import { t } from "~/lib/i18n/t";
 import { api } from "~/trpc/react";
 
@@ -146,7 +147,7 @@ export function ConfirmSpendDialog(props: ConfirmSpendDialogProps) {
                     className={`mt-1 text-xs ${nearExpiry ? "text-amber-600" : "opacity-70"}`}
                   >
                     {tt("wallet.earliestExpiry", "أقرب انتهاء")}:{" "}
-                    {soonestExpiry.toLocaleDateString(safeLocale)}
+                    {formatDate(soonestExpiry, safeLocale)}
                   </div>
                 )}
               </div>
