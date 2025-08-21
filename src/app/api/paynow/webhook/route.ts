@@ -27,38 +27,51 @@ function verifySignature(
     return false;
   }
 
-  // Construct payload exactly as PayNow docs specify: timestamp.rawBody
-  const payload = `${ts}.${reqBody}`;
-  // PayNow uses base64 encoding for the HMAC
-  const mac = crypto
-    .createHmac("sha256", webhookSecret)
-    .update(payload)
-    .digest("base64");
-
-  console.log("[webhook] Signature verification:", {
-    timestamp: ts,
-    receivedSig: `${sig.substring(0, 10)}...`,
-    computedMac: `${mac.substring(0, 10)}...`,
-    payloadLength: payload.length,
-  });
-
-  // Ensure both signatures are the same length for timingSafeEqual
-  if (mac.length !== sig.length) {
-    console.warn("[webhook] Signature length mismatch:", {
-      mac: mac.length,
-      sig: sig.length,
-    });
+  // Validate webhook secret exists
+  if (!webhookSecret) {
+    console.error("[webhook] Webhook secret is undefined!");
     return false;
   }
 
+  // Validate request body
+  if (!reqBody || typeof reqBody !== "string") {
+    console.error("[webhook] Invalid request body:", typeof reqBody);
+    return false;
+  }
+
+  // Construct payload exactly as PayNow docs specify: timestamp.rawBody
+  const payload = `${ts}.${reqBody}`;
+  
   try {
+    // PayNow uses base64 encoding for the HMAC
+    const mac = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(payload)
+      .digest("base64");
+
+    console.log("[webhook] Signature verification:", {
+      timestamp: ts,
+      receivedSig: `${sig.substring(0, 10)}...`,
+      computedMac: `${mac.substring(0, 10)}...`,
+      payloadLength: payload.length,
+    });
+
+    // Ensure both signatures are the same length for timingSafeEqual
+    if (mac.length !== sig.length) {
+      console.warn("[webhook] Signature length mismatch:", {
+        mac: mac.length,
+        sig: sig.length,
+      });
+      return false;
+    }
+
     // Compare base64 signatures using timing-safe comparison
     return crypto.timingSafeEqual(
       Buffer.from(mac, "base64"),
       Buffer.from(sig, "base64"),
     );
   } catch (error) {
-    console.warn("[webhook] Signature comparison failed:", error);
+    console.error("[webhook] HMAC creation or comparison failed:", error);
     return false;
   }
 }

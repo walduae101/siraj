@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect } from "react";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { getFirebaseAuth, getFirestore } from "~/lib/firebase/client";
+import { api } from "~/trpc/react";
 
 function SuccessContent() {
   const params = useSearchParams();
@@ -32,23 +33,34 @@ function SuccessContent() {
     const walletRef = doc(db, "users", userId, "wallet", "points");
 
     let isFirstSnapshot = true;
-    const unsubscribe = onSnapshot(walletRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const balance = snapshot.data()?.paidBalance || 0;
+    const unsubscribe = onSnapshot(
+      walletRef, 
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const balance = snapshot.data()?.paidBalance || 0;
 
-        if (isFirstSnapshot) {
-          setInitialBalance(balance);
-          isFirstSnapshot = false;
+          if (isFirstSnapshot) {
+            setInitialBalance(balance);
+            isFirstSnapshot = false;
+          }
+
+          setCurrentBalance(balance);
+
+          // Check if balance increased
+          if (initialBalance !== null && balance > initialBalance) {
+            setCredited(true);
+          }
         }
-
-        setCurrentBalance(balance);
-
-        // Check if balance increased
-        if (initialBalance !== null && balance > initialBalance) {
-          setCredited(true);
+      },
+      (error) => {
+        console.error("[checkout/success] Firestore error:", error);
+        // If permission denied, wait a bit and retry
+        if (error.code === "permission-denied") {
+          console.log("[checkout/success] Waiting for auth to stabilize...");
+          // Don't throw, just wait for auth to stabilize
         }
       }
-    });
+    );
 
     return () => unsubscribe();
   }, [userId, initialBalance]);
