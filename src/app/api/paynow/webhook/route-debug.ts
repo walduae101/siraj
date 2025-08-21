@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     };
     console.log("[webhook-debug] Headers:", headers);
 
-    let evt: any;
+    let evt: { id?: string; event?: string; data?: unknown };
     try {
       evt = JSON.parse(raw);
       console.log("[webhook-debug] Event parsed:", {

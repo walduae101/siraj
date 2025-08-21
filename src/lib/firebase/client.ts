@@ -1,6 +1,9 @@
 import { type FirebaseApp, getApps, initializeApp } from "firebase/app";
 import { type Auth, getAuth } from "firebase/auth";
-import { type Firestore, getFirestore as getFirestoreSDK } from "firebase/firestore";
+import {
+  type Firestore,
+  getFirestore as getFirestoreSDK,
+} from "firebase/firestore";
 
 // Build-time injected public config:
 const cfg = {

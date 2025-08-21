@@ -1,9 +1,9 @@
 "use client";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect } from "react";
 import { WalletWidget } from "~/components/points/WalletWidget";
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
 import { getFirebaseAuth, getFirestore } from "~/lib/firebase/client";
 
 function SuccessContent() {
@@ -30,19 +30,19 @@ function SuccessContent() {
 
     const db = getFirestore();
     const walletRef = doc(db, "users", userId, "wallet", "points");
-    
+
     let isFirstSnapshot = true;
     const unsubscribe = onSnapshot(walletRef, (snapshot) => {
       if (snapshot.exists()) {
         const balance = snapshot.data()?.paidBalance || 0;
-        
+
         if (isFirstSnapshot) {
           setInitialBalance(balance);
           isFirstSnapshot = false;
         }
-        
+
         setCurrentBalance(balance);
-        
+
         // Check if balance increased
         if (initialBalance !== null && balance > initialBalance) {
           setCredited(true);
@@ -60,7 +60,7 @@ function SuccessContent() {
         <h1 className="font-semibold text-2xl">Purchase complete</h1>
         <p>Processing your payment...</p>
         <div className="h-4 animate-pulse rounded bg-gray-200" />
-        <p className="text-sm text-gray-500">
+        <p className="text-gray-500 text-sm">
           Your points will appear shortly. Order: {orderId || checkoutId}
         </p>
       </main>
@@ -68,17 +68,17 @@ function SuccessContent() {
   }
 
   // Show success when points are credited
-  const pointsCredited = currentBalance !== null && initialBalance !== null 
-    ? currentBalance - initialBalance 
-    : 0;
+  const pointsCredited =
+    currentBalance !== null && initialBalance !== null
+      ? currentBalance - initialBalance
+      : 0;
 
   return (
     <main className="container mx-auto max-w-2xl space-y-6 p-6">
       <h1 className="font-semibold text-2xl">Purchase complete</h1>
       {pointsCredited > 0 && (
         <p className="text-green-600">
-          Your wallet has been updated with {pointsCredited} points.
-          Thank you!
+          Your wallet has been updated with {pointsCredited} points. Thank you!
         </p>
       )}
       <WalletWidget />

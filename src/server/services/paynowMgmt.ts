@@ -31,7 +31,7 @@ export async function ensureCustomerId(
   const userMappingRef = db.collection("userMappings").doc(uid);
   const userMapping = await userMappingRef.get();
   if (userMapping.exists && userMapping.data()?.paynowCustomerId) {
-    return userMapping.data()!.paynowCustomerId as string;
+    return userMapping.data()?.paynowCustomerId as string;
   }
 
   // Create a customer (management API)

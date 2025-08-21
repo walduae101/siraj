@@ -37,8 +37,8 @@ function verifySignature(
 
   console.log("[webhook] Signature verification:", {
     timestamp: ts,
-    receivedSig: sig.substring(0, 10) + "...",
-    computedMac: mac.substring(0, 10) + "...",
+    receivedSig: `${sig.substring(0, 10)}...`,
+    computedMac: `${mac.substring(0, 10)}...`,
     payloadLength: payload.length,
   });
 
@@ -70,7 +70,7 @@ function isValidTimestamp(timestamp: string): boolean {
   const now = Date.now();
   const fiveMinutesMs = 5 * 60 * 1000;
 
-  if (isNaN(eventTime)) {
+  if (Number.isNaN(eventTime)) {
     console.warn("[webhook] Invalid timestamp format:", timestamp);
     return false;
   }

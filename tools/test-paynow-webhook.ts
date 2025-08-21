@@ -116,7 +116,7 @@ async function sendTestEvent(eventName: keyof typeof testEvents) {
       console.log(`✅ Success (${response.status})`);
       try {
         const json = JSON.parse(responseText);
-        console.log(`📊 Response:`, JSON.stringify(json, null, 2));
+        console.log("📊 Response:", JSON.stringify(json, null, 2));
       } catch {
         console.log(`📄 Response: ${responseText}`);
       }
@@ -126,14 +126,14 @@ async function sendTestEvent(eventName: keyof typeof testEvents) {
     }
   } catch (error) {
     console.log(
-      `💥 Request failed:`,
+      "💥 Request failed:",
       error instanceof Error ? error.message : error,
     );
   }
 }
 
 async function testReplayProtection() {
-  console.log(`\n🔒 Testing replay protection`);
+  console.log("\n🔒 Testing replay protection");
 
   const event = testEvents.orderCompleted;
   const payload = JSON.stringify(event);
@@ -154,21 +154,21 @@ async function testReplayProtection() {
     });
 
     if (response.status === 401) {
-      console.log(`✅ Replay protection working (rejected old timestamp)`);
+      console.log("✅ Replay protection working (rejected old timestamp)");
     } else {
-      console.log(`❌ Replay protection failed (should reject old timestamp)`);
+      console.log("❌ Replay protection failed (should reject old timestamp)");
       console.log(`📄 Response: ${await response.text()}`);
     }
   } catch (error) {
     console.log(
-      `💥 Request failed:`,
+      "💥 Request failed:",
       error instanceof Error ? error.message : error,
     );
   }
 }
 
 async function testInvalidSignature() {
-  console.log(`\n🔐 Testing invalid signature rejection`);
+  console.log("\n🔐 Testing invalid signature rejection");
 
   const event = testEvents.orderCompleted;
   const payload = JSON.stringify(event);
@@ -187,23 +187,23 @@ async function testInvalidSignature() {
     });
 
     if (response.status === 401) {
-      console.log(`✅ Signature validation working (rejected bad signature)`);
+      console.log("✅ Signature validation working (rejected bad signature)");
     } else {
       console.log(
-        `❌ Signature validation failed (should reject bad signature)`,
+        "❌ Signature validation failed (should reject bad signature)",
       );
       console.log(`📄 Response: ${await response.text()}`);
     }
   } catch (error) {
     console.log(
-      `💥 Request failed:`,
+      "💥 Request failed:",
       error instanceof Error ? error.message : error,
     );
   }
 }
 
 async function main() {
-  console.log(`🚀 PayNow Webhook Test Suite`);
+  console.log("🚀 PayNow Webhook Test Suite");
   console.log(`🎯 Target: ${WEBHOOK_URL}`);
   console.log(`🔑 Secret: ${WEBHOOK_SECRET.slice(0, 8)}...`);
 
@@ -217,10 +217,10 @@ async function main() {
   await sendTestEvent("subscriptionRenewed");
 
   // Test idempotency by sending the same event twice
-  console.log(`\n🔄 Testing idempotency (sending same event twice)`);
+  console.log("\n🔄 Testing idempotency (sending same event twice)");
   await sendTestEvent("orderCompleted");
 
-  console.log(`\n✨ Test complete!`);
+  console.log("\n✨ Test complete!");
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

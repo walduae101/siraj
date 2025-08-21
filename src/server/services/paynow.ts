@@ -88,7 +88,7 @@ export class PayNowService {
   }
 
   static async createCheckout(db: Firestore, input: CreateCheckoutInput) {
-    const customerId = await this.getOrCreateCustomerId(
+    const customerId = await PayNowService.getOrCreateCustomerId(
       db,
       input.uid,
       input.name,
