@@ -264,7 +264,7 @@ export const pointsService = {
       if (!snap.exists) w.createdAt = nowTs();
       tx.set(ref, w, { merge: true });
 
-      const entry = {
+      const entry: any = {
         type: "credit",
         channel: kind,
         amount,
@@ -272,11 +272,15 @@ export const pointsService = {
         actionId,
         pre,
         post,
-        creditLot,
         createdAt: nowTs(),
         createdBy: uid,
         v: 1,
       };
+      
+      // Only include creditLot if it's defined (for promo points)
+      if (creditLot) {
+        entry.creditLot = creditLot;
+      }
       tx.set(LEDGER(uid).doc(actionId), entry);
       return entry;
     });
