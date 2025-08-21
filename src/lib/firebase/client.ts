@@ -1,5 +1,6 @@
 import { type FirebaseApp, getApps, initializeApp } from "firebase/app";
 import { type Auth, getAuth } from "firebase/auth";
+import { type Firestore, getFirestore as getFirestoreSDK } from "firebase/firestore";
 
 // Build-time injected public config:
 const cfg = {
@@ -24,4 +25,10 @@ let _auth: Auth | undefined;
 export function getFirebaseAuth(): Auth {
   if (!_auth) _auth = getAuth(getFirebaseApp());
   return _auth;
+}
+
+let _firestore: Firestore | undefined;
+export function getFirestore(): Firestore {
+  if (!_firestore) _firestore = getFirestoreSDK(getFirebaseApp());
+  return _firestore;
 }

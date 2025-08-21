@@ -10,21 +10,21 @@ const WEBHOOK_URL =
   process.env.WEBHOOK_URL || "http://localhost:3000/api/paynow/webhook";
 const WEBHOOK_SECRET = process.env.PAYNOW_WEBHOOK_SECRET || "test-secret";
 
-// Generate HMAC signature like PayNow does
+// Generate HMAC signature exactly as PayNow does - base64 encoded
 function generateSignature(
   payload: string,
   secret: string,
   timestamp: string,
 ): string {
   const data = `${timestamp}.${payload}`;
-  return crypto.createHmac("sha256", secret).update(data).digest("hex");
+  return crypto.createHmac("sha256", secret).update(data).digest("base64");
 }
 
 // Test event payloads
 const testEvents = {
   orderCompleted: {
     id: "evt_test_order_completed",
-    event: "ON_ORDER_COMPLETED",
+    event_type: "ON_ORDER_COMPLETED", // PayNow uses event_type not event
     data: {
       order: {
         id: "order_test_123",
@@ -33,16 +33,16 @@ const testEvents = {
         payment_state: "paid",
         customer: {
           id: "cust_test_456",
-          email: "test@example.com",
+          email: "walduae101@gmail.com",
           metadata: {
-            uid: "test-user-uid-123",
+            uid: "OPvJByA50jQmxGrgsqmrn794Axd2", // Your actual Firebase UID
           },
         },
         lines: [
           {
-            product_id: "prod_points_100",
-            quantity: 2,
-            price: 1000,
+            product_id: "458255405240287232", // points_50 from product mapping
+            quantity: 1,
+            price: 500,
           },
         ],
       },
@@ -51,7 +51,7 @@ const testEvents = {
 
   subscriptionActivated: {
     id: "evt_test_sub_activated",
-    event: "ON_SUBSCRIPTION_ACTIVATED",
+    event_type: "ON_SUBSCRIPTION_ACTIVATED",
     data: {
       subscription: {
         id: "sub_test_789",
@@ -59,9 +59,9 @@ const testEvents = {
         status: "active",
         customer: {
           id: "cust_test_456",
-          email: "test@example.com",
+          email: "walduae101@gmail.com",
           metadata: {
-            uid: "test-user-uid-123",
+            uid: "OPvJByA50jQmxGrgsqmrn794Axd2",
           },
         },
       },
@@ -70,7 +70,7 @@ const testEvents = {
 
   subscriptionRenewed: {
     id: "evt_test_sub_renewed",
-    event: "ON_SUBSCRIPTION_RENEWED",
+    event_type: "ON_SUBSCRIPTION_RENEWED",
     data: {
       subscription: {
         id: "sub_test_789",
@@ -78,9 +78,9 @@ const testEvents = {
         status: "active",
         customer: {
           id: "cust_test_456",
-          email: "test@example.com",
+          email: "walduae101@gmail.com",
           metadata: {
-            uid: "test-user-uid-123",
+            uid: "OPvJByA50jQmxGrgsqmrn794Axd2",
           },
         },
       },
@@ -91,7 +91,7 @@ const testEvents = {
 async function sendTestEvent(eventName: keyof typeof testEvents) {
   const event = testEvents[eventName];
   const payload = JSON.stringify(event);
-  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const timestamp = Date.now().toString(); // PayNow sends milliseconds
   const signature = generateSignature(payload, WEBHOOK_SECRET, timestamp);
 
   console.log(`\n🧪 Testing event: ${eventName}`);
@@ -103,8 +103,8 @@ async function sendTestEvent(eventName: keyof typeof testEvents) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "PayNow-Signature": signature,
-        "PayNow-Timestamp": timestamp,
+        "paynow-signature": signature, // lowercase headers
+        "paynow-timestamp": timestamp, // lowercase headers
         "User-Agent": "PayNow-Webhook-Test/1.0",
       },
       body: payload,
@@ -172,7 +172,7 @@ async function testInvalidSignature() {
 
   const event = testEvents.orderCompleted;
   const payload = JSON.stringify(event);
-  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const timestamp = Date.now().toString(); // PayNow sends milliseconds
   const badSignature = "invalid-signature";
 
   try {

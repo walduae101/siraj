@@ -1,66 +1,83 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import { WalletWidget } from "~/components/points/WalletWidget";
-import { api } from "~/trpc/react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
+import { getFirebaseAuth, getFirestore } from "~/lib/firebase/client";
 
 function SuccessContent() {
   const params = useSearchParams();
   const orderId = params.get("order_id") || "";
   const checkoutId = params.get("checkout_id") || "";
-  const complete = api.checkout?.complete.useMutation();
+  const [initialBalance, setInitialBalance] = useState<number | null>(null);
+  const [currentBalance, setCurrentBalance] = useState<number | null>(null);
+  const [credited, setCredited] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    const id = orderId || checkoutId;
-    if (id && complete && !complete.isSuccess && !complete.isPending) {
-      complete.mutate({ orderId, checkoutId });
-    }
-  }, [orderId, checkoutId, complete]);
+  // Get current user
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUserId(user?.uid || null);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  if (!complete) {
+  // Watch wallet balance
+  useEffect(() => {
+    if (!userId) return;
+
+    const db = getFirestore();
+    const walletRef = doc(db, "users", userId, "wallet", "points");
+    
+    let isFirstSnapshot = true;
+    const unsubscribe = onSnapshot(walletRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const balance = snapshot.data()?.paidBalance || 0;
+        
+        if (isFirstSnapshot) {
+          setInitialBalance(balance);
+          isFirstSnapshot = false;
+        }
+        
+        setCurrentBalance(balance);
+        
+        // Check if balance increased
+        if (initialBalance !== null && balance > initialBalance) {
+          setCredited(true);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [userId, initialBalance]);
+
+  // Show loading while webhook processes
+  if (!credited) {
     return (
       <main className="container mx-auto max-w-2xl space-y-6 p-6">
         <h1 className="font-semibold text-2xl">Purchase complete</h1>
-        <p>Loading checkout system...</p>
-      </main>
-    );
-  }
-
-  if (complete.isPending) {
-    return (
-      <main className="container mx-auto max-w-2xl space-y-6 p-6">
-        <h1 className="font-semibold text-2xl">Purchase complete</h1>
-        <p>Syncing your purchase...</p>
+        <p>Processing your payment...</p>
         <div className="h-4 animate-pulse rounded bg-gray-200" />
+        <p className="text-sm text-gray-500">
+          Your points will appear shortly. Order: {orderId || checkoutId}
+        </p>
       </main>
     );
   }
 
-  if (complete.isError) {
-    return (
-      <main className="container mx-auto max-w-2xl space-y-6 p-6">
-        <h1 className="font-semibold text-2xl">Purchase complete</h1>
-        <p className="text-red-600">
-          There was an issue processing your purchase. Please contact support if
-          points don't appear in your wallet.
-        </p>
-        <p className="text-gray-500 text-sm">
-          Error: {complete.error?.message}
-        </p>
-        <WalletWidget />
-        <a href="/account/points" className="mt-4 inline-block underline">
-          View full history
-        </a>
-      </main>
-    );
-  }
+  // Show success when points are credited
+  const pointsCredited = currentBalance !== null && initialBalance !== null 
+    ? currentBalance - initialBalance 
+    : 0;
 
   return (
     <main className="container mx-auto max-w-2xl space-y-6 p-6">
       <h1 className="font-semibold text-2xl">Purchase complete</h1>
-      {complete.isSuccess && complete.data && (
+      {pointsCredited > 0 && (
         <p className="text-green-600">
-          Your wallet has been updated with {complete.data.credited} points.
+          Your wallet has been updated with {pointsCredited} points.
           Thank you!
         </p>
       )}
