@@ -4,8 +4,8 @@ import { NextResponse } from "next/server";
 import { getConfig, getProductId, getSubscriptionPlan } from "~/server/config";
 import { db } from "~/server/firebase/admin";
 import { pointsService } from "~/server/services/points";
-import { subscriptions } from "~/server/services/subscriptions";
 import { skuMap } from "~/server/services/skuMap";
+import { subscriptions } from "~/server/services/subscriptions";
 
 // Structured logging helper
 function structuredLog(
@@ -285,14 +285,19 @@ async function processOrderEvent(
     const pointsToCredit = points * quantity;
 
     // Credit points using transaction
-    await pointsService.creditPointsInTransaction(transaction, uid, pointsToCredit, {
-      source: "paynow",
-      eventId: attributes.event_id || eventId,
-      orderId: order.id,
-      productId,
-      quantity,
-      unitPrice: item.price,
-    });
+    await pointsService.creditPointsInTransaction(
+      transaction,
+      uid,
+      pointsToCredit,
+      {
+        source: "paynow",
+        eventId: attributes.event_id || eventId,
+        orderId: order.id,
+        productId,
+        quantity,
+        unitPrice: item.price,
+      },
+    );
 
     totalPointsCredited += pointsToCredit;
     processedItems.push({

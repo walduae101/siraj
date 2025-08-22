@@ -2,7 +2,8 @@ import { PubSub } from "@google-cloud/pubsub";
 
 // Initialize PubSub client with projectId
 const pubsub = new PubSub({
-  projectId: process.env.GOOGLE_CLOUD_PROJECT || "walduae-project-20250809071906",
+  projectId:
+    process.env.GOOGLE_CLOUD_PROJECT || "walduae-project-20250809071906",
 });
 
 interface PublishEventOptions {

@@ -240,7 +240,8 @@ export const subscriptions = {
       return { ok: false, reason: "feature-disabled" };
     }
 
-    const productId = subscriptionData.product_id || subscriptionData.plan?.product_id;
+    const productId =
+      subscriptionData.product_id || subscriptionData.plan?.product_id;
     const orderId = subscriptionData.id || subscriptionData.order_id;
 
     if (!productId || !orderId) {
@@ -252,7 +253,10 @@ export const subscriptions = {
       throw new Error(`Unknown subscription plan: ${productId}`);
     }
 
-    if (eventType === "subscription.created" || eventType === "subscription.renewed") {
+    if (
+      eventType === "subscription.created" ||
+      eventType === "subscription.renewed"
+    ) {
       // Record the subscription purchase and credit initial points
       const subRef = this.getSubRef(uid, orderId);
       const existingSub = await transaction.get(subRef);
@@ -284,14 +288,19 @@ export const subscriptions = {
       transaction.set(subRef, subDoc, { merge: true });
 
       // Credit points using the transaction
-      await pointsService.creditPointsInTransaction(transaction, uid, plan.pointsPerCycle, {
-        source: "subscription",
-        eventId: `${orderId}_${eventType}_${Date.now()}`,
-        orderId,
-        productId,
-        quantity: 1,
-        unitPrice: subscriptionData.price,
-      });
+      await pointsService.creditPointsInTransaction(
+        transaction,
+        uid,
+        plan.pointsPerCycle,
+        {
+          source: "subscription",
+          eventId: `${orderId}_${eventType}_${Date.now()}`,
+          orderId,
+          productId,
+          quantity: 1,
+          unitPrice: subscriptionData.price,
+        },
+      );
 
       return {
         ok: true,

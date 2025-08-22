@@ -5,8 +5,8 @@ import { NextResponse } from "next/server";
 import { getConfig } from "~/server/config";
 import { db } from "~/server/firebase/admin";
 import { pointsService } from "~/server/services/points";
-import { subscriptions } from "~/server/services/subscriptions";
 import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
+import { subscriptions } from "~/server/services/subscriptions";
 
 // PayNow webhook types
 interface PayNowCustomer {
@@ -229,7 +229,7 @@ async function processWebhookEvent(
   const expiresAt = Timestamp.fromMillis(
     now.toMillis() + 30 * 24 * 60 * 60 * 1000, // 30 days TTL
   );
-  
+
   await webhookRef.set({
     eventId,
     rawEventType: eventType,
