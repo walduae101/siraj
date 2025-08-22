@@ -29,6 +29,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITLEAKS_CONFIG: .gitleaks.toml
         GITLEAKS_ENABLE_COMMENTS: false
+      with:
+        sarif_report_name: gitleaks-security-scan.sarif
         
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
@@ -65,3 +67,5 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITLEAKS_CONFIG: .gitleaks.toml
         GITLEAKS_ENABLE_COMMENTS: false
+      with:
+        sarif_report_name: gitleaks-dependency-scan.sarif
