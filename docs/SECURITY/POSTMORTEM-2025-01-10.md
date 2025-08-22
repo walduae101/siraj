@@ -53,11 +53,11 @@ A configuration file (`cloudrun.env.yaml`) containing multiple sensitive API key
 - **OpenAI Integration**: Required new API key generation
 
 ### Compromised Credentials
-1. **Google Firebase API Key**: `AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4`
-2. **PayNow API Key**: `pnapi_v1_6htGKYNeN6vCiBJ8WQvYzNTVtYTq8cPTgH5r99Hja45V`
-3. **PayNow Webhook Secret**: `pn-7cade0c6397c40da9b16f79ab5df132c`
-4. **OpenAI API Key**: `sk-proj-Ad0q...TwEA` (**Auto-disabled by OpenAI**)
-5. **Cron Secret**: `cron-super-secure-key-2024-siraj-life-monthly-credits`
+1. **Google Firebase API Key**: `AIza[REDACTED]` (Client-side Firebase key)
+2. **PayNow API Key**: `pnapi_v1_[REDACTED]` (Server-side PayNow API)  
+3. **PayNow Webhook Secret**: `pn-[REDACTED]` (HMAC signature verification)
+4. **OpenAI API Key**: `sk-proj-[REDACTED]` (**Auto-disabled by OpenAI**)
+5. **Cron Secret**: `cron-super-secure-key-[REDACTED]` (Internal task auth)
 
 ### Data Exposure Risk
 - **Public access**: Anyone could clone the repository and access secrets

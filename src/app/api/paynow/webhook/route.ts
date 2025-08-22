@@ -552,7 +552,7 @@ export async function POST(req: NextRequest) {
     }
 
     const evt = JSON.parse(raw);
-    const eventId = evt?.id || `fallback_${Date.now()}_${Math.random()}`;
+    const eventId = evt?.id || `fallback_${Date.now()}_${crypto.randomUUID()}`;
     const eventType = evt?.event_type || evt?.event; // PayNow uses event_type
 
     console.log("[webhook] Received event:", {

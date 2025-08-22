@@ -16,6 +16,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@google-cloud/pubsub": "^4.3.0",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -30,7 +31,6 @@
     "@trpc/client": "^11.0.0",
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
-    "@google-cloud/pubsub": "^4.3.0",
     "add": "^2.0.6",
     "axios": "^1.9.0",
     "button": "^1.1.1",
@@ -82,5 +82,13 @@
   },
   "volta": {
     "node": "22.8.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici@>=6.0.0 <6.21.1": ">=6.21.1",
+      "undici@>=6.0.0 <6.21.2": ">=6.21.2",
+      "brace-expansion@>=2.0.0 <=2.0.1": ">=2.0.2",
+      "form-data@>=4.0.0 <4.0.4": ">=4.0.4"
+    }
   }
 }
