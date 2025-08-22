@@ -29,8 +29,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITLEAKS_CONFIG: .gitleaks.toml
         GITLEAKS_ENABLE_COMMENTS: false
-      with:
-        sarif_report_name: gitleaks-security-scan.sarif
         
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
@@ -60,12 +58,3 @@ jobs:
       
     - name: Run npm audit
       run: npm audit --audit-level=moderate
-
-    - name: Scan for secrets in build artifacts
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITLEAKS_CONFIG: .gitleaks.toml
-        GITLEAKS_ENABLE_COMMENTS: false
-      with:
-        sarif_report_name: gitleaks-dependency-scan.sarif
