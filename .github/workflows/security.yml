@@ -60,8 +60,10 @@ jobs:
       run: npm audit --audit-level=moderate
 
     - name: Scan for secrets in build artifacts
-      run: |
-        # Install gitleaks
-        curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh | sh
-        # Scan built files for any remaining secrets
-        ./bin/gitleaks detect --source=".next" --verbose --config=.gitleaks.toml || exit 1
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_CONFIG: .gitleaks.toml
+        GITLEAKS_ENABLE_COMMENTS: false
+      with:
+        path: .next
