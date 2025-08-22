@@ -1,1 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running security checks..."
+
+# Download gitleaks if not present
+if ! command -v gitleaks &> /dev/null; then
+  echo "📦 Installing gitleaks..."
+  curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/scripts/install.sh | sh -s -- -b ./bin
+  export PATH="./bin:$PATH"
+fi
+
+# Run Gitleaks to prevent secret commits
+echo "🔍 Scanning for secrets..."
+gitleaks detect --verbose --redact --config=.gitleaks.toml
+if [ $? -ne 0 ]; then
+  echo "❌ SECURITY: Secrets detected! Commit blocked."
+  echo "   Review the files above and remove any sensitive information."
+  exit 1
+fi
+
+echo "✅ Security scan passed"
+
+# Run existing checks
+echo "🧹 Running code quality checks..."
 pnpm run check

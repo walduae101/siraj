@@ -1,0 +1,44 @@
+[extend]
+# Use the default Gitleaks rules
+useDefault = true
+
+# Custom rules for our specific patterns
+[[rules]]
+description = "PayNow API Key"
+id = "paynow-api-key"
+regex = '''pnapi_v1_[A-Za-z0-9]{40,}'''
+tags = ["key", "PayNow"]
+
+[[rules]]
+description = "PayNow Webhook Secret"
+id = "paynow-webhook-secret"  
+regex = '''pn-[a-f0-9]{32}'''
+tags = ["secret", "PayNow"]
+
+[[rules]]
+description = "Firebase API Key"
+id = "firebase-api-key"
+regex = '''AIza[A-Za-z0-9_-]{35}'''
+tags = ["key", "Firebase"]
+
+[[rules]]
+description = "OpenAI API Key"
+id = "openai-api-key"
+regex = '''sk-proj-[A-Za-z0-9]{20,}'''
+tags = ["key", "OpenAI"]
+
+[[rules]]
+description = "Base64 CRON secrets"
+id = "cron-secret"
+regex = '''[A-Za-z0-9+/]{40,}={0,2}'''
+tags = ["secret", "cron"]
+
+# Allowlist for template files
+[allowlist]
+description = "Template files with placeholder secrets"
+files = [
+  "cloudrun.env.template.yaml",
+  "docs/SECURITY/SECRET_MANAGER_MIGRATION.md",
+  "docs/SECURITY/SECURITY_HARDENING.md",
+  "docs/SECURITY/POSTMORTEM-2025-01-10.md"
+]

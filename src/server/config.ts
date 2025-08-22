@@ -2,6 +2,29 @@
 import fs from "node:fs";
 import { z } from "zod";
 
+// Validate no secrets in environment variables
+function validateNoSecretsInEnv() {
+  const dangerousPatterns = [
+    /AIza[A-Za-z0-9_-]{35}/, // Firebase API keys
+    /pnapi_v1_[A-Za-z0-9]{40,}/, // PayNow API keys  
+    /sk-proj-[A-Za-z0-9]{20,}/, // OpenAI API keys
+    /pn-[a-f0-9]{32}/, // PayNow webhook secrets
+    /[A-Za-z0-9+/]{40,}={0,2}/ // Base64 encoded secrets (like cron secrets)
+  ];
+  
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.startsWith('NEXT_PUBLIC_')) continue; // Skip public vars
+    
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(value || '')) {
+        console.error(`❌ SECURITY: Detected secret pattern in environment variable ${key}`);
+        console.error('   Secrets must be loaded from Secret Manager, not environment variables');
+        process.exit(1);
+      }
+    }
+  }
+}
+
 const ConfigSchema = z.object({
   paynow: z.object({
     apiKey: z.string(),
@@ -78,6 +101,8 @@ export function getConfig(): Config {
 
 // Fallback for local development - reads from environment variables
 function getConfigFromEnv(): Config {
+  // Run security validation before processing any environment variables
+  validateNoSecretsInEnv();
   return {
     paynow: {
       apiKey: process.env.PAYNOW_API_KEY ?? "",
