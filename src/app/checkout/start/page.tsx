@@ -20,7 +20,7 @@ function CheckoutStartContent() {
   const sku = sp.get("sku") as string | null;
   const qty = Number(sp.get("qty") ?? 1) || 1;
   const nonce = React.useMemo(
-    () => crypto.randomUUID().replace(/-/g, '').slice(0, 8),
+    () => crypto.randomUUID().replace(/-/g, "").slice(0, 8),
     [],
   );
   const [uid, setUid] = React.useState<string>("");

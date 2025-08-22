@@ -112,16 +112,27 @@ export function LedgerTable({
             <TableBody>
               {rows.map((r: Record<string, unknown>) => {
                 const ts = new Date(
-                  (r.ts as string | number | Date) ?? (r.createdAt as string | number | Date) ?? (r.time as string | number | Date) ?? Date.now(),
+                  (r.ts as string | number | Date) ??
+                    (r.createdAt as string | number | Date) ??
+                    (r.time as string | number | Date) ??
+                    Date.now(),
                 );
                 const kind: Kind = (r.type ?? r.kind ?? "adjust") as Kind;
-                const dPaid = Number((r.delta as Record<string, unknown>)?.paid ?? 0);
-                const dPromo = Number((r.delta as Record<string, unknown>)?.promo ?? 0);
+                const dPaid = Number(
+                  (r.delta as Record<string, unknown>)?.paid ?? 0,
+                );
+                const dPromo = Number(
+                  (r.delta as Record<string, unknown>)?.promo ?? 0,
+                );
                 const aPaid = Number(
-                  (r.balanceAfter as Record<string, unknown>)?.paid ?? (r.after as Record<string, unknown>)?.paid ?? 0,
+                  (r.balanceAfter as Record<string, unknown>)?.paid ??
+                    (r.after as Record<string, unknown>)?.paid ??
+                    0,
                 );
                 const aPromo = Number(
-                  (r.balanceAfter as Record<string, unknown>)?.promo ?? (r.after as Record<string, unknown>)?.promo ?? 0,
+                  (r.balanceAfter as Record<string, unknown>)?.promo ??
+                    (r.after as Record<string, unknown>)?.promo ??
+                    0,
                 );
                 const posPaid = dPaid > 0;
                 const posPromo = dPromo > 0;
@@ -145,7 +156,13 @@ export function LedgerTable({
                         ? "secondary"
                         : "outline";
                 return (
-                  <TableRow key={(r.id as string) || (r.actionId as string) || `row-${Math.random()}`}>
+                  <TableRow
+                    key={
+                      (r.id as string) ||
+                      (r.actionId as string) ||
+                      `row-${Math.random()}`
+                    }
+                  >
                     <TableCell className="whitespace-nowrap">
                       {formatDateTime(ts, safeLocale)}
                     </TableCell>
@@ -159,7 +176,10 @@ export function LedgerTable({
                       {!!r.expiry && (
                         <div className="mt-0.5 text-xs opacity-70">
                           {tt("ledger.expiry", "التاريخ الإنتهاء")}:{" "}
-                          {formatDate(new Date(r.expiry as string | number | Date), safeLocale)}
+                          {formatDate(
+                            new Date(r.expiry as string | number | Date),
+                            safeLocale,
+                          )}
                         </div>
                       )}
                     </TableCell>

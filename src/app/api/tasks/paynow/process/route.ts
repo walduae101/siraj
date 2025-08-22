@@ -272,7 +272,12 @@ async function processOrderEvent(
   let totalPointsCredited = 0;
   const processedItems = [];
 
-  for (const item of ((order as Record<string, unknown>).items as Record<string, unknown>[]) || ((order as Record<string, unknown>).lines as Record<string, unknown>[]) || []) {
+  for (const item of ((order as Record<string, unknown>).items as Record<
+    string,
+    unknown
+  >[]) ||
+    ((order as Record<string, unknown>).lines as Record<string, unknown>[]) ||
+    []) {
     const productId = (item.productId as string) || (item.product_id as string);
     const quantity = Number(item.quantity) || 1;
 

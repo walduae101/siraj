@@ -39,8 +39,18 @@ export async function publishPaynowEvent(
         ? {
             id: (data.order as Record<string, unknown>).id,
             prettyId: (data.order as Record<string, unknown>).pretty_id,
-            customerId: ((data.order as Record<string, unknown>).customer as Record<string, unknown>)?.id,
-            items: ((data.order as Record<string, unknown>).lines as Record<string, unknown>[])?.map((line: Record<string, unknown>) => ({
+            customerId: (
+              (data.order as Record<string, unknown>).customer as Record<
+                string,
+                unknown
+              >
+            )?.id,
+            items: (
+              (data.order as Record<string, unknown>).lines as Record<
+                string,
+                unknown
+              >[]
+            )?.map((line: Record<string, unknown>) => ({
               productId: line.product_id,
               quantity: line.quantity,
               price: line.price,

@@ -12,7 +12,9 @@ const STORE_ID = process.env.PAYNOW_STORE_ID || "";
 
 function authHeaders() {
   // "apikey " prefix is case-insensitive; make sure no newlines in the secret
-  const key = (process.env.PAYNOW_API_KEY ?? "").replace(/[^\x20-\x7E]/g, "").trim();
+  const key = (process.env.PAYNOW_API_KEY ?? "")
+    .replace(/[^\x20-\x7E]/g, "")
+    .trim();
   return {
     Authorization: `apikey ${key}`,
     "Content-Type": "application/json",

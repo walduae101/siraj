@@ -242,8 +242,11 @@ export const subscriptions = {
     }
 
     const productId =
-      (subscriptionData.product_id as string) || (subscriptionData.plan as Record<string, unknown>)?.product_id as string;
-    const orderId = (subscriptionData.id as string) || (subscriptionData.order_id as string);
+      (subscriptionData.product_id as string) ||
+      ((subscriptionData.plan as Record<string, unknown>)
+        ?.product_id as string);
+    const orderId =
+      (subscriptionData.id as string) || (subscriptionData.order_id as string);
 
     if (!productId || !orderId) {
       throw new Error("Missing product ID or order ID in subscription data");
