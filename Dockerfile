@@ -24,8 +24,8 @@ WORKDIR /app
 # Copy package files with proper ownership
 COPY --chown=nodejs:nodejs package.json package-lock.json* ./
 
-# Install dependencies with security audit
-RUN npm ci --omit=dev && \
+# Install all dependencies (including dev deps needed for build)
+RUN npm ci && \
     npm cache clean --force && \
     # Remove npm package that we don't need in production
     rm -rf /usr/local/lib/node_modules/npm
@@ -58,6 +58,12 @@ USER nodejs
 ENV SKIP_ENV_VALIDATION=true
 RUN npm run build
 
+# Create production dependencies stage
+FROM node:20-slim AS production-deps
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev && npm cache clean --force
+
 # Use distroless image for minimal attack surface in production
 FROM gcr.io/distroless/nodejs20-debian12 AS run
 
@@ -70,7 +76,7 @@ WORKDIR /app
 COPY --from=build --chown=nonroot:nonroot /app/.next ./.next
 COPY --from=build --chown=nonroot:nonroot /app/public ./public
 COPY --from=build --chown=nonroot:nonroot /app/package.json ./
-COPY --from=build --chown=nonroot:nonroot /app/node_modules ./node_modules
+COPY --from=production-deps --chown=nonroot:nonroot /app/node_modules ./node_modules
 
 # Environment setup
 ENV NODE_ENV=production
