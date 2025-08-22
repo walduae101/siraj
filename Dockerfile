@@ -43,9 +43,13 @@ RUN apt-get update && \
 RUN groupadd -r nodejs && useradd -r -g nodejs -s /bin/false nodejs
 
 WORKDIR /app
+
 # Copy with proper ownership
 COPY --chown=nodejs:nodejs --from=deps /app/node_modules ./node_modules
 COPY --chown=nodejs:nodejs . .
+
+# Create .next directory with proper permissions before switching user
+RUN mkdir -p .next && chown -R nodejs:nodejs /app
 
 # Switch to non-root user for build
 USER nodejs
