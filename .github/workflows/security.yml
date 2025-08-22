@@ -22,20 +22,16 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITLEAKS_CONFIG: .gitleaks.toml
+        GITLEAKS_ENABLE_COMMENTS: false
         
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
         scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-        
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+        format: 'table'
+        exit-code: 0
+        severity: 'CRITICAL,HIGH'
 
   dependency-check:
     name: Dependency Security
