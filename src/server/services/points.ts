@@ -3,6 +3,22 @@ import { Timestamp } from "firebase-admin/firestore";
 import { env } from "~/env-server";
 import { db } from "../firebase/admin"; // server-only admin
 
+// Type definitions for points system
+interface PromoLot {
+  id: string;
+  amountRemaining: number;
+  expiresAt: Timestamp;
+  source: string;
+}
+
+interface WalletData {
+  paidBalance: number;
+  promoBalance: number;
+  promoLots: PromoLot[];
+  updatedAt: Timestamp;
+  v: number;
+}
+
 const USERS = db.collection("users");
 const WALLETS = (uid: string) =>
   db.collection("users").doc(uid).collection("wallet").doc("points");
@@ -119,16 +135,17 @@ export const pointsService = {
     return await db.runTransaction(async (tx) => {
       const ref = WALLETS(uid);
       const snap = await tx.get(ref);
-      const w = snap.exists
-        ? snap.data()!
-        : {
-            paidBalance: 0,
-            promoBalance: 0,
-            promoLots: [],
-            createdAt: nowTs(),
-            updatedAt: nowTs(),
-            v: 1,
-          };
+      const w =
+        snap.exists && snap.data()
+          ? (snap.data() as WalletData)
+          : {
+              paidBalance: 0,
+              promoBalance: 0,
+              promoLots: [],
+              createdAt: nowTs(),
+              updatedAt: nowTs(),
+              v: 1,
+            };
       const dup = await tx.get(LEDGER(uid).doc(actionId));
       if (dup.exists) return dup.data();
 
@@ -162,16 +179,16 @@ export const pointsService = {
       }
 
       w.promoLots = w.promoLots
-        .map((l: any) => {
+        .map((l: PromoLot) => {
           const upd = lots.find((x) => x.id === l.id) ?? l;
           return upd;
         })
         .filter(
-          (l: any) =>
+          (l: PromoLot) =>
             l.amountRemaining > 0 && l.expiresAt.toMillis() > Date.now(),
         );
       w.promoBalance = w.promoLots.reduce(
-        (s: number, l: any) => s + l.amountRemaining,
+        (s: number, l: PromoLot) => s + l.amountRemaining,
         0,
       );
 
@@ -223,22 +240,23 @@ export const pointsService = {
     return await db.runTransaction(async (tx) => {
       const ref = WALLETS(uid);
       const snap = await tx.get(ref);
-      const w = snap.exists
-        ? snap.data()!
-        : {
-            paidBalance: 0,
-            promoBalance: 0,
-            promoLots: [],
-            createdAt: nowTs(),
-            updatedAt: nowTs(),
-            v: 1,
-          };
+      const w =
+        snap.exists && snap.data()
+          ? (snap.data() as WalletData)
+          : {
+              paidBalance: 0,
+              promoBalance: 0,
+              promoLots: [],
+              createdAt: nowTs(),
+              updatedAt: nowTs(),
+              v: 1,
+            };
       const dup = await tx.get(LEDGER(uid).doc(actionId));
       if (dup.exists) return dup.data();
 
       const pre = { paid: w.paidBalance, promo: w.promoBalance };
 
-      let creditLot: any = undefined;
+      let creditLot: PromoLot | undefined = undefined;
       if (kind === "paid") {
         w.paidBalance += amount;
       } else {
@@ -251,10 +269,11 @@ export const pointsService = {
         };
         w.promoLots.push(creditLot);
         w.promoLots.sort(
-          (a: any, b: any) => a.expiresAt.toMillis() - b.expiresAt.toMillis(),
+          (a: PromoLot, b: PromoLot) =>
+            a.expiresAt.toMillis() - b.expiresAt.toMillis(),
         );
         w.promoBalance = w.promoLots.reduce(
-          (s: number, l: any) => s + l.amountRemaining,
+          (s: number, l: PromoLot) => s + l.amountRemaining,
           0,
         );
       }
@@ -264,7 +283,7 @@ export const pointsService = {
       if (!snap.exists) w.createdAt = nowTs();
       tx.set(ref, w, { merge: true });
 
-      const entry: any = {
+      const entry = {
         type: "credit",
         channel: kind,
         amount,
@@ -276,7 +295,7 @@ export const pointsService = {
         createdBy: uid,
         v: 1,
       };
-      
+
       // Only include creditLot if it's defined (for promo points)
       if (creditLot) {
         entry.creditLot = creditLot;

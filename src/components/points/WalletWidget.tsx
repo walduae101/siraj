@@ -1,8 +1,8 @@
 "use client";
 import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
 import { features } from "~/config/features";
-import { fmtNum } from "~/lib/i18n/num";
 import { formatDate } from "~/lib/i18n/date";
+import { fmtNum } from "~/lib/i18n/num";
 import { t } from "~/lib/i18n/t";
 import { api } from "~/trpc/react";
 

@@ -7,6 +7,46 @@ import { db } from "~/server/firebase/admin";
 import { pointsService } from "~/server/services/points";
 import { subscriptions } from "~/server/services/subscriptions";
 
+// PayNow webhook types
+interface PayNowCustomer {
+  id?: string;
+  email?: string;
+  metadata?: {
+    uid?: string;
+  };
+}
+
+interface PayNowOrderLine {
+  product_id: string;
+  quantity?: number;
+  price?: string;
+}
+
+interface PayNowOrder {
+  id: string;
+  pretty_id?: string;
+  customer: PayNowCustomer;
+  lines?: PayNowOrderLine[];
+}
+
+interface PayNowSubscription {
+  id: string;
+  product_id: string;
+  customer: PayNowCustomer;
+}
+
+interface PayNowDeliveryItem {
+  id: string;
+  product_id: string;
+  quantity?: number;
+}
+
+interface PayNowWebhookData {
+  order?: PayNowOrder;
+  subscription?: PayNowSubscription;
+  delivery_item?: PayNowDeliveryItem;
+}
+
 // HMAC verification per PayNow docs (headers: paynow-signature, paynow-timestamp)
 // PayNow uses base64 encoding for signatures
 function verifySignature(
@@ -41,7 +81,7 @@ function verifySignature(
 
   // Construct payload exactly as PayNow docs specify: timestamp.rawBody
   const payload = `${ts}.${reqBody}`;
-  
+
   try {
     // PayNow uses base64 encoding for the HMAC
     const mac = crypto
@@ -119,7 +159,7 @@ async function ensureUserDocument(uid: string): Promise<void> {
 }
 
 // Map PayNow customer to Firebase user
-async function resolveUser(customer: any): Promise<string | null> {
+async function resolveUser(customer: PayNowCustomer): Promise<string | null> {
   // Primary: use customer metadata uid
   if (customer?.metadata?.uid) {
     return customer.metadata.uid;
@@ -172,7 +212,7 @@ async function resolveUser(customer: any): Promise<string | null> {
 async function processWebhookEvent(
   eventId: string,
   eventType: string,
-  eventData: any,
+  eventData: PayNowWebhookData,
 ) {
   const webhookRef = db.collection("webhookEvents").doc(eventId);
 
@@ -251,7 +291,7 @@ async function processWebhookEvent(
 }
 
 // Handle order completion (one-time purchases)
-async function handleOrderCompleted(data: any) {
+async function handleOrderCompleted(data: PayNowWebhookData) {
   const order = data?.order;
   if (!order) return { credited: 0, reason: "no_order" };
 
@@ -323,7 +363,7 @@ async function handleOrderCompleted(data: any) {
 }
 
 // Handle delivery item added (alternative to order completion)
-async function handleDeliveryItemAdded(data: any) {
+async function handleDeliveryItemAdded(data: PayNowWebhookData) {
   const order = data?.order;
   const item = data?.delivery_item;
 
@@ -378,7 +418,7 @@ async function handleDeliveryItemAdded(data: any) {
 }
 
 // Handle subscription activation
-async function handleSubscriptionActivated(data: any) {
+async function handleSubscriptionActivated(data: PayNowWebhookData) {
   const subscription = data?.subscription;
   if (!subscription) return { reason: "no_subscription" };
 
@@ -398,7 +438,7 @@ async function handleSubscriptionActivated(data: any) {
 }
 
 // Handle subscription renewal
-async function handleSubscriptionRenewed(data: any) {
+async function handleSubscriptionRenewed(data: PayNowWebhookData) {
   const subscription = data?.subscription;
   if (!subscription) return { reason: "no_subscription" };
 
@@ -454,7 +494,10 @@ async function handleSubscriptionRenewed(data: any) {
 }
 
 // Handle subscription cancellation/expiration
-async function handleSubscriptionEnded(data: any, eventType: string) {
+async function handleSubscriptionEnded(
+  data: PayNowWebhookData,
+  eventType: string,
+) {
   const subscription = data?.subscription;
   if (!subscription) return { reason: "no_subscription" };
 

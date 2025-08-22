@@ -13,8 +13,8 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { features } from "~/config/features";
-import { fmtNum } from "~/lib/i18n/num";
 import { formatDate, formatDateTime } from "~/lib/i18n/date";
+import { fmtNum } from "~/lib/i18n/num";
 import { t } from "~/lib/i18n/t";
 import { api } from "~/trpc/react";
 
@@ -110,7 +110,7 @@ export function LedgerTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r: any) => {
+              {rows.map((r: Record<string, unknown>) => {
                 const ts = new Date(
                   r.ts ?? r.createdAt ?? r.time ?? Date.now(),
                 );

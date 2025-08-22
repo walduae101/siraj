@@ -34,7 +34,7 @@ function SuccessContent() {
 
     let isFirstSnapshot = true;
     const unsubscribe = onSnapshot(
-      walletRef, 
+      walletRef,
       (snapshot) => {
         if (snapshot.exists()) {
           const balance = snapshot.data()?.paidBalance || 0;
@@ -59,7 +59,7 @@ function SuccessContent() {
           console.log("[checkout/success] Waiting for auth to stabilize...");
           // Don't throw, just wait for auth to stabilize
         }
-      }
+      },
     );
 
     return () => unsubscribe();

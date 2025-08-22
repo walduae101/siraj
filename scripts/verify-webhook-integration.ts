@@ -46,7 +46,10 @@ function generateSignature(
 /**
  * Send a test webhook event
  */
-async function sendWebhookEvent(event: any, description: string) {
+async function sendWebhookEvent(
+  event: Record<string, unknown>,
+  description: string,
+) {
   console.log(`\n🧪 Testing: ${description}`);
 
   const payload = JSON.stringify(event);
