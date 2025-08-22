@@ -89,7 +89,7 @@ A configuration file (`cloudrun.env.yaml`) containing multiple sensitive API key
 
 ### Phase C: Secret Rotation & Migration ✅
 - [x] **Created new Google Firebase API key** with restrictions (kept existing key with restrictions)
-- [x] **Generated new PayNow API key** and webhook secret (`pnapi_v1_DAMjmqeD4F95QAdMnRsAysJZpv1N1jPAiXXXGwic4HcH`, `pn-c5bb14674f5e437c99873be4648e1ab6`)
+- [x] **Generated new PayNow API key** and webhook secret (`[REDACTED]`, `[REDACTED]`)
 - [x] **Created new OpenAI API key** (rotated and stored securely)
 - [x] **Migrated all secrets to Google Secret Manager** (5 secrets created)
 - [x] **Updated Cloud Run deployment** to use Secret Manager references

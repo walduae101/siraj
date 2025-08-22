@@ -86,7 +86,7 @@ curl -X POST https://siraj.life/api/paynow/webhook \
 
 # Test points wallet endpoint  
 curl "https://siraj.life/api/trpc/points.getWallet?input={}" \
-  -H "Authorization: Bearer YOUR_TEST_TOKEN"
+  -H "Authorization: Bearer [REDACTED]"
 # Should return wallet data for authenticated user
 ```
 

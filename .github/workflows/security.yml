@@ -65,5 +65,3 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITLEAKS_CONFIG: .gitleaks.toml
         GITLEAKS_ENABLE_COMMENTS: false
-      with:
-        path: .next

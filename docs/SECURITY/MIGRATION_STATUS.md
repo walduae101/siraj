@@ -39,7 +39,7 @@
 ## ✅ **MANUAL STEPS COMPLETED**
 
 ### **1. PayNow Dashboard Updates** ✅ **COMPLETE**
-- ✅ **Webhook Secret Updated**: Set to `pn-c5bb14674f5e437c99873be4648e1ab6` 
+- ✅ **Webhook Secret Updated**: Set to `[REDACTED]` 
 - ✅ **Secret Manager Synced**: Updated to match PayNow configuration
 - ✅ **Webhook URL Verified**: `https://siraj-207501673877.us-central1.run.app/api/paynow/webhook`
 - ✅ **Old API Key**: Disabled in PayNow dashboard
@@ -155,7 +155,7 @@ All incident response criteria have been met:
 - ✅ **Service logs**: Clean, no secret-related errors
 
 ### **External Services** ✅
-- ✅ **PayNow**: Webhook secret `pn-c5bb14674f5e437c99873be4648e1ab6` active
+- ✅ **PayNow**: Webhook secret `[REDACTED]` active
 - ✅ **OpenAI**: New key working (old key auto-disabled)
 - ✅ **All integrations**: Functional with new rotated credentials
 
