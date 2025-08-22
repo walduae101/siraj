@@ -6,6 +6,7 @@ import { getConfig } from "~/server/config";
 import { db } from "~/server/firebase/admin";
 import { pointsService } from "~/server/services/points";
 import { subscriptions } from "~/server/services/subscriptions";
+import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
 
 // PayNow webhook types
 interface PayNowCustomer {
@@ -224,16 +225,22 @@ async function processWebhookEvent(
   }
 
   // Mark as received
+  const now = Timestamp.now();
+  const expiresAt = Timestamp.fromMillis(
+    now.toMillis() + 30 * 24 * 60 * 60 * 1000, // 30 days TTL
+  );
+  
   await webhookRef.set({
     eventId,
     rawEventType: eventType,
     status: "received",
-    receivedAt: Timestamp.now(),
+    receivedAt: now,
     timestamp: new Date().toISOString(),
     payloadHash: crypto
       .createHash("sha256")
       .update(JSON.stringify(eventData))
       .digest("hex"),
+    expiresAt, // TTL field - configure this in Firebase Console
   });
 
   let result = { ok: true, status: "processed", details: {} };
@@ -518,6 +525,7 @@ async function handleSubscriptionEnded(
 }
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   console.log("[webhook] Processing PayNow webhook");
 
   try {
@@ -559,11 +567,89 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Missing event type", { status: 400 });
     }
 
-    // Return 200 immediately for fast ACK, then process
-    // For production, consider using background tasks/queues
-    const result = await processWebhookEvent(eventId, eventType, evt.data);
+    // Check webhook mode from config
+    const webhookMode = cfg.features.webhookMode;
 
-    return NextResponse.json(result);
+    if (webhookMode === "queue") {
+      // Queue mode: Write to webhookEvents and publish to Pub/Sub
+      const publishStartTime = Date.now();
+
+      try {
+        // Write minimal data to webhookEvents with status "queued"
+        const now = Timestamp.now();
+        const expiresAt = Timestamp.fromMillis(
+          now.toMillis() + 30 * 24 * 60 * 60 * 1000, // 30 days TTL
+        );
+
+        await db
+          .collection("webhookEvents")
+          .doc(eventId)
+          .set({
+            eventId,
+            rawEventType: eventType,
+            status: "queued",
+            receivedAt: now,
+            timestamp: new Date().toISOString(),
+            payloadHash: crypto
+              .createHash("sha256")
+              .update(JSON.stringify(evt.data))
+              .digest("hex"),
+            expiresAt,
+            attempts: 0,
+          });
+
+        // Extract user ID for ordering key
+        const order = evt?.data?.order;
+        const subscription = evt?.data?.subscription;
+        const customer = order?.customer || subscription?.customer;
+        const uid = await resolveUser(customer);
+
+        // Publish to Pub/Sub
+        const messageId = await publishPaynowEvent({
+          eventId,
+          eventType,
+          orderId: order?.pretty_id || order?.id || subscription?.id,
+          paynowCustomerId: customer?.id,
+          uid: uid || undefined,
+          data: evt.data,
+        });
+
+        const publishMs = Date.now() - publishStartTime;
+        const totalMs = Date.now() - startTime;
+
+        console.log("[webhook] Event queued successfully", {
+          event_id: eventId,
+          event_type: eventType,
+          message_id: messageId,
+          status: "queued",
+          publish_ms: publishMs,
+          processing_ms: totalMs,
+        });
+
+        // Return 200 immediately for fast ACK
+        return NextResponse.json({
+          ok: true,
+          status: "queued",
+          messageId,
+        });
+      } catch (error) {
+        const errorMs = Date.now() - startTime;
+        console.error("[webhook] Failed to queue event", {
+          event_id: eventId,
+          event_type: eventType,
+          error: error instanceof Error ? error.message : String(error),
+          processing_ms: errorMs,
+        });
+
+        // Fall back to sync processing if queue fails
+        const result = await processWebhookEvent(eventId, eventType, evt.data);
+        return NextResponse.json(result);
+      }
+    } else {
+      // Sync mode: Process immediately (existing behavior)
+      const result = await processWebhookEvent(eventId, eventType, evt.data);
+      return NextResponse.json(result);
+    }
   } catch (error) {
     console.error("[webhook] Processing error:", error);
     console.error(

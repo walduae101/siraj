@@ -225,4 +225,81 @@ export const subscriptions = {
       .collection("subscriptions")
       .doc(orderId);
   },
+
+  /**
+   * Handle subscription webhook events within a transaction (for worker use)
+   */
+  async handleWebhookInTransaction(
+    transaction: any,
+    eventType: string,
+    subscriptionData: any,
+    uid: string,
+  ) {
+    const cfg = getConfig();
+    if (!cfg.features.FEAT_SUB_POINTS) {
+      return { ok: false, reason: "feature-disabled" };
+    }
+
+    const productId = subscriptionData.product_id || subscriptionData.plan?.product_id;
+    const orderId = subscriptionData.id || subscriptionData.order_id;
+
+    if (!productId || !orderId) {
+      throw new Error("Missing product ID or order ID in subscription data");
+    }
+
+    const plan = this.getPlan(productId);
+    if (!plan) {
+      throw new Error(`Unknown subscription plan: ${productId}`);
+    }
+
+    if (eventType === "subscription.created" || eventType === "subscription.renewed") {
+      // Record the subscription purchase and credit initial points
+      const subRef = this.getSubRef(uid, orderId);
+      const existingSub = await transaction.get(subRef);
+
+      if (existingSub.exists && eventType === "subscription.created") {
+        // Already processed
+        return { ok: true, alreadyProcessed: true };
+      }
+
+      const now = Timestamp.now();
+      const subDoc = {
+        uid,
+        orderId,
+        productId,
+        planName: plan.name,
+        pointsPerCycle: plan.pointsPerCycle,
+        cycle: plan.cycle,
+        status: "active",
+        totalGranted: plan.pointsPerCycle,
+        nextCreditAt: Timestamp.fromDate(
+          plan.cycle === "month"
+            ? addMonths(new Date(), 1)
+            : addMonths(new Date(), 12),
+        ),
+        createdAt: existingSub.exists ? existingSub.data()!.createdAt : now,
+        updatedAt: now,
+      };
+
+      transaction.set(subRef, subDoc, { merge: true });
+
+      // Credit points using the transaction
+      await pointsService.creditPointsInTransaction(transaction, uid, plan.pointsPerCycle, {
+        source: "subscription",
+        eventId: `${orderId}_${eventType}_${Date.now()}`,
+        orderId,
+        productId,
+        quantity: 1,
+        unitPrice: subscriptionData.price,
+      });
+
+      return {
+        ok: true,
+        credited: plan.pointsPerCycle,
+        subscription: subDoc,
+      };
+    }
+
+    return { ok: true, skipped: true, eventType };
+  },
 };

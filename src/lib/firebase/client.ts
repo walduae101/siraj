@@ -21,7 +21,7 @@ export function getFirebaseApp(): FirebaseApp {
     const apps = getApps();
     app = apps.length > 0 ? apps[0] : initializeApp(cfg);
   }
-  return app;
+  return app as FirebaseApp;
 }
 
 let _auth: Auth | undefined;

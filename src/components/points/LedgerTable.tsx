@@ -110,7 +110,7 @@ export function LedgerTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r: Record<string, unknown>) => {
+              {rows.map((r: any) => {
                 const ts = new Date(
                   r.ts ?? r.createdAt ?? r.time ?? Date.now(),
                 );

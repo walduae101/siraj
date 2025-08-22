@@ -40,6 +40,7 @@ const ConfigSchema = z.object({
     FEAT_SUB_POINTS: z.boolean().default(true),
     PAYNOW_LIVE: z.boolean().default(true),
     STUB_CHECKOUT: z.boolean().default(false),
+    webhookMode: z.enum(["sync", "queue"]).default("sync"),
   }),
 });
 
@@ -108,6 +109,7 @@ function getConfigFromEnv(): Config {
       FEAT_SUB_POINTS: process.env.FEAT_SUB_POINTS === "1",
       PAYNOW_LIVE: process.env.PAYNOW_LIVE === "1",
       STUB_CHECKOUT: process.env.STUB_CHECKOUT === "1",
+      webhookMode: (process.env.WEBHOOK_MODE as "sync" | "queue") ?? "sync",
     },
   };
 }

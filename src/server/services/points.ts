@@ -16,6 +16,7 @@ interface WalletData {
   promoBalance: number;
   promoLots: PromoLot[];
   updatedAt: Timestamp;
+  createdAt?: Timestamp;
   v: number;
 }
 
@@ -84,6 +85,66 @@ export const pointsService = {
     return snap.data();
   },
 
+  // Credit points within an existing transaction (for worker use)
+  async creditPointsInTransaction(
+    transaction: any,
+    uid: string,
+    points: number,
+    metadata: {
+      source: string;
+      eventId: string;
+      orderId: string;
+      productId: string;
+      quantity: number;
+      unitPrice?: string;
+    },
+  ) {
+    const walletRef = WALLETS(uid);
+    const walletSnap = await transaction.get(walletRef);
+
+    if (!walletSnap.exists) {
+      throw new Error(`Wallet not found for user ${uid}`);
+    }
+
+    const wallet = walletSnap.data()!;
+    const ledgerRef = LEDGER(uid).doc(metadata.eventId);
+
+    // Check for duplicate (idempotency)
+    const existingEntry = await transaction.get(ledgerRef);
+    if (existingEntry.exists) {
+      return existingEntry.data();
+    }
+
+    // Update wallet balance
+    wallet.paidBalance += points;
+    wallet.updatedAt = nowTs();
+
+    // Create ledger entry
+    const ledgerEntry = {
+      id: metadata.eventId,
+      action: "credit",
+      kind: "paid" as const,
+      amount: points,
+      source: metadata.source,
+      pre: { paid: wallet.paidBalance - points, promo: wallet.promoBalance },
+      post: { paid: wallet.paidBalance, promo: wallet.promoBalance },
+      metadata: {
+        orderId: metadata.orderId,
+        productId: metadata.productId,
+        quantity: metadata.quantity,
+        unitPrice: metadata.unitPrice,
+      },
+      createdAt: nowTs(),
+      v: 1,
+    };
+
+    // Apply updates
+    transaction.update(walletRef, wallet);
+    transaction.set(ledgerRef, ledgerEntry);
+
+    return ledgerEntry;
+  },
+
   async previewSpend({ uid, cost }: { uid: string; cost: number }) {
     const w = await this.getWallet(uid);
     if (!w) throw new Error("Wallet not found");
@@ -141,7 +202,7 @@ export const pointsService = {
           : {
               paidBalance: 0,
               promoBalance: 0,
-              promoLots: [],
+              promoLots: [] as PromoLot[],
               createdAt: nowTs(),
               updatedAt: nowTs(),
               v: 1,
@@ -246,7 +307,7 @@ export const pointsService = {
           : {
               paidBalance: 0,
               promoBalance: 0,
-              promoLots: [],
+              promoLots: [] as PromoLot[],
               createdAt: nowTs(),
               updatedAt: nowTs(),
               v: 1,
@@ -283,7 +344,7 @@ export const pointsService = {
       if (!snap.exists) w.createdAt = nowTs();
       tx.set(ref, w, { merge: true });
 
-      const entry = {
+      const entry: any = {
         type: "credit",
         channel: kind,
         amount,
