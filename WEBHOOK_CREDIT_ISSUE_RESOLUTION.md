@@ -70,7 +70,7 @@ After deployment completes, test with:
 
 ```bash
 # Set your webhook secret
-export PAYNOW_WEBHOOK_SECRET="pn-7cade0c6397c40da9b16f79ab5df132c"
+export PAYNOW_WEBHOOK_SECRET="YOUR_SECRET_FROM_SECRET_MANAGER"
 export WEBHOOK_URL="https://siraj-btmgk7htca-uc.a.run.app/api/paynow/webhook"
 
 # Run test

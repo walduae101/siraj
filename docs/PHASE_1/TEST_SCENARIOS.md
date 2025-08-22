@@ -17,7 +17,7 @@ Comprehensive test scenarios to validate PayNow webhook security, performance, a
 
 ### Test Environment Values
 - **Webhook URL**: `https://siraj-btmgk7htca-uc.a.run.app/api/paynow/webhook`
-- **Test Secret**: `pn-7cade0c6397c40da9b16f79ab5df132c` (TEST environment)
+- **Test Secret**: `YOUR_WEBHOOK_SECRET_FROM_SECRET_MANAGER` (get from Secret Manager)
 - **Test User UID**: `OPvJByA50jQmxGrgsqmrn794Axd2`
 - **Test Product ID**: `prod_QQfmFQiRyeLPBZ` (50 points)
 
@@ -230,7 +230,7 @@ curl -X POST https://siraj-btmgk7htca-uc.a.run.app/api/paynow/webhook \
 TIMESTAMP=$(date +%s)000  # milliseconds
 PAYLOAD='{"id":"test","event_type":"ON_ORDER_COMPLETED"}'
 MESSAGE="$TIMESTAMP.$PAYLOAD"
-SECRET="pn-7cade0c6397c40da9b16f79ab5df132c"
+SECRET="$PAYNOW_WEBHOOK_SECRET"  # Get from Secret Manager
 
 SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha256 -hmac "$SECRET" -binary | base64)
 echo "paynow-signature: $SIGNATURE"

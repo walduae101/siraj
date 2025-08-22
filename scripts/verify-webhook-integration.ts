@@ -12,8 +12,12 @@ import { getFirestore } from "firebase-admin/firestore";
 const WEBHOOK_URL =
   process.env.WEBHOOK_URL ||
   "https://siraj-btmgk7htca-uc.a.run.app/api/paynow/webhook";
-const WEBHOOK_SECRET =
-  process.env.PAYNOW_WEBHOOK_SECRET || "pn-7cade0c6397c40da9b16f79ab5df132c";
+const WEBHOOK_SECRET = process.env.PAYNOW_WEBHOOK_SECRET;
+if (!WEBHOOK_SECRET) {
+  console.error("❌ PAYNOW_WEBHOOK_SECRET environment variable is required");
+  console.error("   Set it to your webhook secret from Secret Manager");
+  process.exit(1);
+}
 const FIREBASE_UID = "OPvJByA50jQmxGrgsqmrn794Axd2"; // Your actual UID
 
 // Initialize Firebase Admin for verification

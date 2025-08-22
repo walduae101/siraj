@@ -281,7 +281,7 @@ export const subscriptions = {
             ? addMonths(new Date(), 1)
             : addMonths(new Date(), 12),
         ),
-        createdAt: existingSub.exists ? existingSub.data()!.createdAt : now,
+        createdAt: existingSub.exists ? existingSub.data()?.createdAt : now,
         updatedAt: now,
       };
 

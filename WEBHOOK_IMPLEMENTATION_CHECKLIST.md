@@ -105,7 +105,7 @@ Comprehensive integration test suite
 
 3. **Test Webhook**
    ```bash
-   export PAYNOW_WEBHOOK_SECRET="pn-7cade0c6397c40da9b16f79ab5df132c"
+   export PAYNOW_WEBHOOK_SECRET="YOUR_SECRET_FROM_SECRET_MANAGER"
    npx tsx scripts/verify-webhook-integration.ts
    ```
 
