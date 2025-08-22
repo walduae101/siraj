@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import type { Firestore } from "firebase-admin/firestore";
-import { env } from "~/env-server";
+// import { env } from "~/env-server";
 import {
   PAYNOW_PRODUCTS,
   type PayNowSku,
@@ -8,11 +8,11 @@ import {
 } from "./paynowProducts";
 
 const BASE = "https://api.paynow.gg/v1";
-const STORE_ID = env.PAYNOW_STORE_ID;
+const STORE_ID = process.env.PAYNOW_STORE_ID || "";
 
 function authHeaders() {
   // "apikey " prefix is case-insensitive; make sure no newlines in the secret
-  const key = (env.PAYNOW_API_KEY ?? "").replace(/[^\x20-\x7E]/g, "").trim();
+  const key = (process.env.PAYNOW_API_KEY ?? "").replace(/[^\x20-\x7E]/g, "").trim();
   return {
     Authorization: `apikey ${key}`,
     "Content-Type": "application/json",

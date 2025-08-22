@@ -1,10 +1,10 @@
 import OpenAI from "openai";
 import { z } from "zod";
-import { env } from "~/env-server";
+// import { env } from "~/env-server";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
 function getOpenAI() {
-  const key = env.OPENAI_API_KEY;
+  const key = process.env.OPENAI_API_KEY;
   if (!key) {
     throw new Error("OPENAI_API_KEY is not set");
   }

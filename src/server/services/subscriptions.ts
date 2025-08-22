@@ -1,7 +1,8 @@
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
+import type { Transaction } from "firebase-admin/firestore";
 import { getConfig, getSubscriptionPlan } from "~/server/config";
 import { pointsService } from "~/server/services/points";
-import { addMonths } from "./util-date";
+import { addMonths, addYears } from "./util-date";
 
 type Cycle = "month" | "year";
 type Plan = { name: string; cycle: Cycle; pointsPerCycle: number };
@@ -14,10 +15,10 @@ type SubDoc = {
   cycle: "month" | "year";
   pointsPerCycle: number;
   status: "active" | "canceled" | "expired";
-  createdAt: FirebaseFirestore.Timestamp;
-  updatedAt: FirebaseFirestore.Timestamp;
-  currentPeriodEnd: FirebaseFirestore.Timestamp; // billing period end
-  nextCreditAt: FirebaseFirestore.Timestamp; // when to credit next
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  currentPeriodEnd: Timestamp; // billing period end
+  nextCreditAt: Timestamp; // when to credit next
   totalGranted: number; // cumulative points granted by this sub
 };
 
@@ -230,9 +231,9 @@ export const subscriptions = {
    * Handle subscription webhook events within a transaction (for worker use)
    */
   async handleWebhookInTransaction(
-    transaction: any,
+    transaction: Transaction,
     eventType: string,
-    subscriptionData: any,
+    subscriptionData: Record<string, unknown>,
     uid: string,
   ) {
     const cfg = getConfig();
@@ -241,8 +242,8 @@ export const subscriptions = {
     }
 
     const productId =
-      subscriptionData.product_id || subscriptionData.plan?.product_id;
-    const orderId = subscriptionData.id || subscriptionData.order_id;
+      (subscriptionData.product_id as string) || (subscriptionData.plan as Record<string, unknown>)?.product_id as string;
+    const orderId = (subscriptionData.id as string) || (subscriptionData.order_id as string);
 
     if (!productId || !orderId) {
       throw new Error("Missing product ID or order ID in subscription data");
@@ -258,7 +259,7 @@ export const subscriptions = {
       eventType === "subscription.renewed"
     ) {
       // Record the subscription purchase and credit initial points
-      const subRef = this.getSubRef(uid, orderId);
+      const subRef = this.getSubRef(uid, orderId as string);
       const existingSub = await transaction.get(subRef);
 
       if (existingSub.exists && eventType === "subscription.created") {
@@ -295,10 +296,10 @@ export const subscriptions = {
         {
           source: "subscription",
           eventId: `${orderId}_${eventType}_${Date.now()}`,
-          orderId,
+          orderId: orderId as string,
           productId,
           quantity: 1,
-          unitPrice: subscriptionData.price,
+          unitPrice: subscriptionData.price as string | undefined,
         },
       );
 

@@ -58,7 +58,7 @@ async function sendWebhookEvent(
 
   const payload = JSON.stringify(event);
   const timestamp = Date.now().toString(); // PayNow sends milliseconds
-  const signature = generateSignature(payload, WEBHOOK_SECRET, timestamp);
+  const signature = generateSignature(payload, WEBHOOK_SECRET!, timestamp);
 
   console.log(`  📝 Event ID: ${event.id}`);
   console.log(`  ⏰ Timestamp: ${timestamp}`);
@@ -268,7 +268,7 @@ async function testReplayProtection() {
 
   const payload = JSON.stringify(event);
   const oldTimestamp = (Date.now() - 6 * 60 * 1000).toString(); // 6 minutes ago
-  const signature = generateSignature(payload, WEBHOOK_SECRET, oldTimestamp);
+  const signature = generateSignature(payload, WEBHOOK_SECRET!, oldTimestamp);
 
   try {
     const response = await fetch(WEBHOOK_URL, {

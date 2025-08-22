@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
-import { env } from "~/env-server";
+import type { Transaction } from "firebase-admin/firestore";
+// import { env } from "~/env-server";
 import { db } from "../firebase/admin"; // server-only admin
 
 // Type definitions for points system
@@ -87,7 +88,7 @@ export const pointsService = {
 
   // Credit points within an existing transaction (for worker use)
   async creditPointsInTransaction(
-    transaction: any,
+    transaction: Transaction,
     uid: string,
     points: number,
     metadata: {
@@ -106,7 +107,10 @@ export const pointsService = {
       throw new Error(`Wallet not found for user ${uid}`);
     }
 
-    const wallet = walletSnap.data()!;
+    const wallet = walletSnap.data();
+    if (!wallet) {
+      throw new Error("Wallet data not found");
+    }
     const ledgerRef = LEDGER(uid).doc(metadata.eventId);
 
     // Check for duplicate (idempotency)
@@ -344,7 +348,7 @@ export const pointsService = {
       if (!snap.exists) w.createdAt = nowTs();
       tx.set(ref, w, { merge: true });
 
-      const entry: any = {
+      const entry: Record<string, unknown> = {
         type: "credit",
         channel: kind,
         amount,
@@ -359,7 +363,7 @@ export const pointsService = {
 
       // Only include creditLot if it's defined (for promo points)
       if (creditLot) {
-        entry.creditLot = creditLot;
+        (entry as any).creditLot = creditLot;
       }
       tx.set(LEDGER(uid).doc(actionId), entry);
       return entry;

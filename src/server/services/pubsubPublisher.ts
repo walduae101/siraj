@@ -13,7 +13,7 @@ interface PublishEventOptions {
   paynowCustomerId?: string;
   uid?: string;
   points?: number;
-  data: any;
+  data: Record<string, unknown>;
 }
 
 /**
@@ -37,10 +37,10 @@ export async function publishPaynowEvent(
     data: {
       order: data.order
         ? {
-            id: data.order.id,
-            prettyId: data.order.pretty_id,
-            customerId: data.order.customer?.id,
-            items: data.order.lines?.map((line: any) => ({
+            id: (data.order as Record<string, unknown>).id,
+            prettyId: (data.order as Record<string, unknown>).pretty_id,
+            customerId: ((data.order as Record<string, unknown>).customer as Record<string, unknown>)?.id,
+            items: ((data.order as Record<string, unknown>).lines as Record<string, unknown>[])?.map((line: Record<string, unknown>) => ({
               productId: line.product_id,
               quantity: line.quantity,
               price: line.price,

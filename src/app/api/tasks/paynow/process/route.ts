@@ -160,7 +160,7 @@ async function processPaynowEvent(
       const attempts = (webhookData.attempts || 0) + 1;
 
       // Process based on event type
-      let processingResult: any;
+      let processingResult: Record<string, unknown>;
 
       if (eventType === "order.paid" || eventType === "ON_ORDER_COMPLETED") {
         processingResult = await processOrderEvent(
@@ -171,7 +171,7 @@ async function processPaynowEvent(
         );
       } else if (eventType.startsWith("subscription.")) {
         processingResult = await processSubscriptionEvent(
-          eventData,
+          eventData as Record<string, unknown>,
           eventType,
           attributes,
           transaction,
@@ -258,7 +258,7 @@ async function processOrderEvent(
   transaction: FirebaseFirestore.Transaction,
   eventId: string,
 ) {
-  const order = (eventData as any)?.order;
+  const order = (eventData as Record<string, unknown>)?.order;
   if (!order) {
     throw new Error("Missing order data");
   }
@@ -272,9 +272,9 @@ async function processOrderEvent(
   let totalPointsCredited = 0;
   const processedItems = [];
 
-  for (const item of order.items || order.lines || []) {
-    const productId = item.productId || item.product_id;
-    const quantity = item.quantity || 1;
+  for (const item of ((order as Record<string, unknown>).items as Record<string, unknown>[]) || ((order as Record<string, unknown>).lines as Record<string, unknown>[]) || []) {
+    const productId = (item.productId as string) || (item.product_id as string);
+    const quantity = Number(item.quantity) || 1;
 
     // Map product to points
     const points = await getPointsForProduct(productId);
@@ -292,10 +292,10 @@ async function processOrderEvent(
       {
         source: "paynow",
         eventId: attributes.event_id || eventId,
-        orderId: order.id,
+        orderId: (order as Record<string, unknown>).id as string,
         productId,
         quantity,
-        unitPrice: item.price,
+        unitPrice: item.price as string | undefined,
       },
     );
 
@@ -310,14 +310,14 @@ async function processOrderEvent(
   return {
     pointsCredited: totalPointsCredited,
     uid,
-    orderId: order.id,
+    orderId: (order as Record<string, unknown>).id as string,
     items: processedItems,
   };
 }
 
 // Process subscription events
 async function processSubscriptionEvent(
-  eventData: any,
+  eventData: Record<string, unknown>,
   eventType: string,
   attributes: Record<string, string>,
   transaction: FirebaseFirestore.Transaction,
@@ -340,7 +340,7 @@ async function processSubscriptionEvent(
     const result = await subscriptions.handleWebhookInTransaction(
       transaction,
       eventType,
-      subscription,
+      subscription as Record<string, unknown>,
       uid,
     );
 
@@ -371,7 +371,7 @@ async function getPointsForProduct(productId: string): Promise<number | null> {
   )?.[0];
 
   if (sku) {
-    return (skuMap as any)[sku] || null;
+    return (skuMap as unknown as Record<string, number>)[sku] || null;
   }
 
   return null;
