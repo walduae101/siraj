@@ -85,35 +85,50 @@ const ConfigSchema = z.object({
     authenticated: z.object({
       requestsPerMinute: z.number().default(30),
       burstSize: z.number().default(15),
-    }),
+    }).default({ requestsPerMinute: 30, burstSize: 15 }),
     anonymous: z.object({
       requestsPerMinute: z.number().default(10),
       burstSize: z.number().default(5),
-    }),
+    }).default({ requestsPerMinute: 10, burstSize: 5 }),
     admin: z.object({
       requestsPerMinute: z.number().default(3),
       burstSize: z.number().default(1),
-    }),
+    }).default({ requestsPerMinute: 3, burstSize: 1 }),
     
     // Per-route overrides
     routes: z.object({
       webhook: z.object({
         requestsPerMinute: z.number().default(300),
         burstSize: z.number().default(100),
-      }),
+      }).default({ requestsPerMinute: 300, burstSize: 100 }),
       paywall: z.object({
         requestsPerMinute: z.number().default(60),
         burstSize: z.number().default(30),
-      }),
+      }).default({ requestsPerMinute: 60, burstSize: 30 }),
       promo: z.object({
         requestsPerMinute: z.number().default(10),
         burstSize: z.number().default(5),
-      }),
+      }).default({ requestsPerMinute: 10, burstSize: 5 }),
       admin: z.object({
         requestsPerMinute: z.number().default(3),
         burstSize: z.number().default(1),
-      }),
+      }).default({ requestsPerMinute: 3, burstSize: 1 }),
+    }).default({
+      webhook: { requestsPerMinute: 300, burstSize: 100 },
+      paywall: { requestsPerMinute: 60, burstSize: 30 },
+      promo: { requestsPerMinute: 10, burstSize: 5 },
+      admin: { requestsPerMinute: 3, burstSize: 1 },
     }),
+  }).default({
+    authenticated: { requestsPerMinute: 30, burstSize: 15 },
+    anonymous: { requestsPerMinute: 10, burstSize: 5 },
+    admin: { requestsPerMinute: 3, burstSize: 1 },
+    routes: {
+      webhook: { requestsPerMinute: 300, burstSize: 100 },
+      paywall: { requestsPerMinute: 60, burstSize: 30 },
+      promo: { requestsPerMinute: 10, burstSize: 5 },
+      admin: { requestsPerMinute: 3, burstSize: 1 },
+    },
   }),
 });
 
