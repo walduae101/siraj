@@ -45,7 +45,7 @@ export class WalletLedgerService {
    */
   static async createLedgerEntry(
     uid: string,
-    entry: Omit<LedgerEntry, "id" | "balanceAfter" | "createdAt">,
+    entry: Omit<LedgerEntry, "id" | "balanceAfter" | "createdAt" | "createdBy">,
     createdBy: string
   ): Promise<{ ledgerId: string; newBalance: number }> {
     const db = await this.getDb();
@@ -72,17 +72,17 @@ export class WalletLedgerService {
         };
         
         if (!walletDoc.exists) {
-          walletUpdate.createdAt = Timestamp.now();
-          walletUpdate.promoBalance = 0;
-          walletUpdate.promoLots = [];
-          walletUpdate.v = 1;
+          (walletUpdate as any).createdAt = Timestamp.now();
+          (walletUpdate as any).promoBalance = 0;
+          (walletUpdate as any).promoLots = [];
+          (walletUpdate as any).v = 1;
         }
         
         transaction.set(walletRef, walletUpdate, { merge: true });
       }
 
       // Create ledger entry
-      const ledgerRef = db.collection("users").doc(uid).collection("wallet").collection("ledger").doc();
+      const ledgerRef = db.collection("users").doc(uid).collection("ledger").doc();
       const ledgerEntry: LedgerEntry = {
         id: ledgerRef.id,
         ...entry,
@@ -112,7 +112,7 @@ export class WalletLedgerService {
     
     return await db.runTransaction(async (transaction) => {
       // Get the ledger entry
-      const ledgerRef = db.collection("users").doc(uid).collection("wallet").collection("ledger").doc(ledgerId);
+      const ledgerRef = db.collection("users").doc(uid).collection("ledger").doc(ledgerId);
       const ledgerDoc = await transaction.get(ledgerRef);
       
       if (!ledgerDoc.exists) {
@@ -191,7 +191,6 @@ export class WalletLedgerService {
     let query = db
       .collection("users")
       .doc(uid)
-      .collection("wallet")
       .collection("ledger")
       .orderBy("createdAt", "desc")
       .limit(limit + 1); // +1 to check if there are more
@@ -200,7 +199,6 @@ export class WalletLedgerService {
       const startAfterDoc = await db
         .collection("users")
         .doc(uid)
-        .collection("wallet")
         .collection("ledger")
         .doc(startAfter)
         .get();
@@ -211,7 +209,7 @@ export class WalletLedgerService {
     }
 
     const snapshot = await query.get();
-    const entries = snapshot.docs.map(doc => ({
+    const entries = snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
     } as LedgerEntry));
@@ -233,7 +231,6 @@ export class WalletLedgerService {
     const doc = await db
       .collection("users")
       .doc(uid)
-      .collection("wallet")
       .collection("ledger")
       .doc(ledgerId)
       .get();
@@ -289,16 +286,16 @@ export class WalletLedgerService {
     }
 
     // Create reversal entry
-    const reversalEntry: Omit<LedgerEntry, "id" | "balanceAfter" | "createdAt"> = {
+    const reversalEntry: Omit<LedgerEntry, "id" | "balanceAfter" | "createdAt" | "createdBy"> = {
       amount: -originalEntry.amount, // Reverse the amount
       currency: originalEntry.currency,
       kind,
+      status: "posted",
       source: {
         ...originalEntry.source,
         reversalOf: originalLedgerId,
         reason,
       },
-      createdBy,
     };
 
     return await this.createLedgerEntry(uid, reversalEntry, createdBy);
@@ -313,14 +310,14 @@ export class WalletLedgerService {
     reason: string,
     adminUid: string
   ): Promise<{ ledgerId: string; newBalance: number }> {
-    const entry: Omit<LedgerEntry, "id" | "balanceAfter" | "createdAt"> = {
+    const entry: Omit<LedgerEntry, "id" | "balanceAfter" | "createdAt" | "createdBy"> = {
       amount,
       currency: "POINTS",
       kind: "admin_adjustment",
+      status: "posted",
       source: {
         reason,
       },
-      createdBy: `admin:${adminUid}`,
     };
 
     return await this.createLedgerEntry(uid, entry, `admin:${adminUid}`);
@@ -335,13 +332,12 @@ export class WalletLedgerService {
     const snapshot = await db
       .collection("users")
       .doc(uid)
-      .collection("wallet")
       .collection("ledger")
       .where("source.reversalOf", "!=", null)
       .orderBy("source.reversalOf")
       .get();
 
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
     } as LedgerEntry));
@@ -356,12 +352,11 @@ export class WalletLedgerService {
     const snapshot = await db
       .collection("users")
       .doc(uid)
-      .collection("wallet")
       .collection("ledger")
       .where("source.reversalOf", "==", originalLedgerId)
       .get();
 
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
     } as LedgerEntry));

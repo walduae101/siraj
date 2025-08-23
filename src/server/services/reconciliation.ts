@@ -224,6 +224,7 @@ export class ReconciliationService {
         balanceAfter: newBalance,
         currency: "POINTS",
         kind: "reconcile_adjustment" as const,
+        status: "posted" as const,
         source: {
           reason: `Reconciliation adjustment: ${delta > 0 ? "credit" : "debit"} ${Math.abs(delta)} points`,
           reportId,
@@ -312,7 +313,7 @@ export class ReconciliationService {
     const end = new Date(endDate);
 
     while (currentDate <= end) {
-      const dateStr = currentDate.toISOString().split("T")[0];
+      const dateStr = currentDate.toISOString().split("T")[0]!;
       
       const snapshot = await db
         .collection("reconciliationReports")

@@ -12,6 +12,7 @@ const config = {
     // Force unique build ID to bust caches
     return `siraj-env-fixed-${Date.now()}`;
   },
+
   async headers() {
     return [
       {

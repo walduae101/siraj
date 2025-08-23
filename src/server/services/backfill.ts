@@ -227,6 +227,7 @@ export class BackfillService {
         amount: points,
         currency: "POINTS",
         kind: "purchase",
+        status: "posted",
         source: {
           eventId,
           orderId: eventData.orderId,
@@ -324,10 +325,13 @@ export class BackfillService {
     }
 
     const doc = snapshot.docs[0];
+    if (!doc) {
+      return null;
+    }
     return {
       id: doc.id,
       ...doc.data(),
-    };
+    } as any;
   }
 
   /**

@@ -39,10 +39,13 @@ class MockProductCatalogService {
     }
 
     const doc = snapshot.docs[0];
+    if (!doc) {
+      throw new Error(`Product not found for PayNow ID: ${paynowProductId}`);
+    }
     return {
       id: doc.id,
       ...doc.data(),
-    };
+    } as any;
   }
 
   static getProductFromGSM(paynowProductId: string) {
@@ -215,7 +218,7 @@ class MockWalletLedgerService {
     return {
       id: doc.id,
       ...doc.data(),
-    };
+    } as any;
   }
 
   static async createAdminAdjustment(
@@ -303,7 +306,7 @@ async function runPhase3Tests() {
 
   // Test 1: Product Catalog SoT
   await addTest("Product Catalog - Get product by PayNow ID", async () => {
-    const product = await MockProductCatalogService.getProductByPayNowId("458255405240287232");
+    const product = await MockProductCatalogService.getProductByPayNowId("458255405240287232") as any;
     if (!product) {
       throw new Error("Product not found in Firestore");
     }
@@ -368,11 +371,14 @@ async function runPhase3Tests() {
     }
     
     const firstEntry = ledger.entries[0];
-    if (firstEntry.amount !== 100) {
-      throw new Error(`Expected amount 100, got ${firstEntry.amount}`);
+    if (!firstEntry) {
+      throw new Error("No first entry found");
     }
-    if (firstEntry.kind !== "purchase") {
-      throw new Error(`Expected kind 'purchase', got ${firstEntry.kind}`);
+    if ((firstEntry as any).amount !== 100) {
+      throw new Error(`Expected amount 100, got ${(firstEntry as any).amount}`);
+    }
+    if ((firstEntry as any).kind !== "purchase") {
+      throw new Error(`Expected kind 'purchase', got ${(firstEntry as any).kind}`);
     }
   })();
 
@@ -391,7 +397,7 @@ async function runPhase3Tests() {
   // Test 6: Wallet Ledger - Create reversal
   await addTest("Wallet Ledger - Create reversal entry", async () => {
     const ledger = await MockWalletLedgerService.getLedgerEntries(TEST_USER_ID, { limit: 10 });
-    const purchaseEntry = ledger.entries.find(entry => entry.kind === "purchase" && entry.amount === 100);
+    const purchaseEntry = ledger.entries.find(entry => (entry as any).kind === "purchase" && (entry as any).amount === 100);
     
     if (!purchaseEntry) {
       throw new Error("No purchase entry found for reversal test");
@@ -492,18 +498,21 @@ async function runPhase3Tests() {
     }
     
     const reversal = reversals[0];
-    if (!reversal.source.reversalOf) {
+    if (!reversal) {
+      throw new Error("No reversal found");
+    }
+    if (!(reversal as any).source.reversalOf) {
       throw new Error("Reversal entry missing reversalOf field");
     }
-    if (reversal.kind !== "refund") {
-      throw new Error(`Expected kind 'refund', got ${reversal.kind}`);
+    if ((reversal as any).kind !== "refund") {
+      throw new Error(`Expected kind 'refund', got ${(reversal as any).kind}`);
     }
   })();
 
   // Test 12: Get reversals of specific entry
   await addTest("Wallet Ledger - Get reversals of specific entry", async () => {
     const ledger = await MockWalletLedgerService.getLedgerEntries(TEST_USER_ID, { limit: 10 });
-    const purchaseEntry = ledger.entries.find(entry => entry.kind === "purchase");
+    const purchaseEntry = ledger.entries.find(entry => (entry as any).kind === "purchase");
     
     if (purchaseEntry) {
       const reversals = await MockWalletLedgerService.getReversalsOfEntry(TEST_USER_ID, purchaseEntry.id);

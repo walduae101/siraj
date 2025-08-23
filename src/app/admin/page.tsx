@@ -78,13 +78,15 @@ export default function AdminPage() {
     });
   };
 
-  const exportLedger = () => {
+  const exportLedger = async () => {
     if (!selectedUser?.uid) return;
 
-    api.admin.exportLedger.query({ uid: selectedUser.uid, limit: 1000 }).then((data) => {
+    try {
+      const data = await fetch(`/api/trpc/admin.exportLedger?input=${encodeURIComponent(JSON.stringify({ uid: selectedUser.uid, limit: 1000 }))}`).then(r => r.json());
+      const ledgerData = data.result?.data || [];
       const csv = [
         ["ID", "Created At", "Kind", "Amount", "Balance After", "Currency", "Order ID", "Product ID", "Product Version", "Reversal Of", "Reason", "Created By"],
-        ...data.map(entry => [
+        ...ledgerData.map((entry: any) => [
           entry.id,
           entry.createdAt,
           entry.kind,
@@ -107,7 +109,10 @@ export default function AdminPage() {
       a.download = `ledger_${selectedUser.uid}_${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
       window.URL.revokeObjectURL(url);
-    });
+    } catch (error) {
+      console.error("Failed to export ledger:", error);
+      alert("Failed to export ledger");
+    }
   };
 
   if (loading) {
@@ -156,7 +161,12 @@ export default function AdminPage() {
               <p><strong>Display Name:</strong> {searchUser.data.displayName || "N/A"}</p>
               <p><strong>Created:</strong> {new Date(searchUser.data.createdAt).toLocaleString()}</p>
               <Button 
-                onClick={() => setSelectedUser(searchUser.data)}
+                onClick={() => setSelectedUser({
+                  uid: searchUser.data.uid,
+                  email: searchUser.data.email || "",
+                  displayName: searchUser.data.displayName,
+                  createdAt: searchUser.data.createdAt
+                })}
                 className="mt-2"
               >
                 View Wallet & Ledger
@@ -213,10 +223,10 @@ export default function AdminPage() {
                 <div className="flex items-end">
                   <Button 
                     onClick={handleAdjustment}
-                    disabled={adjustWallet.isLoading}
+                    disabled={adjustWallet.isPending}
                     className="w-full"
                   >
-                    {adjustWallet.isLoading ? "Processing..." : "Adjust Wallet"}
+                    {adjustWallet.isPending ? "Processing..." : "Adjust Wallet"}
                   </Button>
                 </div>
               </div>

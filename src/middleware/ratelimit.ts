@@ -106,7 +106,7 @@ function getRateLimitConfig(route: string, userRole: "authenticated" | "anonymou
  * Generate rate limit key based on user and action
  */
 function generateRateLimitKey(request: NextRequest, action: string): string {
-  const ip = request.ip || request.headers.get("x-forwarded-for") || "unknown";
+  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
   
   // For authenticated users, use UID if available
   const authHeader = request.headers.get("authorization");
@@ -204,7 +204,7 @@ export function withRateLimit(
              console.log("[rate-limit] Request blocked", {
                component: "ratelimit",
                action,
-               ip: request.ip || request.headers.get("x-forwarded-for") || "unknown",
+               ip: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown",
                userRole: getUserRole(request),
                remaining: result.remaining,
                resetTime: result.resetTime,

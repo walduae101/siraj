@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { Timestamp } from "firebase-admin/firestore";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { ProductCatalogService } from "~/server/services/productCatalog";
 import { WalletLedgerService } from "~/server/services/walletLedger";
@@ -140,6 +141,7 @@ export const adminRouter = createTRPCRouter({
   // Create or update product
   upsertProduct: adminProcedure
     .input(z.object({
+      id: z.string().optional(),
       title: z.string().min(1),
       type: z.enum(["one_time", "subscription"]),
       points: z.number().int().positive(),
@@ -154,12 +156,22 @@ export const adminRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const adminUid = ctx.adminUser.uid;
 
+      const productData: any = {
+        title: input.title,
+        type: input.type,
+        points: input.points,
+        priceUSD: input.priceUSD,
+        paynowProductId: input.paynowProductId,
+        active: input.active,
+        version: input.version,
+        effectiveFrom: input.effectiveFrom ? Timestamp.fromDate(new Date(input.effectiveFrom)) : undefined,
+        effectiveTo: input.effectiveTo ? Timestamp.fromDate(new Date(input.effectiveTo)) : null,
+        ...(input.metadata && { metadata: input.metadata }),
+        ...(input.id && { id: input.id }),
+      };
+      
       const product = await ProductCatalogService.upsertProduct(
-        {
-          ...input,
-          effectiveFrom: input.effectiveFrom ? new Date(input.effectiveFrom) : undefined,
-          effectiveTo: input.effectiveTo ? new Date(input.effectiveTo) : null,
-        },
+        productData,
         adminUid
       );
 
@@ -203,8 +215,8 @@ export const adminRouter = createTRPCRouter({
       const promotion = await ProductCatalogService.upsertPromotion(
         {
           ...input,
-          startsAt: new Date(input.startsAt),
-          endsAt: new Date(input.endsAt),
+          startsAt: Timestamp.fromDate(new Date(input.startsAt)),
+          endsAt: Timestamp.fromDate(new Date(input.endsAt)),
         },
         adminUid
       );

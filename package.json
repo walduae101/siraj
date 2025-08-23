@@ -50,6 +50,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-error-boundary": "^6.0.0",
+    "react-firebase-hooks": "^5.1.1",
     "react-hook-form": "^7.57.0",
     "react-snowfall": "^2.2.0",
     "recharts": "^2.15.3",

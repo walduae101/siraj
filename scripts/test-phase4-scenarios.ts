@@ -452,7 +452,7 @@ async function runPhase4Tests() {
 
   // Test 3: Reconciliation - Self-healing drift
   await addTest("Reconciliation - Self-healing drift", async () => {
-    const date = new Date().toISOString().split("T")[0];
+    const date = new Date().toISOString().split("T")[0]!;
     const report = await MockReconciliationService.reconcileUser(TEST_USER_2, date);
     
     if (report.status !== "adjusted") {
@@ -477,7 +477,11 @@ async function runPhase4Tests() {
       throw new Error("No reconciliation adjustment created");
     }
 
-    const adjustment = ledgerSnapshot.docs[0].data();
+    const adjustmentDoc = ledgerSnapshot.docs[0];
+    if (!adjustmentDoc) {
+      throw new Error("No adjustment document found");
+    }
+    const adjustment = adjustmentDoc.data();
     // The adjustment should be negative to correct the drift (wallet was 150, ledger was 100, so we need -50)
     if (adjustment.amount !== -50) {
       throw new Error(`Expected adjustment amount -50, got ${adjustment.amount}`);
@@ -510,8 +514,8 @@ async function runPhase4Tests() {
     }
 
     const result = await MockBackfillService.replayWebhookEvents({
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date().toISOString().split("T")[0],
+      startDate: new Date().toISOString().split("T")[0]!,
+      endDate: new Date().toISOString().split("T")[0]!,
       dryRun: true,
       maxEvents: 10,
     });
@@ -539,7 +543,11 @@ async function runPhase4Tests() {
       throw new Error("No migration record found");
     }
 
-    const migration = migrationSnapshot.docs[0].data();
+    const migrationDoc = migrationSnapshot.docs[0];
+    if (!migrationDoc) {
+      throw new Error("No migration document found");
+    }
+    const migration = migrationDoc.data();
     if (migration.type !== "webhook_replay") {
       throw new Error(`Expected type 'webhook_replay', got ${migration.type}`);
     }
@@ -574,7 +582,7 @@ async function runPhase4Tests() {
 
   // Test 9: Reconciliation reports - Storage
   await addTest("Reconciliation Reports - Storage", async () => {
-    const date = new Date().toISOString().split("T")[0];
+    const date = new Date().toISOString().split("T")[0]!;
     const reportSnapshot = await db
       .collection("reconciliationReports")
       .doc(date)
@@ -606,7 +614,11 @@ async function runPhase4Tests() {
       throw new Error("No data migrations found");
     }
 
-    const migration = migrationSnapshot.docs[0].data();
+    const migrationDoc = migrationSnapshot.docs[0];
+    if (!migrationDoc) {
+      throw new Error("No migration document found");
+    }
+    const migration = migrationDoc.data();
     const requiredFields = ["type", "status", "startDate", "endDate", "createdAt"];
     
     for (const field of requiredFields) {
@@ -618,7 +630,7 @@ async function runPhase4Tests() {
 
   // Test 11: Reconciliation - Error handling
   await addTest("Reconciliation - Error handling", async () => {
-    const date = new Date().toISOString().split("T")[0];
+    const date = new Date().toISOString().split("T")[0]!;
     const report = await MockReconciliationService.reconcileUser("non_existent_user", date);
     
     // Non-existent user should result in clean status (no wallet, no ledger = no drift)

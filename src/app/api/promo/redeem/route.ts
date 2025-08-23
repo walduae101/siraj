@@ -33,7 +33,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
     const uid = Buffer.from(token).toString("base64").substring(0, 16);
 
     // Get IP address
-    const ip = request.ip || request.headers.get("x-forwarded-for") || "unknown";
+    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
     const userAgent = request.headers.get("user-agent");
 
     // Attempt to redeem promo code
@@ -41,7 +41,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
       uid,
       promoCode,
       ip,
-      userAgent,
+      userAgent: userAgent || undefined,
     });
 
     if (!redeemResult.success) {
@@ -69,23 +69,25 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
         amount: redeemResult.points,
         source: "promo_guard",
         ip,
-        promoId: redeemResult.promoId,
       }
     );
 
     // Create ledger entry
-    const ledgerEntry = await WalletLedgerService.createLedgerEntry({
+    const ledgerEntry = await WalletLedgerService.createLedgerEntry(
       uid,
-      kind: "promo_credit",
-      amount: redeemResult.points!,
-      source: {
-        type: "promo_guard",
-        promoId: redeemResult.promoId!,
-        usageId: redeemResult.usageId!,
-        riskEventId,
+      {
+        kind: "promo_credit",
+        amount: redeemResult.points!,
+        currency: "POINTS",
+        source: {
+          reason: `Promo code redemption: ${redeemResult.promoId || "unknown"}`,
+
+          riskEventId,
+        },
+        status: velocityResult.decision,
       },
-      status: velocityResult.decision,
-    });
+      `promo:${uid}`
+    );
 
     // Log successful promo redemption
     console.log("[promo-redeem] Promo code redeemed successfully", {
@@ -95,7 +97,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
       points: redeemResult.points,
       risk_score: velocityResult.riskScore,
       decision: velocityResult.decision,
-      ledger_id: ledgerEntry.id,
+      ledger_id: ledgerEntry.ledgerId,
       ip,
     });
 

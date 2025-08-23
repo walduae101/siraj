@@ -145,3 +145,34 @@
 [debug] [2025-08-22T20:57:51.325Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
 [debug] [2025-08-22T20:57:52.072Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
 [debug] [2025-08-22T20:57:52.073Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2025-08-23T11:35:03.752Z] [Firebase Plugin] Activating Firebase extension.
+[info] [Firebase Plugin] Checked firebase-tools, is up to date!
+[debug] [2025-08-23T11:35:12.845Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2025-08-23T11:35:12.847Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-23T11:35:12.848Z] > authorizing via signed-in user (walduae101@gmail.com)
+[debug] [2025-08-23T11:35:12.852Z] Checked if tokens are valid: false, expires at: 1755908683432
+[debug] [2025-08-23T11:35:12.853Z] Checked if tokens are valid: false, expires at: 1755908683432
+[debug] [2025-08-23T11:35:12.853Z] > refreshing access token with scopes: []
+[debug] [2025-08-23T11:35:12.855Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-23T11:35:12.856Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-23T11:35:13.449Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-08-23T11:35:13.449Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-23T11:35:13.466Z] [Firebase Plugin] User found:  walduae101@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2025-08-23T11:35:13.468Z] Checked if tokens are valid: true, expires at: 1755952512450
+[debug] [2025-08-23T11:35:13.470Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-08-23T11:35:14.415Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-08-23T11:35:14.416Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[debug] [2025-08-23T12:07:00.119Z] [Firebase Plugin] Activating Firebase extension.
+[info] [Firebase Plugin] Checked firebase-tools, is up to date!
+[debug] [2025-08-23T12:07:15.582Z] [Firebase Plugin] requireAuthWrapper
+[debug] [2025-08-23T12:07:15.586Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-23T12:07:15.588Z] > authorizing via signed-in user (walduae101@gmail.com)
+[debug] [2025-08-23T12:07:15.596Z] Checked if tokens are valid: true, expires at: 1755952512450
+[debug] [2025-08-23T12:07:15.596Z] Checked if tokens are valid: true, expires at: 1755952512450
+[debug] [2025-08-23T12:07:15.597Z] [Firebase Plugin] User found:  walduae101@gmail.com
+[info] [Firebase Plugin] (Core:Project) New user detected, fetching projects
+[debug] [2025-08-23T12:07:15.600Z] Checked if tokens are valid: true, expires at: 1755952512450
+[debug] [2025-08-23T12:07:15.605Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2025-08-23T12:07:25.596Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2025-08-23T12:07:25.598Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]

@@ -60,6 +60,9 @@ export class ProductCatalogService {
     }
 
     const doc = snapshot.docs[0];
+    if (!doc) {
+      return null;
+    }
     return {
       id: doc.id,
       ...doc.data(),
@@ -106,7 +109,7 @@ export class ProductCatalogService {
    * Create or update a product
    */
   static async upsertProduct(
-    productData: Omit<Product, "id" | "createdAt" | "updatedAt" | "createdBy" | "updatedBy">,
+    productData: Omit<Product, "createdAt" | "updatedAt" | "createdBy" | "updatedBy"> & { id?: string },
     userId: string
   ): Promise<Product> {
     const db = await this.getDb();
@@ -120,8 +123,9 @@ export class ProductCatalogService {
       }
     }
 
+    const { id: _, ...productDataWithoutId } = productData;
     const productDoc = {
-      ...productData,
+      ...productDataWithoutId,
       createdAt: now,
       updatedAt: now,
       createdBy: userId,
@@ -154,6 +158,9 @@ export class ProductCatalogService {
     }
 
     const doc = snapshot.docs[0];
+    if (!doc) {
+      return null;
+    }
     return {
       id: doc.id,
       ...doc.data(),
