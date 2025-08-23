@@ -6,6 +6,7 @@ import { checkoutRouter } from "./routers/checkout";
 import { paynowRouter } from "./routers/paynow";
 import { pointsRouter } from "./routers/points";
 import { adminRouter } from "./routers/admin";
+import { fraudRouter } from "./routers/fraud";
 
 export const appRouter = createTRPCRouter({
   paynow: paynowRouter,
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
   points: pointsRouter,
   checkout: checkoutRouter,
   admin: adminRouter,
+  fraud: fraudRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,38 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { Timestamp } from "firebase-admin/firestore";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, adminProcedure } from "~/server/api/trpc";
 import { ProductCatalogService } from "~/server/services/productCatalog";
 import { WalletLedgerService } from "~/server/services/walletLedger";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
-
-// Admin procedure that checks for admin claims
-const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  if (!ctx.firebaseUser?.uid) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "Authentication required",
-    });
-  }
-
-  // Check admin claims
-  const auth = await getAdminAuth();
-  const userRecord = await auth.getUser(ctx.firebaseUser.uid);
-  
-  if (!userRecord.customClaims?.admin) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "Admin access required",
-    });
-  }
-
-  return next({
-    ctx: {
-      ...ctx,
-      adminUser: ctx.firebaseUser,
-    },
-  });
-});
 
 export const adminRouter = createTRPCRouter({
   // Get user wallet and ledger
@@ -105,40 +77,31 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      // Create admin adjustment
-      const result = await WalletLedgerService.createAdminAdjustment(
-        uid,
+      // Create ledger entry
+      const entry = await WalletLedgerService.createLedgerEntry(uid, {
         amount,
-        reason,
-        adminUid
-      );
+        kind: "admin_adjustment",
+        status: "posted",
+        currency: "POINTS",
+        source: {
+          reason,
+        },
+      }, `admin:${adminUid}`);
 
-      // Log admin action
-      console.log("[admin] Wallet adjustment", {
-        admin_uid: adminUid,
-        user_uid: uid,
-        amount,
-        reason,
-        ledger_id: result.ledgerId,
-        new_balance: result.newBalance,
-      });
-
-      return result;
+      return {
+        success: true,
+        entryId: entry.ledgerId,
+        newBalance: entry.newBalance,
+      };
     }),
 
-  // Get all products
+  // Get products
   getProducts: adminProcedure
     .query(async () => {
       return await ProductCatalogService.getActiveProducts();
     }),
 
-  // Get all promotions
-  getPromotions: adminProcedure
-    .query(async () => {
-      return await ProductCatalogService.getActivePromotions();
-    }),
-
-  // Create or update product
+  // Upsert product
   upsertProduct: adminProcedure
     .input(z.object({
       id: z.string().optional(),
@@ -155,39 +118,29 @@ export const adminRouter = createTRPCRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       const adminUid = ctx.adminUser.uid;
-
-      const productData: any = {
-        title: input.title,
-        type: input.type,
-        points: input.points,
-        priceUSD: input.priceUSD,
-        paynowProductId: input.paynowProductId,
-        active: input.active,
-        version: input.version,
-        effectiveFrom: input.effectiveFrom ? Timestamp.fromDate(new Date(input.effectiveFrom)) : undefined,
-        effectiveTo: input.effectiveTo ? Timestamp.fromDate(new Date(input.effectiveTo)) : null,
-        ...(input.metadata && { metadata: input.metadata }),
-        ...(input.id && { id: input.id }),
+      
+      // Convert dates to Timestamps if provided
+      const productData = {
+        ...input,
+        effectiveFrom: input.effectiveFrom ? Timestamp.fromDate(input.effectiveFrom) : undefined,
+        effectiveTo: input.effectiveTo ? Timestamp.fromDate(input.effectiveTo) : null,
       };
       
-      const product = await ProductCatalogService.upsertProduct(
-        productData,
-        adminUid
-      );
-
-      // Log admin action
-      console.log("[admin] Product upserted", {
-        admin_uid: adminUid,
-        product_id: product.id,
-        paynow_product_id: product.paynowProductId,
-        title: product.title,
-        points: product.points,
-      });
-
-      return product;
+      // Remove id if it's undefined to match the expected type
+      const { id, ...productDataWithoutId } = productData;
+      const finalProductData = id ? { ...productDataWithoutId, id } : productDataWithoutId;
+      
+      // Cast to the expected type since we know the structure is correct
+      return await ProductCatalogService.upsertProduct(finalProductData as any, adminUid);
     }),
 
-  // Create or update promotion
+  // Get promotions
+  getPromotions: adminProcedure
+    .query(async () => {
+      return await ProductCatalogService.getActivePromotions();
+    }),
+
+  // Upsert promotion
   upsertPromotion: adminProcedure
     .input(z.object({
       code: z.string().min(1).max(20),
@@ -203,98 +156,53 @@ export const adminRouter = createTRPCRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       const adminUid = ctx.adminUser.uid;
-
-      // Validate that either discountPercent or bonusPoints is provided
-      if (!input.discountPercent && !input.bonusPoints) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Either discountPercent or bonusPoints must be provided",
-        });
-      }
-
-      const promotion = await ProductCatalogService.upsertPromotion(
-        {
-          ...input,
-          startsAt: Timestamp.fromDate(new Date(input.startsAt)),
-          endsAt: Timestamp.fromDate(new Date(input.endsAt)),
-        },
-        adminUid
-      );
-
-      // Log admin action
-      console.log("[admin] Promotion upserted", {
-        admin_uid: adminUid,
-        promotion_id: promotion.id,
-        code: promotion.code,
-        active: promotion.active,
-      });
-
-      return promotion;
+      
+      // Convert dates to Timestamps
+      const promotionData = {
+        ...input,
+        startsAt: Timestamp.fromDate(input.startsAt),
+        endsAt: Timestamp.fromDate(input.endsAt),
+      };
+      
+      return await ProductCatalogService.upsertPromotion(promotionData, adminUid);
     }),
 
-  // Get ledger entry details
+  // Get ledger entry
   getLedgerEntry: adminProcedure
     .input(z.object({
       uid: z.string().min(1),
-      ledgerId: z.string().min(1),
+      entryId: z.string().min(1),
     }))
     .query(async ({ input }) => {
-      const { uid, ledgerId } = input;
-
-      const entry = await WalletLedgerService.getLedgerEntry(uid, ledgerId);
+      const entry = await WalletLedgerService.getLedgerEntry(input.uid, input.entryId);
       if (!entry) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Ledger entry not found",
         });
       }
-
-      // If this is a reversal, get the original entry
-      let originalEntry = null;
-      if (entry.source.reversalOf) {
-        originalEntry = await WalletLedgerService.getLedgerEntry(uid, entry.source.reversalOf);
-      }
-
-      // If this entry has reversals, get them
-      let reversals = null;
-      if (entry.kind === "purchase") {
-        reversals = await WalletLedgerService.getReversalsOfEntry(uid, ledgerId);
-      }
-
-      return {
-        entry,
-        originalEntry,
-        reversals,
-      };
+      return entry;
     }),
 
-  // Export ledger as CSV (client-side generation)
+  // Export ledger
   exportLedger: adminProcedure
     .input(z.object({
       uid: z.string().min(1),
-      limit: z.number().min(1).max(1000).default(1000),
+      startDate: z.date().optional(),
+      endDate: z.date().optional(),
+      limit: z.number().int().min(1).max(1000).default(1000),
     }))
     .query(async ({ input }) => {
-      const { uid, limit } = input;
+      const { uid, startDate, endDate, limit } = input;
 
-      const ledger = await WalletLedgerService.getLedgerEntries(uid, { limit });
-      
-      // Format for CSV export
-      const csvData = ledger.entries.map(entry => ({
-        id: entry.id,
-        createdAt: entry.createdAt.toDate().toISOString(),
-        kind: entry.kind,
-        amount: entry.amount,
-        balanceAfter: entry.balanceAfter,
-        currency: entry.currency,
-        orderId: entry.source.orderId || "",
-        productId: entry.source.productId || "",
-        productVersion: entry.source.productVersion || "",
-        reversalOf: entry.source.reversalOf || "",
-        reason: entry.source.reason || "",
-        createdBy: entry.createdBy,
-      }));
+      const entries = await WalletLedgerService.getLedgerEntries(uid, {
+        limit,
+      });
 
-      return csvData;
+      return {
+        entries: entries.entries,
+        total: entries.entries.length,
+        hasMore: entries.hasMore,
+      };
     }),
 });

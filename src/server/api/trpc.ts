@@ -9,6 +9,7 @@ import type Context from "./types/context";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
 import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
+import { TRPCError } from "@trpc/server";
 
 export const createTRPCContext = async ({
   headers,
@@ -110,3 +111,49 @@ export const createCallerFactory = t.createCallerFactory;
 export const createTRPCRouter = t.router;
 
 export const publicProcedure = t.procedure;
+
+// Admin procedure that checks for admin claims
+export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  if (!ctx.firebaseUser?.uid) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Authentication required",
+    });
+  }
+
+  // Check admin claims
+  const auth = await getAdminAuth();
+  const userRecord = await auth.getUser(ctx.firebaseUser.uid);
+  
+  if (!userRecord.customClaims?.admin) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      adminUser: ctx.firebaseUser,
+    },
+  });
+});
+
+// Protected procedure for authenticated users
+export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
+  if (!ctx.firebaseUser?.uid) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Authentication required",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.firebaseUser,
+      userId: ctx.firebaseUser.uid,
+    },
+  });
+});

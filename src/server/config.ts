@@ -77,6 +77,53 @@ const ConfigSchema = z.object({
     // PHASE 5: Fraud/Abuse Controls
     RATE_LIMIT_ENABLED: z.boolean().default(true),
     RISK_HOLDS_ENABLED: z.boolean().default(true),
+    // PHASE 5: Fraud Detection & Prevention
+    FRAUD_SHADOW_MODE: z.boolean().default(true),
+    EDGE_RATE_LIMIT_ENABLED: z.boolean().default(true),
+    APP_RATE_LIMIT_ENABLED: z.boolean().default(true),
+  }),
+  
+  // Fraud detection configuration
+  fraud: z.object({
+    // Rate limiting caps per UID and per IP
+    checkoutCaps: z.object({
+      uid: z.object({
+        perMinute: z.number().default(5),
+        perHour: z.number().default(20),
+        perDay: z.number().default(100),
+      }).default({ perMinute: 5, perHour: 20, perDay: 100 }),
+      ip: z.object({
+        perMinute: z.number().default(10),
+        perHour: z.number().default(50),
+        perDay: z.number().default(200),
+      }).default({ perMinute: 10, perHour: 50, perDay: 200 }),
+    }).default({
+      uid: { perMinute: 5, perHour: 20, perDay: 100 },
+      ip: { perMinute: 10, perHour: 50, perDay: 200 },
+    }),
+    
+    // Risk scoring thresholds
+    minAccountAgeMinutes: z.number().default(10),
+    riskThresholds: z.object({
+      allow: z.number().default(30),
+      challenge: z.number().default(70),
+      deny: z.number().default(90),
+    }).default({ allow: 30, challenge: 70, deny: 90 }),
+    
+    // Bot defense
+    recaptchaSiteKey: z.string().optional(),
+    recaptchaProject: z.string().optional(),
+    appCheckPublicKeys: z.array(z.string()).default([]),
+  }).default({
+    checkoutCaps: {
+      uid: { perMinute: 5, perHour: 20, perDay: 100 },
+      ip: { perMinute: 10, perHour: 50, perDay: 200 },
+    },
+    minAccountAgeMinutes: 10,
+    riskThresholds: { allow: 30, challenge: 70, deny: 90 },
+    recaptchaSiteKey: undefined,
+    recaptchaProject: undefined,
+    appCheckPublicKeys: [],
   }),
   
   // Rate limiting configuration
@@ -209,6 +256,33 @@ function getConfigFromEnv(): Config {
       // PHASE 5: Fraud/Abuse Controls
       RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED !== "0",
       RISK_HOLDS_ENABLED: process.env.RISK_HOLDS_ENABLED !== "0",
+      // PHASE 5: Fraud Detection & Prevention
+      FRAUD_SHADOW_MODE: process.env.FRAUD_SHADOW_MODE === "1",
+      EDGE_RATE_LIMIT_ENABLED: process.env.EDGE_RATE_LIMIT_ENABLED === "1",
+      APP_RATE_LIMIT_ENABLED: process.env.APP_RATE_LIMIT_ENABLED === "1",
+    },
+    fraud: {
+      checkoutCaps: {
+        uid: {
+          perMinute: Number(process.env.FRAUD_CHECKOUT_CAPS_UID_RPM) || 5,
+          perHour: Number(process.env.FRAUD_CHECKOUT_CAPS_UID_RPH) || 20,
+          perDay: Number(process.env.FRAUD_CHECKOUT_CAPS_UID_RPD) || 100,
+        },
+        ip: {
+          perMinute: Number(process.env.FRAUD_CHECKOUT_CAPS_IP_RPM) || 10,
+          perHour: Number(process.env.FRAUD_CHECKOUT_CAPS_IP_RPH) || 50,
+          perDay: Number(process.env.FRAUD_CHECKOUT_CAPS_IP_RPD) || 200,
+        },
+      },
+      minAccountAgeMinutes: Number(process.env.FRAUD_MIN_ACCOUNT_AGE_MINUTES) || 10,
+      riskThresholds: {
+        allow: Number(process.env.FRAUD_RISK_THRESHOLDS_ALLOW) || 30,
+        challenge: Number(process.env.FRAUD_RISK_THRESHOLDS_CHALLENGE) || 70,
+        deny: Number(process.env.FRAUD_RISK_THRESHOLDS_DENY) || 90,
+      },
+      recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY,
+      recaptchaProject: process.env.RECAPTCHA_PROJECT,
+      appCheckPublicKeys: (process.env.APP_CHECK_PUBLIC_KEYS ?? "").split(","),
     },
     rateLimit: {
       authenticated: {

@@ -17,6 +17,7 @@ import {
 } from "~/server/services/paynowMgmt";
 import type { PayNowSku } from "~/server/services/paynowProducts";
 import { pointsService } from "~/server/services/points";
+import { riskEngine } from "~/server/services/riskEngine";
 
 const productPoints = JSON.parse(
   process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON ?? "{}",
@@ -84,6 +85,8 @@ export const checkoutRouter = createTRPCRouter({
         sku: z.string().optional(),
         productId: z.string().optional(),
         qty: z.number().int().min(1).max(10).default(1),
+        recaptchaToken: z.string().optional(),
+        appCheckToken: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -99,6 +102,69 @@ export const checkoutRouter = createTRPCRouter({
         throw new Error(
           `Unknown product (sku=${input.sku}, productId=${input.productId}). Known SKUs: [${keys}]`,
         );
+      }
+
+      // Get product details for risk evaluation
+      const productDoc = await db.collection("products").doc(productId).get();
+      if (!productDoc.exists) {
+        throw new Error("Product not found");
+      }
+      const productData = productDoc.data()!;
+      const price = productData.price || 0;
+
+      // Get user data for risk evaluation
+      const userDoc = await db.collection("users").doc(uid).get();
+      if (!userDoc.exists) {
+        throw new Error("User not found");
+      }
+      const userData = userDoc.data()!;
+      const email = userData.email || "";
+
+      // Calculate account age
+      const createdAt = userData.createdAt?.toDate() || new Date();
+      const accountAgeMinutes = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60));
+
+      // Get client IP and user agent
+      const ip = ctx.headers?.get("x-forwarded-for") as string || 
+                ctx.headers?.get("x-real-ip") as string || 
+                "127.0.0.1";
+      const userAgent = ctx.headers?.get("user-agent") as string || "";
+
+      // Evaluate risk before creating checkout
+      const riskDecision = await riskEngine.evaluateCheckout({
+        uid,
+        email,
+        ip,
+        userAgent,
+        accountAgeMinutes,
+        orderIntent: {
+          productId,
+          quantity: input.qty,
+          price,
+        },
+        recaptchaToken: input.recaptchaToken,
+        appCheckToken: input.appCheckToken,
+      });
+
+      // Handle risk decision
+      const config = getConfig();
+      if (!config.features.FRAUD_SHADOW_MODE) {
+        // Enforce mode: block based on decision
+        switch (riskDecision.action) {
+          case "deny":
+            throw new Error("Checkout denied due to risk assessment");
+          
+          case "challenge":
+            throw new Error("reCAPTCHA challenge required");
+          
+          case "queue_review":
+            throw new Error("Checkout queued for manual review");
+          
+          case "allow":
+          default:
+            // Continue with checkout
+            break;
+        }
       }
 
       // Ensure we have a PayNow customer ID
@@ -122,6 +188,10 @@ export const checkoutRouter = createTRPCRouter({
         cancelUrl,
       });
 
-      return { url: session.url, checkoutId: session.id };
+      return { 
+        url: session.url, 
+        checkoutId: session.id,
+        riskDecision: config.features.FRAUD_SHADOW_MODE ? riskDecision : undefined,
+      };
     }),
 });

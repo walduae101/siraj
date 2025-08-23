@@ -90,5 +90,34 @@ service cloud.firestore {
       allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uid);
       allow write: if false; // server-only
     }
+
+    // Fraud signals (server-only - compact per-day aggregates)
+    match /fraudSignals/{date}/{uid} {
+      allow read, write: if false; // server-only
+    }
+
+    // Risk decisions (read by admin only, write by service only)
+    match /riskDecisions/{decisionId} {
+      allow read: if isAdmin();
+      allow write: if false; // server-only
+    }
+
+    // Manual reviews (read by admin only, write by service only)
+    match /manualReviews/{reviewId} {
+      allow read: if isAdmin();
+      allow write: if false; // server-only
+    }
+
+    // Deny lists (read by admin only, write by service only)
+    match /denylist/{type}/{value} {
+      allow read: if isAdmin();
+      allow write: if false; // server-only
+    }
+
+    // Allow lists (read by admin only, write by service only)
+    match /allowlist/{type}/{value} {
+      allow read: if isAdmin();
+      allow write: if false; // server-only
+    }
   }
 }
