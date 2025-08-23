@@ -68,6 +68,12 @@ const ConfigSchema = z.object({
     PAYNOW_LIVE: z.boolean().default(true),
     STUB_CHECKOUT: z.boolean().default(false),
     webhookMode: z.enum(["sync", "queue"]).default("sync"),
+    PRODUCT_SOT: z.enum(["firestore", "gsm"]).default("firestore"),
+    ALLOW_NEGATIVE_BALANCE: z.boolean().default(true),
+    // PHASE 4: Revenue Assurance
+    RECONCILIATION_ENABLED: z.boolean().default(true),
+    BACKFILL_ENABLED: z.boolean().default(true),
+    ENVIRONMENT: z.enum(["test", "prod"]).default("test"),
   }),
 });
 
@@ -139,6 +145,8 @@ function getConfigFromEnv(): Config {
       PAYNOW_LIVE: process.env.PAYNOW_LIVE === "1",
       STUB_CHECKOUT: process.env.STUB_CHECKOUT === "1",
       webhookMode: (process.env.WEBHOOK_MODE as "sync" | "queue") ?? "sync",
+      PRODUCT_SOT: (process.env.PRODUCT_SOT as "firestore" | "gsm") ?? "firestore",
+      ALLOW_NEGATIVE_BALANCE: process.env.ALLOW_NEGATIVE_BALANCE === "1",
     },
   };
 }

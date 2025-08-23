@@ -7,6 +7,8 @@ import { db } from "~/server/firebase/admin";
 import { pointsService } from "~/server/services/points";
 import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
 import { subscriptions } from "~/server/services/subscriptions";
+import { ProductCatalogService } from "~/server/services/productCatalog";
+import { WalletLedgerService } from "~/server/services/walletLedger";
 
 // PayNow webhook types
 interface PayNowCustomer {
@@ -269,6 +271,14 @@ async function processWebhookEvent(
         result.details = await handleSubscriptionEnded(eventData, eventType);
         break;
 
+      case "ON_REFUND":
+        result.details = await handleRefund(eventData);
+        break;
+
+      case "ON_CHARGEBACK":
+        result.details = await handleChargeback(eventData);
+        break;
+
       default:
         result = {
           ok: true,
@@ -315,38 +325,80 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
     const productId = String(line.product_id);
     const quantity = Number(line.quantity ?? 1);
 
-    // Check if it's a points product
-    const points = cfg.paynow.products[productId];
-    if (points && quantity > 0) {
-      const delta = Number(points) * quantity;
+    // Resolve product using SoT with fallback
+    let productPoints: number | null = null;
+    let productSource = "unknown";
+    let productVersion: number | undefined;
+    let firestoreProductId: string | undefined;
 
-      await pointsService.credit({
+    if (cfg.features.PRODUCT_SOT === "firestore") {
+      // Try Firestore first
+      const product = await ProductCatalogService.getProductByPayNowId(productId);
+      if (product) {
+        productPoints = product.points;
+        productSource = "firestore";
+        productVersion = product.version;
+        firestoreProductId = product.id;
+      } else {
+        // Fallback to GSM
+        const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+        if (gsmProduct) {
+          productPoints = gsmProduct.points;
+          productSource = "gsm_fallback";
+        }
+      }
+    } else {
+      // Use GSM directly
+      const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+      if (gsmProduct) {
+        productPoints = gsmProduct.points;
+        productSource = "gsm";
+      }
+    }
+
+    if (productPoints && quantity > 0) {
+      const delta = productPoints * quantity;
+
+      // Create ledger entry and update balance in single transaction
+      const { ledgerId, newBalance } = await WalletLedgerService.createLedgerEntry(
         uid,
-        kind: "paid",
-        amount: delta,
-        source: "paynow:webhook:order",
-        actionId: `${order.pretty_id || order.id}_${productId}_${quantity}`,
+        {
+          amount: delta,
+          currency: "POINTS",
+          kind: "purchase",
+          source: {
+            eventId: order.id,
+            orderId: order.pretty_id || order.id,
+            paynowCustomerId: order.customer?.id,
+            productId: firestoreProductId,
+            productVersion,
+          },
+        },
+        "system:webhook"
+      );
+
+      // Log structured fields for observability
+      console.log("[webhook] Order completed", {
+        event_id: order.id,
+        user_id: uid,
+        order_id: order.pretty_id || order.id,
+        product_id: productId,
+        product_source: productSource,
+        product_version: productVersion,
+        ledger_id: ledgerId,
+        balance_after: newBalance,
+        points_credited: delta,
+        quantity,
       });
 
-      // Add ledger entry
-      await db
-        .collection("users")
-        .doc(uid)
-        .collection("ledger")
-        .add({
-          delta: delta,
-          type: "purchase",
-          source: "paynow",
-          orderId: order.pretty_id || order.id,
-          productId,
-          sku: productId,
-          quantity,
-          rawEventType: "ON_ORDER_COMPLETED",
-          createdAt: Timestamp.now(),
-        });
-
       totalCredited += delta;
-      results.push({ productId, quantity, points: delta });
+      results.push({ 
+        productId, 
+        quantity, 
+        points: delta,
+        productSource,
+        ledgerId,
+      });
     }
 
     // Check if it's a subscription product
@@ -384,43 +436,83 @@ async function handleDeliveryItemAdded(data: PayNowWebhookData) {
   const cfg = getConfig();
   const productId = String(item.product_id);
   const quantity = Number(item.quantity ?? 1);
-  const points = cfg.paynow.products[productId];
 
-  if (!points || quantity <= 0) {
+  // Resolve product using SoT with fallback
+  let productPoints: number | null = null;
+  let productSource = "unknown";
+  let productVersion: number | undefined;
+  let firestoreProductId: string | undefined;
+
+  if (cfg.features.PRODUCT_SOT === "firestore") {
+    // Try Firestore first
+    const product = await ProductCatalogService.getProductByPayNowId(productId);
+    if (product) {
+      productPoints = product.points;
+      productSource = "firestore";
+      productVersion = product.version;
+      firestoreProductId = product.id;
+    } else {
+      // Fallback to GSM
+      const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+      if (gsmProduct) {
+        productPoints = gsmProduct.points;
+        productSource = "gsm_fallback";
+      }
+    }
+  } else {
+    // Use GSM directly
+    const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+    if (gsmProduct) {
+      productPoints = gsmProduct.points;
+      productSource = "gsm";
+    }
+  }
+
+  if (!productPoints || quantity <= 0) {
     return { credited: 0, reason: "not_points_product" };
   }
 
-  const delta = Number(points) * quantity;
+  const delta = productPoints * quantity;
 
-  await pointsService.credit({
+  // Create ledger entry and update balance in single transaction
+  const { ledgerId, newBalance } = await WalletLedgerService.createLedgerEntry(
     uid,
-    kind: "paid",
-    amount: delta,
-    source: "paynow:webhook:delivery",
-    actionId: `${order.pretty_id || order.id}_delivery_${item.id}_${productId}`,
-  });
+    {
+      amount: delta,
+      currency: "POINTS",
+      kind: "purchase",
+      source: {
+        eventId: order.id,
+        orderId: order.pretty_id || order.id,
+        paynowCustomerId: order.customer?.id,
+        productId: firestoreProductId,
+        productVersion,
+      },
+    },
+    "system:webhook"
+  );
 
-  await db
-    .collection("users")
-    .doc(uid)
-    .collection("ledger")
-    .add({
-      delta: delta,
-      type: "purchase",
-      source: "paynow",
-      orderId: order.pretty_id || order.id,
-      productId,
-      sku: productId,
-      quantity,
-      rawEventType: "ON_DELIVERY_ITEM_ADDED",
-      createdAt: Timestamp.now(),
-    });
+  // Log structured fields for observability
+  console.log("[webhook] Delivery item added", {
+    event_id: order.id,
+    user_id: uid,
+    order_id: order.pretty_id || order.id,
+    product_id: productId,
+    product_source: productSource,
+    product_version: productVersion,
+    ledger_id: ledgerId,
+    balance_after: newBalance,
+    points_credited: delta,
+    quantity,
+  });
 
   return {
     credited: delta,
     uid,
     orderId: order.pretty_id || order.id,
     productId,
+    productSource,
+    ledgerId,
   };
 }
 
@@ -454,49 +546,171 @@ async function handleSubscriptionRenewed(data: PayNowWebhookData) {
 
   await ensureUserDocument(uid);
 
-  const plan = subscriptions.getPlan(subscription.product_id);
-  if (!plan) return { reason: "unknown_plan" };
-
-  const cfg = getConfig();
-
-  // Credit renewal points
-  await pointsService.credit({
+  // Record subscription renewal (this also credits the cycle)
+  const result = await subscriptions.recordRenewal(
     uid,
-    kind: cfg.subscriptions.pointsKind,
-    amount: plan.pointsPerCycle,
-    source: `paynow:webhook:renewal:${plan.name}`,
-    expiresAt:
-      cfg.subscriptions.pointsKind === "promo"
-        ? new Date(Date.now() + cfg.subscriptions.pointsExpireDays * 86400000)
-        : undefined,
-    actionId: `renewal_${subscription.id}_${Date.now()}`,
-  });
+    subscription.product_id,
+    subscription.id,
+  );
 
-  // Update subscription record
-  const subRef = subscriptions.getSubRef(uid, subscription.id);
-  await subRef.update({
-    status: "active",
-    updatedAt: Timestamp.now(),
-    totalGranted: FieldValue.increment(plan.pointsPerCycle),
-    nextCreditAt: Timestamp.fromDate(new Date(Date.now() + 30 * 86400000)), // +30 days
-  });
+  return { uid, subscriptionId: subscription.id, result };
+}
 
-  await db.collection("users").doc(uid).collection("ledger").add({
-    delta: plan.pointsPerCycle,
-    type: "subscription_renewal",
-    source: "paynow",
-    orderId: subscription.id,
-    productId: subscription.product_id,
-    sku: subscription.product_id,
-    quantity: 1,
-    rawEventType: "ON_SUBSCRIPTION_RENEWED",
-    createdAt: Timestamp.now(),
+// Handle refund events
+async function handleRefund(data: PayNowWebhookData) {
+  const order = data?.order;
+  if (!order) return { reason: "no_order" };
+
+  const uid = await resolveUser(order.customer);
+  if (!uid) return { reason: "no_user_mapping" };
+
+  await ensureUserDocument(uid);
+
+  // Find the original ledger entry by order ID
+  const db = await getDb();
+  const ledgerSnapshot = await db
+    .collection("users")
+    .doc(uid)
+    .collection("wallet")
+    .collection("ledger")
+    .where("source.orderId", "==", order.pretty_id || order.id)
+    .where("kind", "==", "purchase")
+    .limit(1)
+    .get();
+
+  if (ledgerSnapshot.empty) {
+    console.warn("[webhook] No original purchase found for refund", {
+      order_id: order.pretty_id || order.id,
+      user_id: uid,
+    });
+    return { reason: "no_original_purchase" };
+  }
+
+  const originalEntry = ledgerSnapshot.docs[0];
+  const originalData = originalEntry.data();
+
+  // Create reversal entry
+  const { ledgerId, newBalance } = await WalletLedgerService.createReversalEntry(
+    uid,
+    originalEntry.id,
+    "refund",
+    "system:webhook",
+    "PayNow refund processed"
+  );
+
+  // Check if balance would go negative
+  const cfg = getConfig();
+  const negativeBalance = newBalance < 0;
+  
+  if (negativeBalance && !cfg.features.ALLOW_NEGATIVE_BALANCE) {
+    console.warn("[webhook] Refund would create negative balance", {
+      user_id: uid,
+      order_id: order.pretty_id || order.id,
+      original_balance: originalData.balanceAfter,
+      refund_amount: Math.abs(originalData.amount),
+      new_balance: newBalance,
+    });
+  }
+
+  // Log structured fields for observability
+  console.log("[webhook] Refund processed", {
+    event_id: order.id,
+    user_id: uid,
+    order_id: order.pretty_id || order.id,
+    original_ledger_id: originalEntry.id,
+    reversal_ledger_id: ledgerId,
+    balance_after: newBalance,
+    negative_balance: negativeBalance,
+    refund_amount: Math.abs(originalData.amount),
   });
 
   return {
     uid,
-    subscriptionId: subscription.id,
-    credited: plan.pointsPerCycle,
+    orderId: order.pretty_id || order.id,
+    originalLedgerId: originalEntry.id,
+    reversalLedgerId: ledgerId,
+    refundAmount: Math.abs(originalData.amount),
+    newBalance,
+    negativeBalance,
+  };
+}
+
+// Handle chargeback events
+async function handleChargeback(data: PayNowWebhookData) {
+  const order = data?.order;
+  if (!order) return { reason: "no_order" };
+
+  const uid = await resolveUser(order.customer);
+  if (!uid) return { reason: "no_user_mapping" };
+
+  await ensureUserDocument(uid);
+
+  // Find the original ledger entry by order ID
+  const db = await getDb();
+  const ledgerSnapshot = await db
+    .collection("users")
+    .doc(uid)
+    .collection("wallet")
+    .collection("ledger")
+    .where("source.orderId", "==", order.pretty_id || order.id)
+    .where("kind", "==", "purchase")
+    .limit(1)
+    .get();
+
+  if (ledgerSnapshot.empty) {
+    console.warn("[webhook] No original purchase found for chargeback", {
+      order_id: order.pretty_id || order.id,
+      user_id: uid,
+    });
+    return { reason: "no_original_purchase" };
+  }
+
+  const originalEntry = ledgerSnapshot.docs[0];
+  const originalData = originalEntry.data();
+
+  // Create reversal entry
+  const { ledgerId, newBalance } = await WalletLedgerService.createReversalEntry(
+    uid,
+    originalEntry.id,
+    "chargeback",
+    "system:webhook",
+    "PayNow chargeback processed"
+  );
+
+  // Check if balance would go negative
+  const cfg = getConfig();
+  const negativeBalance = newBalance < 0;
+  
+  if (negativeBalance && !cfg.features.ALLOW_NEGATIVE_BALANCE) {
+    console.warn("[webhook] Chargeback would create negative balance", {
+      user_id: uid,
+      order_id: order.pretty_id || order.id,
+      original_balance: originalData.balanceAfter,
+      chargeback_amount: Math.abs(originalData.amount),
+      new_balance: newBalance,
+    });
+  }
+
+  // Log structured fields for observability
+  console.log("[webhook] Chargeback processed", {
+    event_id: order.id,
+    user_id: uid,
+    order_id: order.pretty_id || order.id,
+    original_ledger_id: originalEntry.id,
+    reversal_ledger_id: ledgerId,
+    balance_after: newBalance,
+    negative_balance: negativeBalance,
+    chargeback_amount: Math.abs(originalData.amount),
+  });
+
+  return {
+    uid,
+    orderId: order.pretty_id || order.id,
+    originalLedgerId: originalEntry.id,
+    reversalLedgerId: ledgerId,
+    chargebackAmount: Math.abs(originalData.amount),
+    newBalance,
+    negativeBalance,
   };
 }
 

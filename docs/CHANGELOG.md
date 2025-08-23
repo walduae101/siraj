@@ -1,124 +1,111 @@
-# Documentation Changelog
+# Changelog
 
-**Updated on: 2025-01-10**
+All notable changes to this project will be documented in this file.
 
----
+## [2025-01-10] - PHASE 4: Revenue Assurance, Reconciliation & Production Cutover
 
-## 2025-01-10: Documentation Normalization
+### Added
+- **Automated Reconciliation**: Daily job to verify wallet correctness with self-healing
+- **Backfill Operations**: Webhook replay and reversal creation for missing events
+- **CI Security Guardrails**: Gitleaks integration with secret scanning
+- **Dual Environment Setup**: TEST/PROD separation with isolated resources
+- **Production Cutover**: Zero-downtime deployment with comprehensive checklist
+- **Revenue Assurance**: Complete audit trail and drift detection
 
-### Summary
-Consolidated 40+ duplicate documentation files into a canonical structure for better maintainability and clarity.
+### Changed
+- **Wallet Invariant**: `wallet.points === sum(ledger.amount)` enforced daily
+- **Webhook Processing**: Enhanced with backfill capabilities for missing events
+- **Security**: Automated secret detection and blocking in CI pipeline
+- **Environment Management**: Isolated TEST/PROD with separate Firebase projects
 
-### Changes Made
+### Technical Details
+- **New Collections**: `reconciliationReports/`, `dataMigrations/`
+- **New Indexes**: 5 collection-group indexes for ledger and webhook queries
+- **New Services**: `ReconciliationService`, `BackfillService`
+- **New Endpoints**: `/api/jobs/reconcile`, `/api/jobs/backfill`
+- **Feature Flags**: `RECONCILIATION_ENABLED`, `BACKFILL_ENABLED`, `ENVIRONMENT`
 
-#### ✅ Created Canonical Structure
-- `docs/PHASE_1/` - Phase 1 observability and monitoring
-- `docs/PHASE_2/` - Phase 2 queue architecture  
-- `docs/RUNBOOKS/` - Operational procedures
-- `docs/SECURITY/` - Security contracts and configurations
-- `docs/REFERENCE/` - Technical reference documentation
+### Security
+- **Secret Scanning**: Gitleaks integration with blocking rules
+- **Pattern Detection**: Custom checks for API keys and service account JSON
+- **Environment Isolation**: Separate Secret Manager bundles for TEST/PROD
+- **OIDC Authentication**: Secure job endpoint access
 
-#### ✅ Consolidated Files
-
-**Phase 1 Documentation**:
-- **MERGED** 15+ activation guides → `docs/PHASE_1/RUNBOOK.md`
-- **MERGED** 8+ monitoring guides → `docs/PHASE_1/MONITORING_SETUP.md`  
-- **MERGED** 5+ test guides → `docs/PHASE_1/TEST_SCENARIOS.md`
-- **CREATED** `docs/PHASE_1/FINAL_STATUS_TEMPLATE.md` for sign-off
-
-**Security Documentation**:
-- **MOVED** `WALLET_CONTRACT.md` → `docs/SECURITY/WALLET_CONTRACT.md`
-- **ENHANCED** with enforcement mechanisms and audit requirements
-- **CREATED** `docs/SECURITY/WEBHOOK_TTL_CONFIGURATION.md` (30-day retention)
-
-**Operational Documentation**:
-- **ENHANCED** `WEBHOOK_RUNBOOK.md` → `docs/RUNBOOKS/WEBHOOK_RUNBOOK.md`
-- **CREATED** `docs/REFERENCE/ALERT_POLICIES.md` with exact specifications
-- **CREATED** `docs/REFERENCE/LOG_FIELDS.md` with field dictionary
-
-**Phase 2 Documentation**:
-- **ENHANCED** Phase 2 guide → `docs/PHASE_2/IMPLEMENTATION_GUIDE.md`
-- **CREATED** `docs/PHASE_2/QUEUE_MESSAGE_CONTRACT.md` with PII guidelines
-
-#### ✅ Deleted Duplicates
-**Removed 35+ duplicate files**:
-- Multiple runbook variants (`PHASE_1_EXECUTION_CHECKLIST`, `PHASE_1_VISUAL_CHECKLIST`, etc.)
-- Redundant alert guides (`PHASE_1_ALERTS_SETUP`, `PHASE_1_ALERT_DETAILS`, etc.)
-- Progress tracking files (`PHASE_1_CURRENT_STATUS`, `PHASE_1_PROGRESS_UPDATE`, etc.)
-- Temporary activation files (`PHASE_1_GO_NOW`, `PHASE_1_READY_TO_GO`, etc.)
-
-#### ✅ Standardized Content
-
-**Technical Specifications**:
-- **HMAC Encoding**: Standardized to base64 (was inconsistent hex/base64)
-- **PayNow Headers**: Lowercase `paynow-signature`, `paynow-timestamp`
-- **TTL Retention**: 30 days for webhookEvents (was inconsistent 30/90 days)
-- **Replay Protection**: 5-minute window (now consistent)
-
-**Environment References**:
-- All documentation reflects **TEST environment** only
-- Production values clearly marked as requiring operational approval
-- Secret references use test prefixes (`whsec_test_`)
-
-**Performance Targets**:
-- Phase 1: p95 webhook latency <250ms
-- Phase 2: webhook ACK target <50ms  
-- Alert thresholds aligned with operational experience
-
-#### ✅ Enhanced Organization
-
-**Root README.md**:
-- Added comprehensive "Payments & Webhooks" section
-- Direct links to all canonical documentation
-- Clear feature overview and architecture summary
-
-**docs/README.md**:
-- Complete documentation index by category
-- "Start here" guidance for new team members
-- Quick access table for common tasks
+### Documentation
+- **docs/PHASE_4/README.md**: Complete implementation guide
+- **docs/PHASE_4/RECONCILIATION_DESIGN.md**: Detailed reconciliation system design
+- **docs/PHASE_4/BACKFILL_RUNBOOK.md**: Operational guide for backfill operations
+- **docs/PHASE_4/CIS_GUARDRAILS.md**: CI security controls documentation
+- **docs/PHASE_4/CUTOVER_CHECKLIST.md**: Production deployment checklist
 
 ---
 
-### Benefits
+## [2025-01-10] - PHASE 3: Product SoT + Ledger & Reversals + Admin + Guardrails
 
-#### Maintainability
-- **Single source of truth** for each procedure
-- **No conflicting information** between documents
-- **Clear ownership** and update responsibility
+### Added
+- **Product Source of Truth**: Migrated from GSM to versioned Firestore catalog
+- **Immutable Wallet Ledger**: Transactional ledger with reversal support
+- **Admin Panel**: Internal management interface at `/admin`
+- **Refund/Chargeback Handling**: Automatic reversal processing
+- **Feature Flags**: `PRODUCT_SOT` and `ALLOW_NEGATIVE_BALANCE`
+- **Enhanced Observability**: Structured logging with new fields
 
-#### Operational Efficiency  
-- **Faster onboarding** with organized structure
-- **Reduced confusion** from duplicate guides
-- **Consistent procedures** across team members
+### Changed
+- **Webhook Processing**: Now uses Firestore product catalog with GSM fallback
+- **Wallet Operations**: Atomic balance + ledger updates
+- **Security Rules**: Updated for new collections with admin-only writes
+- **Product Management**: Versioned products with metadata
 
-#### Quality Assurance
-- **Standardized formatting** and terminology
-- **Complete cross-references** between related documents
-- **Version control** for all procedural changes
+### Technical Details
+- **New Collections**: `products/`, `promotions/`, `users/{uid}/ledger/`
+- **New Indexes**: 5 composite indexes for optimal performance
+- **Migration**: 9 products migrated from GSM to Firestore
+- **Tests**: 12/12 automated tests passing (100% success rate)
 
----
+### Security
+- **Admin Access**: Firebase custom claims validation
+- **Audit Trail**: Complete history of all wallet operations
+- **Immutable Ledger**: No destructive edits, reversal support
+- **Feature Flags**: Zero-downtime rollback capability
 
-### File Mapping
-
-| Old Location | New Location | Status |
-|--------------|--------------|--------|
-| `PHASE_1_MASTER_RUNBOOK.md` | `docs/PHASE_1/RUNBOOK.md` | Redirect |
-| `ALERT_POLICIES_SETUP.md` | `docs/REFERENCE/ALERT_POLICIES.md` | Redirect |
-| `WEBHOOK_RUNBOOK.md` | `docs/RUNBOOKS/WEBHOOK_RUNBOOK.md` | Redirect |
-| Multiple activation guides | `docs/PHASE_1/RUNBOOK.md` | Merged |
-| Multiple monitoring guides | `docs/PHASE_1/MONITORING_SETUP.md` | Merged |
-| Multiple alert guides | `docs/REFERENCE/ALERT_POLICIES.md` | Merged |
-| 35+ duplicate files | N/A | Deleted |
-
----
-
-### Next Steps
-
-1. **Validate links** - All documentation cross-references updated
-2. **Team notification** - Inform team of new documentation structure
-3. **Periodic review** - Monthly documentation quality review
-4. **Template usage** - Use `FINAL_STATUS_TEMPLATE.md` for future activations
+### Documentation
+- **PHASE_3_COMPLETION_REPORT.md**: Comprehensive implementation report
+- **docs/PHASE_3/README.md**: Technical documentation and runbooks
+- **Migration Scripts**: Automated product migration and testing
 
 ---
 
-This normalization establishes a sustainable documentation structure that will scale with future phases and operational requirements.
+## [2024-12-XX] - PHASE 2: Webhook Security & Observability
+
+### Added
+- **Webhook Security**: HMAC verification, replay protection, idempotency
+- **Structured Logging**: Enhanced observability with structured fields
+- **Metrics**: PayNow webhook performance and error tracking
+- **Monitoring**: Cloud Monitoring dashboards and alert policies
+
+### Changed
+- **Webhook Processing**: Fast ACK with async processing
+- **Error Handling**: Comprehensive error tracking and reporting
+- **Performance**: Optimized webhook response times
+
+### Technical Details
+- **Security**: HMAC-SHA256 with base64 encoding
+- **Idempotency**: WebhookEvents collection for duplicate prevention
+- **Monitoring**: 4 log-based metrics for observability
+- **Alerts**: Automated alerting for webhook failures
+
+---
+
+## [2024-XX-XX] - PHASE 1: Initial Implementation
+
+### Added
+- **PayNow Integration**: Basic webhook processing
+- **Points System**: User wallet and balance management
+- **Firebase Integration**: User authentication and data storage
+- **Basic UI**: Checkout and success pages
+
+### Technical Details
+- **Framework**: Next.js 15 with TypeScript
+- **Database**: Firestore with real-time updates
+- **Authentication**: Firebase Auth with Google sign-in
+- **Payment**: PayNow integration for point purchases

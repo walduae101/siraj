@@ -24,6 +24,17 @@
 - [**Implementation Guide**](./PHASE_2/IMPLEMENTATION_GUIDE.md) - Complete queue setup
 - [**Message Contract**](./PHASE_2/QUEUE_MESSAGE_CONTRACT.md) - Pub/Sub message format
 
+### 🛡️ **Phase 3: Product SoT + Ledger & Reversals + Admin**
+- [**Implementation Guide**](./PHASE_3/README.md) - Complete Phase 3 documentation
+- [**Completion Report**](./PHASE_3_COMPLETION_REPORT.md) - Final status and test results
+
+### 🔒 **Phase 4: Revenue Assurance & Production Cutover**
+- [**Implementation Guide**](./PHASE_4/README.md) - Complete Phase 4 documentation
+- [**Reconciliation Design**](./PHASE_4/RECONCILIATION_DESIGN.md) - Automated reconciliation system
+- [**Backfill Runbook**](./PHASE_4/BACKFILL_RUNBOOK.md) - Webhook replay and reversal operations
+- [**CI Guardrails**](./PHASE_4/CIS_GUARDRAILS.md) - Secret scanning and security controls
+- [**Cutover Checklist**](./PHASE_4/CUTOVER_CHECKLIST.md) - Production deployment guide
+
 ### 🛡️ **Security**
 - [**Wallet Contract**](./SECURITY/WALLET_CONTRACT.md) - Canonical paths and restrictions
 - [**TTL Configuration**](./SECURITY/WEBHOOK_TTL_CONFIGURATION.md) - Firestore cleanup setup
@@ -43,6 +54,10 @@
 | Configure alerts | [Monitoring Setup](./PHASE_1/MONITORING_SETUP.md) |
 | Test webhooks | [Test Scenarios](./PHASE_1/TEST_SCENARIOS.md) |
 | Enable queue mode | [Phase 2 Guide](./PHASE_2/IMPLEMENTATION_GUIDE.md) |
+| Admin operations | [Phase 3 Guide](./PHASE_3/README.md) |
+| Run reconciliation | [Phase 4 Guide](./PHASE_4/README.md) |
+| Execute backfill | [Backfill Runbook](./PHASE_4/BACKFILL_RUNBOOK.md) |
+| Production cutover | [Cutover Checklist](./PHASE_4/CUTOVER_CHECKLIST.md) |
 | Respond to alerts | [Webhook Runbook](./RUNBOOKS/WEBHOOK_RUNBOOK.md) |
 | Security review | [Wallet Contract](./SECURITY/WALLET_CONTRACT.md) |
 
