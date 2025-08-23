@@ -1,8 +1,8 @@
 # API Keys Setup Checklist
 
 ## ✅ Already Configured
-- [x] PayNow API Key: pnapi_v1_DAMjmqeD4F95QAdMnRsAysJZpv1N1jPAiXXXGwic4HcH
-- [x] PayNow Webhook Secret: pn-c5bb14674f5e437c99873be4648e1ab6
+- [x] PayNow API Key: <YOUR_PAYNOW_API_KEY>
+- [x] PayNow Webhook Secret: <YOUR_PAYNOW_WEBHOOK_SECRET>
 - [x] PayNow Store ID: 321641745957789696
 
 ## ⚠️ Need to Configure

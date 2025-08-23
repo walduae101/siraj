@@ -7,8 +7,8 @@ This guide provides information about all the API keys and secrets required for 
 ### 1. PayNow Configuration
 **Status**: ✅ Already configured in your config
 
-- **API Key**: `pnapi_v1_DAMjmqeD4F95QAdMnRsAysJZpv1N1jPAiXXXGwic4HcH`
-- **Webhook Secret**: `pn-c5bb14674f5e437c99873be4648e1ab6`
+- **API Key**: `<YOUR_PAYNOW_API_KEY>`
+- **Webhook Secret**: `<YOUR_PAYNOW_WEBHOOK_SECRET>`
 - **Store ID**: `321641745957789696`
 
 **Where to get them**: PayNow Merchant Portal

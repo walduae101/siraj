@@ -22,7 +22,7 @@ export const env = createEnv({
     NEXT_PUBLIC_WEBSITE_URL: z.string().default("https://siraj.life"),
 
     // Firebase Web SDK
-    NEXT_PUBLIC_FIREBASE_API_KEY: z.string().default("AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4"),
+    NEXT_PUBLIC_FIREBASE_API_KEY: z.string().default("<YOUR_FIREBASE_API_KEY>"),
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string().default("walduae-project-20250809071906.firebaseapp.com"),
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string().default("walduae-project-20250809071906"),
     NEXT_PUBLIC_FIREBASE_APP_ID: z.string().optional(),
@@ -47,7 +47,7 @@ export const env = createEnv({
     NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE:
       process.env.NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE || "Connecting to Siraj Game Server...",
     NEXT_PUBLIC_WEBSITE_URL: process.env.NEXT_PUBLIC_WEBSITE_URL || "https://siraj.life",
-    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "<YOUR_FIREBASE_API_KEY>",
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
       process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "walduae-project-20250809071906.firebaseapp.com",
     NEXT_PUBLIC_FIREBASE_PROJECT_ID:

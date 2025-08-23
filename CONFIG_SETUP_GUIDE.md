@@ -65,8 +65,8 @@ Edit `c:\var\secrets\siraj\config.json` and update these sections:
 ```json
 {
   "paynow": {
-    "apiKey": "pnapi_v1_DAMjmqeD4F95QAdMnRsAysJZpv1N1jPAiXXXGwic4HcH",
-    "webhookSecret": "pn-c5bb14674f5e437c99873be4648e1ab6",
+    "apiKey": "<YOUR_PAYNOW_API_KEY>",
+    "webhookSecret": "<YOUR_PAYNOW_WEBHOOK_SECRET>",
     "storeId": "321641745957789696",
     "products": {
       "points_20": "YOUR_PRODUCT_ID_1",
