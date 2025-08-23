@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { PromoGuardService } from "~/server/services/promoGuard";
-import { WalletLedgerService } from "~/server/services/walletLedger";
-import { RiskManagementService } from "~/server/services/riskManagement";
 import { withRateLimit } from "~/middleware/ratelimit";
 import { getConfig } from "~/server/config";
+import { PromoGuardService } from "~/server/services/promoGuard";
+import { RiskManagementService } from "~/server/services/riskManagement";
+import { WalletLedgerService } from "~/server/services/walletLedger";
 
 async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
   const config = getConfig();
@@ -54,7 +54,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
     // Check velocity rules for the promo credit
     const velocityResult = await RiskManagementService.checkVelocity({
       uid,
-      amount: redeemResult.points!,
+      amount: redeemResult.points || 0,
       eventType: "promo_redeem",
       source: "promo_guard",
       ip,
@@ -77,7 +77,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
       uid,
       {
         kind: "promo_credit",
-        amount: redeemResult.points!,
+        amount: redeemResult.points || 0,
         currency: "POINTS",
         source: {
           reason: `Promo code redemption: ${redeemResult.promoId || "unknown"}`,

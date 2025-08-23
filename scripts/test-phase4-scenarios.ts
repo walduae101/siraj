@@ -452,7 +452,7 @@ async function runPhase4Tests() {
 
   // Test 3: Reconciliation - Self-healing drift
   await addTest("Reconciliation - Self-healing drift", async () => {
-    const date = new Date().toISOString().split("T")[0]!;
+    const date = new Date().toISOString().split("T")[0] || "";
     const report = await MockReconciliationService.reconcileUser(TEST_USER_2, date);
     
     if (report.status !== "adjusted") {
@@ -514,8 +514,8 @@ async function runPhase4Tests() {
     }
 
     const result = await MockBackfillService.replayWebhookEvents({
-      startDate: new Date().toISOString().split("T")[0]!,
-      endDate: new Date().toISOString().split("T")[0]!,
+      startDate: new Date().toISOString().split("T")[0] || "",
+      endDate: new Date().toISOString().split("T")[0] || "",
       dryRun: true,
       maxEvents: 10,
     });
@@ -582,7 +582,7 @@ async function runPhase4Tests() {
 
   // Test 9: Reconciliation reports - Storage
   await addTest("Reconciliation Reports - Storage", async () => {
-    const date = new Date().toISOString().split("T")[0]!;
+    const date = new Date().toISOString().split("T")[0] || "";
     const reportSnapshot = await db
       .collection("reconciliationReports")
       .doc(date)
@@ -630,7 +630,7 @@ async function runPhase4Tests() {
 
   // Test 11: Reconciliation - Error handling
   await addTest("Reconciliation - Error handling", async () => {
-    const date = new Date().toISOString().split("T")[0]!;
+    const date = new Date().toISOString().split("T")[0] || "";
     const report = await MockReconciliationService.reconcileUser("non_existent_user", date);
     
     // Non-existent user should result in clean status (no wallet, no ledger = no drift)
