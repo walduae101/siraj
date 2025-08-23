@@ -73,5 +73,22 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow write: if false; // server-only
     }
+
+    // Risk management (read by admin or owner, write by service only)
+    match /riskEvents/{eventId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uid);
+      allow write: if false; // server-only
+    }
+
+    // Promo codes (no client access - codes are hashed)
+    match /promoCodes/{promoId} {
+      allow read, write: if false; // server-only
+    }
+
+    // Promo usage tracking (read by admin or owner, write by service only)
+    match /promoUsages/{usageId} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uid);
+      allow write: if false; // server-only
+    }
   }
 }

@@ -143,6 +143,80 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "riskEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "decision",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "resolvedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "riskEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "decision",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "promoUsages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "promoId",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "promoUsages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ip",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "promoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "usedAt",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "promoUsages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "promoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "usedAt",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
