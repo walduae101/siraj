@@ -9,6 +9,7 @@ import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
 import { subscriptions } from "~/server/services/subscriptions";
 import { ProductCatalogService } from "~/server/services/productCatalog";
 import { WalletLedgerService } from "~/server/services/walletLedger";
+import { withRateLimit } from "~/middleware/ratelimit";
 
 // PayNow webhook types
 interface PayNowCustomer {
@@ -738,7 +739,7 @@ async function handleSubscriptionEnded(
   return { uid, subscriptionId: subscription.id, status };
 }
 
-export async function POST(req: NextRequest) {
+async function handleWebhook(req: NextRequest) {
   const startTime = Date.now();
   console.log("[webhook] Processing PayNow webhook");
 
@@ -883,3 +884,6 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+// Export with rate limiting
+export const POST = withRateLimit(handleWebhook, "webhook", "webhook");

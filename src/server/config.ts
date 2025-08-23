@@ -74,6 +74,46 @@ const ConfigSchema = z.object({
     RECONCILIATION_ENABLED: z.boolean().default(true),
     BACKFILL_ENABLED: z.boolean().default(true),
     ENVIRONMENT: z.enum(["test", "prod"]).default("test"),
+    // PHASE 5: Fraud/Abuse Controls
+    RATE_LIMIT_ENABLED: z.boolean().default(true),
+    RISK_HOLDS_ENABLED: z.boolean().default(true),
+  }),
+  
+  // Rate limiting configuration
+  rateLimit: z.object({
+    // Default limits per role
+    authenticated: z.object({
+      requestsPerMinute: z.number().default(30),
+      burstSize: z.number().default(15),
+    }),
+    anonymous: z.object({
+      requestsPerMinute: z.number().default(10),
+      burstSize: z.number().default(5),
+    }),
+    admin: z.object({
+      requestsPerMinute: z.number().default(3),
+      burstSize: z.number().default(1),
+    }),
+    
+    // Per-route overrides
+    routes: z.object({
+      webhook: z.object({
+        requestsPerMinute: z.number().default(300),
+        burstSize: z.number().default(100),
+      }),
+      paywall: z.object({
+        requestsPerMinute: z.number().default(60),
+        burstSize: z.number().default(30),
+      }),
+      promo: z.object({
+        requestsPerMinute: z.number().default(10),
+        burstSize: z.number().default(5),
+      }),
+      admin: z.object({
+        requestsPerMinute: z.number().default(3),
+        burstSize: z.number().default(1),
+      }),
+    }),
   }),
 });
 
@@ -147,6 +187,45 @@ function getConfigFromEnv(): Config {
       webhookMode: (process.env.WEBHOOK_MODE as "sync" | "queue") ?? "sync",
       PRODUCT_SOT: (process.env.PRODUCT_SOT as "firestore" | "gsm") ?? "firestore",
       ALLOW_NEGATIVE_BALANCE: process.env.ALLOW_NEGATIVE_BALANCE === "1",
+      // PHASE 4: Revenue Assurance
+      RECONCILIATION_ENABLED: process.env.RECONCILIATION_ENABLED !== "0",
+      BACKFILL_ENABLED: process.env.BACKFILL_ENABLED !== "0",
+      ENVIRONMENT: (process.env.ENVIRONMENT as "test" | "prod") ?? "test",
+      // PHASE 5: Fraud/Abuse Controls
+      RATE_LIMIT_ENABLED: process.env.RATE_LIMIT_ENABLED !== "0",
+      RISK_HOLDS_ENABLED: process.env.RISK_HOLDS_ENABLED !== "0",
+    },
+    rateLimit: {
+      authenticated: {
+        requestsPerMinute: Number(process.env.RATE_LIMIT_AUTH_RPM) || 30,
+        burstSize: Number(process.env.RATE_LIMIT_AUTH_BURST) || 15,
+      },
+      anonymous: {
+        requestsPerMinute: Number(process.env.RATE_LIMIT_ANON_RPM) || 10,
+        burstSize: Number(process.env.RATE_LIMIT_ANON_BURST) || 5,
+      },
+      admin: {
+        requestsPerMinute: Number(process.env.RATE_LIMIT_ADMIN_RPM) || 3,
+        burstSize: Number(process.env.RATE_LIMIT_ADMIN_BURST) || 1,
+      },
+      routes: {
+        webhook: {
+          requestsPerMinute: Number(process.env.RATE_LIMIT_WEBHOOK_RPM) || 300,
+          burstSize: Number(process.env.RATE_LIMIT_WEBHOOK_BURST) || 100,
+        },
+        paywall: {
+          requestsPerMinute: Number(process.env.RATE_LIMIT_PAYWALL_RPM) || 60,
+          burstSize: Number(process.env.RATE_LIMIT_PAYWALL_BURST) || 30,
+        },
+        promo: {
+          requestsPerMinute: Number(process.env.RATE_LIMIT_PROMO_RPM) || 10,
+          burstSize: Number(process.env.RATE_LIMIT_PROMO_BURST) || 5,
+        },
+        admin: {
+          requestsPerMinute: Number(process.env.RATE_LIMIT_ADMIN_ROUTE_RPM) || 3,
+          burstSize: Number(process.env.RATE_LIMIT_ADMIN_ROUTE_BURST) || 1,
+        },
+      },
     },
   };
 }
