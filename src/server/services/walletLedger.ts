@@ -6,7 +6,8 @@ export interface LedgerEntry {
   amount: number; // positive=credit, negative=debit
   balanceAfter: number; // computed in transaction
   currency: string; // "POINTS"
-  kind: "purchase" | "subscription_renewal" | "refund" | "chargeback" | "admin_adjustment";
+  kind: "purchase" | "subscription_renewal" | "refund" | "chargeback" | "admin_adjustment" | "promo_credit" | "reconcile_adjustment";
+  status: "posted" | "hold" | "reversed"; // PHASE 5: Risk holds
   source: {
     eventId?: string; // PayNow event id
     orderId?: string;
@@ -15,6 +16,7 @@ export interface LedgerEntry {
     productVersion?: number;
     reversalOf?: string; // ledgerId of original entry (for refunds/chargebacks)
     reason?: string; // required for admin_adjustment
+    riskEventId?: string; // PHASE 5: Link to risk event
   };
   createdAt: Timestamp;
   createdBy: string; // "system:webhook" | "admin:<uid>"
@@ -59,23 +61,25 @@ export class WalletLedgerService {
         currentBalance = walletData.paidBalance;
       }
 
-      // Calculate new balance
-      const newBalance = currentBalance + entry.amount;
+      // Calculate new balance (only if status is "posted")
+      const newBalance = entry.status === "posted" ? currentBalance + entry.amount : currentBalance;
       
-      // Update wallet balance
-      const walletUpdate: Partial<WalletBalance> = {
-        paidBalance: newBalance,
-        updatedAt: Timestamp.now(),
-      };
-      
-      if (!walletDoc.exists) {
-        walletUpdate.createdAt = Timestamp.now();
-        walletUpdate.promoBalance = 0;
-        walletUpdate.promoLots = [];
-        walletUpdate.v = 1;
+      // Update wallet balance (only if status is "posted")
+      if (entry.status === "posted") {
+        const walletUpdate: Partial<WalletBalance> = {
+          paidBalance: newBalance,
+          updatedAt: Timestamp.now(),
+        };
+        
+        if (!walletDoc.exists) {
+          walletUpdate.createdAt = Timestamp.now();
+          walletUpdate.promoBalance = 0;
+          walletUpdate.promoLots = [];
+          walletUpdate.v = 1;
+        }
+        
+        transaction.set(walletRef, walletUpdate, { merge: true });
       }
-      
-      transaction.set(walletRef, walletUpdate, { merge: true });
 
       // Create ledger entry
       const ledgerRef = db.collection("users").doc(uid).collection("wallet").collection("ledger").doc();
@@ -93,6 +97,81 @@ export class WalletLedgerService {
         ledgerId: ledgerRef.id,
         newBalance,
       };
+    });
+  }
+
+  /**
+   * Update ledger entry status (for risk holds)
+   */
+  static async updateLedgerEntryStatus(
+    uid: string,
+    ledgerId: string,
+    newStatus: "posted" | "hold" | "reversed"
+  ): Promise<void> {
+    const db = await this.getDb();
+    
+    return await db.runTransaction(async (transaction) => {
+      // Get the ledger entry
+      const ledgerRef = db.collection("users").doc(uid).collection("wallet").collection("ledger").doc(ledgerId);
+      const ledgerDoc = await transaction.get(ledgerRef);
+      
+      if (!ledgerDoc.exists) {
+        throw new Error(`Ledger entry ${ledgerId} not found`);
+      }
+      
+      const ledgerData = ledgerDoc.data() as LedgerEntry;
+      const oldStatus = ledgerData.status;
+      
+      // Update ledger entry status
+      transaction.update(ledgerRef, {
+        status: newStatus,
+        updatedAt: Timestamp.now(),
+      });
+      
+      // If changing from hold to posted, update wallet balance
+      if (oldStatus === "hold" && newStatus === "posted") {
+        const walletRef = db.collection("users").doc(uid).collection("wallet").doc("points");
+        const walletDoc = await transaction.get(walletRef);
+        
+        let currentBalance = 0;
+        if (walletDoc.exists) {
+          const walletData = walletDoc.data() as WalletBalance;
+          currentBalance = walletData.paidBalance;
+        }
+        
+        const newBalance = currentBalance + ledgerData.amount;
+        
+        transaction.update(walletRef, {
+          paidBalance: newBalance,
+          updatedAt: Timestamp.now(),
+        });
+        
+        // Update balanceAfter in ledger entry
+        transaction.update(ledgerRef, {
+          balanceAfter: newBalance,
+        });
+      }
+      
+      // If changing from posted to reversed, update wallet balance
+      if (oldStatus === "posted" && newStatus === "reversed") {
+        const walletRef = db.collection("users").doc(uid).collection("wallet").doc("points");
+        const walletDoc = await transaction.get(walletRef);
+        
+        if (walletDoc.exists) {
+          const walletData = walletDoc.data() as WalletBalance;
+          const newBalance = walletData.paidBalance - ledgerData.amount;
+          
+          transaction.update(walletRef, {
+            paidBalance: newBalance,
+            updatedAt: Timestamp.now(),
+          });
+          
+          // Update balanceAfter in ledger entry
+          transaction.update(ledgerRef, {
+            balanceAfter: newBalance,
+          });
+        }
+      }
     });
   }
 
