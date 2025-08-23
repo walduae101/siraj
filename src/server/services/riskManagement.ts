@@ -170,16 +170,20 @@ export class RiskManagementService {
 
     await riskEventRef.set(riskEvent);
 
-    // Log structured event
-    console.log("[risk-management] Risk event created", {
-      component: "risk_management",
-      risk_event_id: riskEventRef.id,
-      uid,
-      event_type: eventType,
-      risk_score: velocityResult.riskScore,
-      decision: velocityResult.decision,
-      reasons: velocityResult.riskReasons,
-    });
+               // Log structured event
+           console.log("[risk-management] Risk event created", {
+             component: "risk_management",
+             risk_event_id: riskEventRef.id,
+             uid,
+             event_type: eventType,
+             risk_score: velocityResult.riskScore,
+             decision: velocityResult.decision,
+             reasons: velocityResult.riskReasons,
+           });
+
+           // Record metrics
+           const { MetricsService } = await import("~/server/services/metrics");
+           MetricsService.recordRiskHoldCreated(uid, velocityResult.riskScore, eventType);
 
     return riskEventRef.id;
   }
@@ -325,14 +329,22 @@ export class RiskManagementService {
       resolutionReason: reason,
     });
 
-    // Log resolution
-    console.log("[risk-management] Risk hold resolved", {
-      component: "risk_management",
-      risk_event_id: riskEventId,
-      decision,
-      resolved_by: resolvedBy,
-      reason,
-    });
+               // Log resolution
+           console.log("[risk-management] Risk hold resolved", {
+             component: "risk_management",
+             risk_event_id: riskEventId,
+             decision,
+             resolved_by: resolvedBy,
+             reason,
+           });
+
+           // Record metrics
+           const { MetricsService } = await import("~/server/services/metrics");
+           if (decision === "posted") {
+             MetricsService.recordRiskHoldReleased("", riskEventId);
+           } else {
+             MetricsService.recordRiskHoldReversed("", riskEventId);
+           }
   }
 
   /**

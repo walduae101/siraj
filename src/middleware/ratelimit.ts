@@ -200,15 +200,19 @@ export function withRateLimit(
       // Rate limit exceeded
       const headers = createRateLimitHeaders(result);
       
-      // Log rate limit block
-      console.log("[rate-limit] Request blocked", {
-        component: "ratelimit",
-        action,
-        ip: request.ip || request.headers.get("x-forwarded-for") || "unknown",
-        userRole: getUserRole(request),
-        remaining: result.remaining,
-        resetTime: result.resetTime,
-      });
+                   // Log rate limit block
+             console.log("[rate-limit] Request blocked", {
+               component: "ratelimit",
+               action,
+               ip: request.ip || request.headers.get("x-forwarded-for") || "unknown",
+               userRole: getUserRole(request),
+               remaining: result.remaining,
+               resetTime: result.resetTime,
+             });
+
+             // Record metric
+             const { MetricsService } = await import("~/server/services/metrics");
+             MetricsService.recordRateLimitBlocked(action, getUserRole(request));
 
       return new NextResponse(
         JSON.stringify({

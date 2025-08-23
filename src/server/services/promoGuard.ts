@@ -236,14 +236,18 @@ export class PromoGuardService {
         };
         transaction.set(usageRef, usage);
 
-        // Log successful redemption
-        console.log("[promo-guard] Promo code redeemed", {
-          component: "promo_guard",
-          promo_id: promoId,
-          uid: request.uid,
-          points: promoCode.points,
-          ip: request.ip,
-        });
+                 // Log successful redemption
+         console.log("[promo-guard] Promo code redeemed", {
+           component: "promo_guard",
+           promo_id: promoId,
+           uid: request.uid,
+           points: promoCode.points,
+           ip: request.ip,
+         });
+
+         // Record metrics
+         const { MetricsService } = await import("~/server/services/metrics");
+         MetricsService.recordPromoCodeRedeemed(promoId, request.uid, promoCode.points);
 
         return {
           success: true,
