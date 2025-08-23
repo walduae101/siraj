@@ -61,13 +61,13 @@ gcloud run services describe siraj --region=YOUR-REGION
 2. Test the API endpoints:
 ```bash
 # Test wallet endpoint
-curl -H "Authorization: Bearer YOUR-TOKEN" \
+curl -H "Authorization: Bearer [YOUR-ACTUAL-TOKEN]" \
   https://siraj.life/api/trpc/points.getWallet?input=%7B%22json%22%3A%7B%22uid%22%3A%22test%22%7D%7D
 
 # Test checkout endpoint
 curl -X POST https://siraj.life/api/trpc/checkout.create \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR-TOKEN" \
+  -H "Authorization: Bearer [YOUR-ACTUAL-TOKEN]" \
   -d '{"json":{"productId":"premium_100","redirectUrl":"/dashboard"}}'
 ```
 
