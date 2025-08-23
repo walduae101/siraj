@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   // Verify cron authentication
   const key = req.headers.get("x-cron-key");
-  const cfg = getConfig();
+  const cfg = await getConfig();
   if (
     !key ||
     !cfg.subscriptions.cronSecret ||

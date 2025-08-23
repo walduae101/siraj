@@ -95,9 +95,10 @@ export const checkoutRouter = createTRPCRouter({
       if (!uid) throw new Error("Not authenticated");
 
       // Resolve product ID from SKU or direct productId
-      const productId = input.productId ?? getProductId(input.sku ?? "") ?? "";
+      const resolvedProductId = input.productId ?? (await getProductId(input.sku ?? "")) ?? "";
+      const productId = resolvedProductId;
       if (!productId) {
-        const cfg = getConfig();
+        const cfg = await getConfig();
         const keys = Object.keys(cfg.paynow.products).join(", ");
         throw new Error(
           `Unknown product (sku=${input.sku}, productId=${input.productId}). Known SKUs: [${keys}]`,
@@ -122,13 +123,16 @@ export const checkoutRouter = createTRPCRouter({
 
       // Calculate account age
       const createdAt = userData.createdAt?.toDate() || new Date();
-      const accountAgeMinutes = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60));
+      const accountAgeMinutes = Math.floor(
+        (Date.now() - createdAt.getTime()) / (1000 * 60),
+      );
 
       // Get client IP and user agent
-      const ip = ctx.headers?.get("x-forwarded-for") as string || 
-                ctx.headers?.get("x-real-ip") as string || 
-                "127.0.0.1";
-      const userAgent = ctx.headers?.get("user-agent") as string || "";
+      const ip =
+        (ctx.headers?.get("x-forwarded-for") as string) ||
+        (ctx.headers?.get("x-real-ip") as string) ||
+        "127.0.0.1";
+      const userAgent = (ctx.headers?.get("user-agent") as string) || "";
 
       // Evaluate risk before creating checkout
       const riskDecision = await riskEngine.evaluateCheckout({
@@ -147,19 +151,19 @@ export const checkoutRouter = createTRPCRouter({
       });
 
       // Handle risk decision
-      const config = getConfig();
+              const config = await getConfig();
       if (!config.features.FRAUD_SHADOW_MODE) {
         // Enforce mode: block based on decision
         switch (riskDecision.action) {
           case "deny":
             throw new Error("Checkout denied due to risk assessment");
-          
+
           case "challenge":
             throw new Error("reCAPTCHA challenge required");
-          
+
           case "queue_review":
             throw new Error("Checkout queued for manual review");
-          
+
           case "allow":
           default:
             // Continue with checkout
@@ -188,10 +192,12 @@ export const checkoutRouter = createTRPCRouter({
         cancelUrl,
       });
 
-      return { 
-        url: session.url, 
+      return {
+        url: session.url,
         checkoutId: session.id,
-        riskDecision: config.features.FRAUD_SHADOW_MODE ? riskDecision : undefined,
+        riskDecision: config.features.FRAUD_SHADOW_MODE
+          ? riskDecision
+          : undefined,
       };
     }),
 });

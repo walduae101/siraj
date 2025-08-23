@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getConfig } from "~/server/config";
 
 // In-memory token bucket store (use Redis in production)
@@ -86,11 +86,15 @@ setInterval(() => rateLimiter.cleanup(), 5 * 60 * 1000);
 /**
  * Get rate limit configuration for a route
  */
-function getRateLimitConfig(route: string, userRole: "authenticated" | "anonymous" | "admin"): RateLimitConfig {
-  const config = getConfig();
-  
+async function getRateLimitConfig(
+  route: string,
+  userRole: "authenticated" | "anonymous" | "admin",
+): Promise<RateLimitConfig> {
+  const config = await getConfig();
+
   // Check for route-specific override
-  const routeConfig = config.rateLimit.routes[route as keyof typeof config.rateLimit.routes];
+  const routeConfig =
+    config.rateLimit.routes[route as keyof typeof config.rateLimit.routes];
   if (routeConfig) {
     return {
       requestsPerMinute: routeConfig.requestsPerMinute,
@@ -106,8 +110,11 @@ function getRateLimitConfig(route: string, userRole: "authenticated" | "anonymou
  * Generate rate limit key based on user and action
  */
 function generateRateLimitKey(request: NextRequest, action: string): string {
-  const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
-  
+  const ip =
+    request.headers.get("x-forwarded-for") ||
+    request.headers.get("x-real-ip") ||
+    "unknown";
+
   // For authenticated users, use UID if available
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
@@ -131,38 +138,43 @@ function generateRateLimitKey(request: NextRequest, action: string): string {
 /**
  * Determine user role from request
  */
-function getUserRole(request: NextRequest): "authenticated" | "anonymous" | "admin" {
+function getUserRole(
+  request: NextRequest,
+): "authenticated" | "anonymous" | "admin" {
   const authHeader = request.headers.get("authorization");
-  
+
   if (authHeader?.startsWith("Bearer ")) {
     // Check if it's an admin token (in real implementation, decode JWT)
     const token = authHeader.substring(7);
-    if (token.includes("admin") || request.nextUrl.pathname.startsWith("/api/admin")) {
+    if (
+      token.includes("admin") ||
+      request.nextUrl.pathname.startsWith("/api/admin")
+    ) {
       return "admin";
     }
     return "authenticated";
   }
-  
+
   return "anonymous";
 }
 
 /**
  * Rate limiting middleware
  */
-export function rateLimitMiddleware(
+export async function rateLimitMiddleware(
   request: NextRequest,
   action: string,
-  route?: string
-): RateLimitResult | null {
-  const config = getConfig();
-  
+  route?: string,
+): Promise<RateLimitResult | null> {
+  const config = await getConfig();
+
   // Skip rate limiting if disabled
   if (!config.features.RATE_LIMIT_ENABLED) {
     return { allowed: true, remaining: 999, resetTime: Date.now() + 60000 };
   }
 
   const userRole = getUserRole(request);
-  const rateLimitConfig = getRateLimitConfig(route || action, userRole);
+  const rateLimitConfig = await getRateLimitConfig(route || action, userRole);
   const key = generateRateLimitKey(request, action);
 
   return rateLimiter.checkRateLimit(key, rateLimitConfig);
@@ -171,7 +183,9 @@ export function rateLimitMiddleware(
 /**
  * Create rate limit response headers
  */
-export function createRateLimitHeaders(result: RateLimitResult): Record<string, string> {
+export function createRateLimitHeaders(
+  result: RateLimitResult,
+): Record<string, string> {
   return {
     "X-RateLimit-Limit": "60", // Requests per minute
     "X-RateLimit-Remaining": result.remaining.toString(),
@@ -186,11 +200,11 @@ export function createRateLimitHeaders(result: RateLimitResult): Record<string, 
 export function withRateLimit(
   handler: (request: NextRequest) => Promise<NextResponse>,
   action: string,
-  route?: string
+  route?: string,
 ) {
   return async (request: NextRequest): Promise<NextResponse> => {
-    const result = rateLimitMiddleware(request, action, route);
-    
+    const result = await rateLimitMiddleware(request, action, route);
+
     if (!result) {
       // Rate limiting disabled, proceed normally
       return handler(request);
@@ -199,20 +213,23 @@ export function withRateLimit(
     if (!result.allowed) {
       // Rate limit exceeded
       const headers = createRateLimitHeaders(result);
-      
-                   // Log rate limit block
-             console.log("[rate-limit] Request blocked", {
-               component: "ratelimit",
-               action,
-               ip: request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown",
-               userRole: getUserRole(request),
-               remaining: result.remaining,
-               resetTime: result.resetTime,
-             });
 
-             // Record metric
-             const { MetricsService } = await import("~/server/services/metrics");
-             MetricsService.recordRateLimitBlocked(action, getUserRole(request));
+      // Log rate limit block
+      console.log("[rate-limit] Request blocked", {
+        component: "ratelimit",
+        action,
+        ip:
+          request.headers.get("x-forwarded-for") ||
+          request.headers.get("x-real-ip") ||
+          "unknown",
+        userRole: getUserRole(request),
+        remaining: result.remaining,
+        resetTime: result.resetTime,
+      });
+
+      // Record metric
+      const { MetricsService } = await import("~/server/services/metrics");
+      MetricsService.recordRateLimitBlocked(action, getUserRole(request));
 
       return new NextResponse(
         JSON.stringify({
@@ -225,13 +242,13 @@ export function withRateLimit(
             "Content-Type": "application/json",
             ...headers,
           },
-        }
+        },
       );
     }
 
     // Rate limit passed, proceed with handler
     const response = await handler(request);
-    
+
     // Add rate limit headers to response
     const headers = createRateLimitHeaders(result);
     Object.entries(headers).forEach(([key, value]) => {
@@ -246,19 +263,19 @@ export function withRateLimit(
  * Rate limit decorator for specific actions
  */
 export function rateLimit(action: string, route?: string) {
-  return function <T extends any[], R>(
+  return <T extends any[], R>(
     target: any,
     propertyKey: string,
-    descriptor: TypedPropertyDescriptor<(...args: T) => Promise<R>>
-  ) {
+    descriptor: TypedPropertyDescriptor<(...args: T) => Promise<R>>,
+  ) => {
     const originalMethod = descriptor.value!;
-    
+
     descriptor.value = async function (...args: T): Promise<R> {
       // This would need to be adapted for the specific context
       // For now, this is a placeholder for decorator-based rate limiting
       return originalMethod.apply(this, args);
     };
-    
+
     return descriptor;
   };
 }
@@ -273,7 +290,7 @@ export function getRateLimitStatus(): {
   return {
     totalBuckets: tokenBuckets.size,
     activeBuckets: Array.from(tokenBuckets.values()).filter(
-      bucket => Date.now() - bucket.lastRefill < 5 * 60 * 1000
+      (bucket) => Date.now() - bucket.lastRefill < 5 * 60 * 1000,
     ).length,
   };
 }

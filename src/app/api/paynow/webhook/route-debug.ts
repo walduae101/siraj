@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     // Test config loading
     try {
       const { getConfig } = await import("~/server/config");
-      const cfg = getConfig();
+      const cfg = await getConfig();
       console.log(
         "[webhook-debug] Config loaded successfully, has webhook secret:",
         !!cfg.paynow.webhookSecret,

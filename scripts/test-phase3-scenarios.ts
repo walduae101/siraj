@@ -56,7 +56,7 @@ class MockProductCatalogService {
       "458255787102310400": "150",
       "458256188073574400": "500",
     };
-    
+
     const points = gsmProducts[paynowProductId];
     if (points) {
       return {
@@ -64,21 +64,21 @@ class MockProductCatalogService {
         source: "gsm" as const,
       };
     }
-    
+
     return null;
   }
 }
 
 class MockWalletLedgerService {
-  static async createLedgerEntry(
-    uid: string,
-    entry: any,
-    createdBy: string
-  ) {
+  static async createLedgerEntry(uid: string, entry: any, createdBy: string) {
     return await db.runTransaction(async (transaction) => {
-      const walletRef = db.collection("users").doc(uid).collection("wallet").doc("points");
+      const walletRef = db
+        .collection("users")
+        .doc(uid)
+        .collection("wallet")
+        .doc("points");
       const walletDoc = await transaction.get(walletRef);
-      
+
       let currentBalance = 0;
       if (walletDoc.exists) {
         const walletData = walletDoc.data();
@@ -86,23 +86,27 @@ class MockWalletLedgerService {
       }
 
       const newBalance = currentBalance + entry.amount;
-      
+
       const walletUpdate: any = {
         paidBalance: newBalance,
         updatedAt: Timestamp.now(),
       };
-      
+
       if (!walletDoc.exists) {
         walletUpdate.createdAt = Timestamp.now();
         walletUpdate.promoBalance = 0;
         walletUpdate.promoLots = [];
         walletUpdate.v = 1;
       }
-      
+
       transaction.set(walletRef, walletUpdate, { merge: true });
 
       // Fix: Use correct ledger collection path
-      const ledgerRef = db.collection("users").doc(uid).collection("ledger").doc();
+      const ledgerRef = db
+        .collection("users")
+        .doc(uid)
+        .collection("ledger")
+        .doc();
       const ledgerEntry = {
         id: ledgerRef.id,
         ...entry,
@@ -110,7 +114,7 @@ class MockWalletLedgerService {
         createdAt: Timestamp.now(),
         createdBy,
       };
-      
+
       transaction.set(ledgerRef, ledgerEntry);
 
       return {
@@ -122,7 +126,7 @@ class MockWalletLedgerService {
 
   static async getLedgerEntries(uid: string, options: any = {}) {
     const { limit = 50, startAfter } = options;
-    
+
     // Fix: Use correct ledger collection path
     let query = db
       .collection("users")
@@ -138,14 +142,14 @@ class MockWalletLedgerService {
         .collection("ledger")
         .doc(startAfter)
         .get();
-      
+
       if (startAfterDoc.exists) {
         query = query.startAfter(startAfterDoc);
       }
     }
 
     const snapshot = await query.get();
-    const entries = snapshot.docs.map(doc => ({
+    const entries = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
@@ -180,9 +184,9 @@ class MockWalletLedgerService {
     originalLedgerId: string,
     kind: "refund" | "chargeback",
     createdBy: string,
-    reason?: string
+    reason?: string,
   ) {
-    const originalEntry = await this.getLedgerEntry(uid, originalLedgerId);
+    const originalEntry = await MockWalletLedgerService.getLedgerEntry(uid, originalLedgerId);
     if (!originalEntry) {
       throw new Error(`Original ledger entry not found: ${originalLedgerId}`);
     }
@@ -199,7 +203,7 @@ class MockWalletLedgerService {
       createdBy,
     };
 
-    return await this.createLedgerEntry(uid, reversalEntry, createdBy);
+    return await MockWalletLedgerService.createLedgerEntry(uid, reversalEntry, createdBy);
   }
 
   static async getLedgerEntry(uid: string, ledgerId: string) {
@@ -225,7 +229,7 @@ class MockWalletLedgerService {
     uid: string,
     amount: number,
     reason: string,
-    adminUid: string
+    adminUid: string,
   ) {
     const entry = {
       amount,
@@ -250,7 +254,7 @@ class MockWalletLedgerService {
       .orderBy("source.reversalOf")
       .get();
 
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
@@ -265,7 +269,7 @@ class MockWalletLedgerService {
       .where("source.reversalOf", "==", originalLedgerId)
       .get();
 
-    return snapshot.docs.map(doc => ({
+    return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
@@ -298,15 +302,23 @@ async function runPhase3Tests() {
         console.log(`✅ ${name}`);
       } catch (error) {
         results.failed++;
-        results.tests.push({ name, passed: false, error: error instanceof Error ? error.message : String(error) });
-        console.log(`❌ ${name}: ${error instanceof Error ? error.message : String(error)}`);
+        results.tests.push({
+          name,
+          passed: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        console.log(
+          `❌ ${name}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     };
   }
 
   // Test 1: Product Catalog SoT
   await addTest("Product Catalog - Get product by PayNow ID", async () => {
-    const product = await MockProductCatalogService.getProductByPayNowId("458255405240287232") as any;
+    const product = (await MockProductCatalogService.getProductByPayNowId(
+      "458255405240287232",
+    )) as any;
     if (!product) {
       throw new Error("Product not found in Firestore");
     }
@@ -314,13 +326,16 @@ async function runPhase3Tests() {
       throw new Error(`Expected 50 points, got ${product.points}`);
     }
     if (product.paynowProductId !== "458255405240287232") {
-      throw new Error(`Expected PayNow ID 458255405240287232, got ${product.paynowProductId}`);
+      throw new Error(
+        `Expected PayNow ID 458255405240287232, got ${product.paynowProductId}`,
+      );
     }
   })();
 
   // Test 2: GSM Fallback
   await addTest("Product Catalog - GSM fallback", async () => {
-    const gsmProduct = MockProductCatalogService.getProductFromGSM("458255405240287232");
+    const gsmProduct =
+      MockProductCatalogService.getProductFromGSM("458255405240287232");
     if (!gsmProduct) {
       throw new Error("Product not found in GSM");
     }
@@ -335,9 +350,10 @@ async function runPhase3Tests() {
   // Test 3: Wallet Ledger - Create entry
   await addTest("Wallet Ledger - Create purchase entry", async () => {
     // Get current balance first
-    const currentWallet = await MockWalletLedgerService.getWalletBalance(TEST_USER_ID);
+    const currentWallet =
+      await MockWalletLedgerService.getWalletBalance(TEST_USER_ID);
     const currentBalance = currentWallet?.paidBalance || 0;
-    
+
     const result = await MockWalletLedgerService.createLedgerEntry(
       TEST_USER_ID,
       {
@@ -351,7 +367,7 @@ async function runPhase3Tests() {
           productVersion: 1,
         },
       },
-      "system:test"
+      "system:test",
     );
 
     if (!result.ledgerId) {
@@ -359,17 +375,22 @@ async function runPhase3Tests() {
     }
     const expectedBalance = currentBalance + 100;
     if (result.newBalance !== expectedBalance) {
-      throw new Error(`Expected balance ${expectedBalance}, got ${result.newBalance}`);
+      throw new Error(
+        `Expected balance ${expectedBalance}, got ${result.newBalance}`,
+      );
     }
   })();
 
   // Test 4: Wallet Ledger - Get entries
   await addTest("Wallet Ledger - Get entries", async () => {
-    const ledger = await MockWalletLedgerService.getLedgerEntries(TEST_USER_ID, { limit: 10 });
+    const ledger = await MockWalletLedgerService.getLedgerEntries(
+      TEST_USER_ID,
+      { limit: 10 },
+    );
     if (!ledger.entries || ledger.entries.length === 0) {
       throw new Error("No ledger entries found");
     }
-    
+
     const firstEntry = ledger.entries[0];
     if (!firstEntry) {
       throw new Error("No first entry found");
@@ -378,7 +399,9 @@ async function runPhase3Tests() {
       throw new Error(`Expected amount 100, got ${(firstEntry as any).amount}`);
     }
     if ((firstEntry as any).kind !== "purchase") {
-      throw new Error(`Expected kind 'purchase', got ${(firstEntry as any).kind}`);
+      throw new Error(
+        `Expected kind 'purchase', got ${(firstEntry as any).kind}`,
+      );
     }
   })();
 
@@ -390,26 +413,36 @@ async function runPhase3Tests() {
     }
     // Check that balance is reasonable (negative allowed if feature flag is on)
     if (wallet.paidBalance < 0 && !mockConfig.features.ALLOW_NEGATIVE_BALANCE) {
-      throw new Error(`Negative balance not allowed but got ${wallet.paidBalance}`);
+      throw new Error(
+        `Negative balance not allowed but got ${wallet.paidBalance}`,
+      );
     }
   })();
 
   // Test 6: Wallet Ledger - Create reversal
   await addTest("Wallet Ledger - Create reversal entry", async () => {
-    const ledger = await MockWalletLedgerService.getLedgerEntries(TEST_USER_ID, { limit: 10 });
-    const purchaseEntry = ledger.entries.find(entry => (entry as any).kind === "purchase" && (entry as any).amount === 100);
-    
+    const ledger = await MockWalletLedgerService.getLedgerEntries(
+      TEST_USER_ID,
+      { limit: 10 },
+    );
+    const purchaseEntry = ledger.entries.find(
+      (entry) =>
+        (entry as any).kind === "purchase" && (entry as any).amount === 100,
+    );
+
     if (!purchaseEntry) {
       throw new Error("No purchase entry found for reversal test");
     }
 
-    const currentBalance = (await MockWalletLedgerService.getWalletBalance(TEST_USER_ID))!.paidBalance;
+    const currentBalance = (await MockWalletLedgerService.getWalletBalance(
+      TEST_USER_ID,
+    ))!.paidBalance;
     const result = await MockWalletLedgerService.createReversalEntry(
       TEST_USER_ID,
       purchaseEntry.id,
       "refund",
       "system:test",
-      "Test refund"
+      "Test refund",
     );
 
     if (!result.ledgerId) {
@@ -418,20 +451,23 @@ async function runPhase3Tests() {
     // Check that balance decreased by 100 (the reversal amount)
     const expectedBalance = currentBalance - 100;
     if (result.newBalance !== expectedBalance) {
-      throw new Error(`Expected balance ${expectedBalance} after reversal, got ${result.newBalance}`);
+      throw new Error(
+        `Expected balance ${expectedBalance} after reversal, got ${result.newBalance}`,
+      );
     }
   })();
 
   // Test 7: Wallet Ledger - Admin adjustment
   await addTest("Wallet Ledger - Admin adjustment", async () => {
-    const currentWallet = await MockWalletLedgerService.getWalletBalance(TEST_USER_ID);
+    const currentWallet =
+      await MockWalletLedgerService.getWalletBalance(TEST_USER_ID);
     const currentBalance = currentWallet?.paidBalance || 0;
-    
+
     const result = await MockWalletLedgerService.createAdminAdjustment(
       TEST_USER_ID,
       50,
       "Test admin credit",
-      "admin:test"
+      "admin:test",
     );
 
     if (!result.ledgerId) {
@@ -439,7 +475,9 @@ async function runPhase3Tests() {
     }
     const expectedBalance = currentBalance + 50;
     if (result.newBalance !== expectedBalance) {
-      throw new Error(`Expected balance ${expectedBalance} after admin adjustment, got ${result.newBalance}`);
+      throw new Error(
+        `Expected balance ${expectedBalance} after admin adjustment, got ${result.newBalance}`,
+      );
     }
   })();
 
@@ -449,22 +487,28 @@ async function runPhase3Tests() {
       throw new Error("PRODUCT_SOT feature flag not configured");
     }
     if (!["firestore", "gsm"].includes(mockConfig.features.PRODUCT_SOT)) {
-      throw new Error(`Invalid PRODUCT_SOT value: ${mockConfig.features.PRODUCT_SOT}`);
+      throw new Error(
+        `Invalid PRODUCT_SOT value: ${mockConfig.features.PRODUCT_SOT}`,
+      );
     }
   })();
 
   // Test 9: Feature Flag - ALLOW_NEGATIVE_BALANCE
-  await addTest("Feature Flag - ALLOW_NEGATIVE_BALANCE configuration", async () => {
-    if (typeof mockConfig.features.ALLOW_NEGATIVE_BALANCE !== "boolean") {
-      throw new Error("ALLOW_NEGATIVE_BALANCE feature flag not configured");
-    }
-  })();
+  await addTest(
+    "Feature Flag - ALLOW_NEGATIVE_BALANCE configuration",
+    async () => {
+      if (typeof mockConfig.features.ALLOW_NEGATIVE_BALANCE !== "boolean") {
+        throw new Error("ALLOW_NEGATIVE_BALANCE feature flag not configured");
+      }
+    },
+  )();
 
   // Test 10: Negative balance handling
   await addTest("Wallet Ledger - Negative balance handling", async () => {
-    const currentWallet = await MockWalletLedgerService.getWalletBalance(TEST_USER_ID);
+    const currentWallet =
+      await MockWalletLedgerService.getWalletBalance(TEST_USER_ID);
     const currentBalance = currentWallet?.paidBalance || 0;
-    
+
     const result = await MockWalletLedgerService.createLedgerEntry(
       TEST_USER_ID,
       {
@@ -475,28 +519,33 @@ async function runPhase3Tests() {
           reason: "Test negative balance",
         },
       },
-      "system:test"
+      "system:test",
     );
 
     if (mockConfig.features.ALLOW_NEGATIVE_BALANCE) {
       const expectedBalance = currentBalance - 100;
       if (result.newBalance !== expectedBalance) {
-        throw new Error(`Expected negative balance ${expectedBalance}, got ${result.newBalance}`);
+        throw new Error(
+          `Expected negative balance ${expectedBalance}, got ${result.newBalance}`,
+        );
       }
     } else {
       if (result.newBalance < 0) {
-        throw new Error(`Negative balance not allowed but got ${result.newBalance}`);
+        throw new Error(
+          `Negative balance not allowed but got ${result.newBalance}`,
+        );
       }
     }
   })();
 
   // Test 11: Get reversals
   await addTest("Wallet Ledger - Get reversal entries", async () => {
-    const reversals = await MockWalletLedgerService.getReversedEntries(TEST_USER_ID);
+    const reversals =
+      await MockWalletLedgerService.getReversedEntries(TEST_USER_ID);
     if (reversals.length === 0) {
       throw new Error("No reversal entries found");
     }
-    
+
     const reversal = reversals[0];
     if (!reversal) {
       throw new Error("No reversal found");
@@ -511,11 +560,19 @@ async function runPhase3Tests() {
 
   // Test 12: Get reversals of specific entry
   await addTest("Wallet Ledger - Get reversals of specific entry", async () => {
-    const ledger = await MockWalletLedgerService.getLedgerEntries(TEST_USER_ID, { limit: 10 });
-    const purchaseEntry = ledger.entries.find(entry => (entry as any).kind === "purchase");
-    
+    const ledger = await MockWalletLedgerService.getLedgerEntries(
+      TEST_USER_ID,
+      { limit: 10 },
+    );
+    const purchaseEntry = ledger.entries.find(
+      (entry) => (entry as any).kind === "purchase",
+    );
+
     if (purchaseEntry) {
-      const reversals = await MockWalletLedgerService.getReversalsOfEntry(TEST_USER_ID, purchaseEntry.id);
+      const reversals = await MockWalletLedgerService.getReversalsOfEntry(
+        TEST_USER_ID,
+        purchaseEntry.id,
+      );
       if (reversals.length === 0) {
         throw new Error("No reversals found for purchase entry");
       }
@@ -530,18 +587,20 @@ async function runPhase3Tests() {
   if (results.failed > 0) {
     console.log("\n❌ Failed Tests:");
     results.tests
-      .filter(test => !test.passed)
-      .forEach(test => {
+      .filter((test) => !test.passed)
+      .forEach((test) => {
         console.log(`   - ${test.name}: ${test.error}`);
       });
   }
 
   console.log("\n🎉 PHASE 3 Test Scenarios completed!");
-  
+
   if (results.failed === 0) {
     console.log("✅ All tests passed! PHASE 3 is ready for production.");
   } else {
-    console.log("⚠️  Some tests failed. Please review and fix issues before deploying.");
+    console.log(
+      "⚠️  Some tests failed. Please review and fix issues before deploying.",
+    );
     process.exit(1);
   }
 }

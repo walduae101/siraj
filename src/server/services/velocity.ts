@@ -1,5 +1,5 @@
-import { getDb } from "~/server/firebase/admin-lazy";
 import { getConfig } from "~/server/config";
+import { getDb } from "~/server/firebase/admin-lazy";
 
 export interface VelocityCounts {
   uid: {
@@ -35,8 +35,16 @@ export class VelocityService {
     const db = await getDb();
     const result = await db.runTransaction(async (transaction) => {
       // Get or create fraud signals document for today
-      const uidDocRef = db.collection("fraudSignals").doc(dateKey).collection(uid).doc("counters");
-      const ipDocRef = db.collection("fraudSignals").doc(dateKey).collection(ip).doc("counters");
+      const uidDocRef = db
+        .collection("fraudSignals")
+        .doc(dateKey)
+        .collection(uid)
+        .doc("counters");
+      const ipDocRef = db
+        .collection("fraudSignals")
+        .doc(dateKey)
+        .collection(ip)
+        .doc("counters");
 
       // Read current values
       const [uidDoc, ipDoc] = await Promise.all([
@@ -108,8 +116,18 @@ export class VelocityService {
 
     const db = await getDb();
     const [uidDoc, ipDoc] = await Promise.all([
-      db.collection("fraudSignals").doc(dateKey).collection(uid).doc("counters").get(),
-      db.collection("fraudSignals").doc(dateKey).collection(ip).doc("counters").get(),
+      db
+        .collection("fraudSignals")
+        .doc(dateKey)
+        .collection(uid)
+        .doc("counters")
+        .get(),
+      db
+        .collection("fraudSignals")
+        .doc(dateKey)
+        .collection(ip)
+        .doc("counters")
+        .get(),
     ]);
 
     const uidData = uidDoc.exists ? uidDoc.data()! : {};
@@ -138,15 +156,15 @@ export class VelocityService {
     limits: any;
   }> {
     const counts = await this.getCounts(input);
-    const config = getConfig();
+    const config = await getConfig();
     const caps = config.fraud.checkoutCaps;
 
-    const uidExceeded = 
+    const uidExceeded =
       counts.uid.minute > caps.uid.perMinute ||
       counts.uid.hour > caps.uid.perHour ||
       counts.uid.day > caps.uid.perDay;
 
-    const ipExceeded = 
+    const ipExceeded =
       counts.ip.minute > caps.ip.perMinute ||
       counts.ip.hour > caps.ip.perHour ||
       counts.ip.day > caps.ip.perDay;
@@ -163,15 +181,15 @@ export class VelocityService {
   }
 
   private getDateKey(date: Date): string {
-    return date.toISOString().split('T')[0]?.replace(/-/g, '') || '';
+    return date.toISOString().split("T")[0]?.replace(/-/g, "") || "";
   }
 
   private getHourKey(date: Date): string {
-    return `${this.getDateKey(date)}_${date.getUTCHours().toString().padStart(2, '0')}`;
+    return `${this.getDateKey(date)}_${date.getUTCHours().toString().padStart(2, "0")}`;
   }
 
   private getMinuteKey(date: Date): string {
-    return `${this.getHourKey(date)}_${date.getUTCMinutes().toString().padStart(2, '0')}`;
+    return `${this.getHourKey(date)}_${date.getUTCMinutes().toString().padStart(2, "0")}`;
   }
 
   private addToSet<T>(array: T[], item: T): T[] {

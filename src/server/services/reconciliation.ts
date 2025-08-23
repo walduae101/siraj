@@ -47,8 +47,8 @@ export class ReconciliationService {
       .doc("points")
       .get();
 
-    const walletBalance = walletDoc.exists 
-      ? (walletDoc.data()?.paidBalance || 0)
+    const walletBalance = walletDoc.exists
+      ? walletDoc.data()?.paidBalance || 0
       : 0;
 
     // Sum all ledger entries
@@ -84,7 +84,7 @@ export class ReconciliationService {
    */
   static async reconcileUser(
     uid: string,
-    date: string
+    date: string,
   ): Promise<ReconciliationReport> {
     const db = await this.getDb();
     const reportId = `${date}_${uid}`;
@@ -140,7 +140,6 @@ export class ReconciliationService {
         id: reportId,
         ...report,
       };
-
     } catch (error) {
       const errorReport: Omit<ReconciliationReport, "id"> = {
         uid,
@@ -177,7 +176,7 @@ export class ReconciliationService {
   private static async createReconciliationAdjustment(
     uid: string,
     delta: number,
-    reportId: string
+    reportId: string,
   ): Promise<void> {
     const db = await this.getDb();
 
@@ -190,8 +189,8 @@ export class ReconciliationService {
         .doc("points");
 
       const walletDoc = await transaction.get(walletRef);
-      const currentBalance = walletDoc.exists 
-        ? (walletDoc.data()?.paidBalance || 0)
+      const currentBalance = walletDoc.exists
+        ? walletDoc.data()?.paidBalance || 0
         : 0;
 
       const newBalance = currentBalance + delta;
@@ -303,7 +302,7 @@ export class ReconciliationService {
    */
   static async getReconciliationReports(
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Promise<ReconciliationReport[]> {
     const db = await this.getDb();
     const reports: ReconciliationReport[] = [];
@@ -314,7 +313,7 @@ export class ReconciliationService {
 
     while (currentDate <= end) {
       const dateStr = currentDate.toISOString().split("T")[0]!;
-      
+
       const snapshot = await db
         .collection("reconciliationReports")
         .doc(dateStr)
@@ -348,7 +347,7 @@ export class ReconciliationService {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return hash.toString(16);

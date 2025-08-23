@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!validateOIDC(request)) {
       return NextResponse.json(
         { error: "Unauthorized - OIDC token required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!startDate || !endDate) {
       return NextResponse.json(
         { error: "startDate and endDate are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
       return NextResponse.json(
         { error: "Dates must be in YYYY-MM-DD format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (start > end) {
       return NextResponse.json(
         { error: "startDate must be before or equal to endDate" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       default:
         return NextResponse.json(
           { error: `Unknown backfill type: ${type}` },
-          { status: 400 }
+          { status: 400 },
         );
     }
 
@@ -129,7 +129,6 @@ export async function POST(request: NextRequest) {
       results,
       timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error("[backfill-job] Backfill operation failed", {
       component: "backfill-job",
@@ -143,15 +142,12 @@ export async function POST(request: NextRequest) {
         details: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // Only allow POST requests
 export async function GET() {
-  return NextResponse.json(
-    { error: "Method not allowed" },
-    { status: 405 }
-  );
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }

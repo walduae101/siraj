@@ -37,7 +37,9 @@ async function migrateProductsFromGSM() {
   console.log("🔄 Starting product migration from GSM to Firestore...");
 
   try {
-    console.log(`📦 Found ${Object.keys(gsmProducts).length} products in GSM mapping`);
+    console.log(
+      `📦 Found ${Object.keys(gsmProducts).length} products in GSM mapping`,
+    );
 
     // Define product metadata (you may need to adjust these based on your actual products)
     const productMetadata = {
@@ -45,55 +47,55 @@ async function migrateProductsFromGSM() {
         title: "Top-up 20 pts",
         type: "one_time" as const,
         points: 20,
-        priceUSD: 2.00,
+        priceUSD: 2.0,
       },
       "458255405240287232": {
-        title: "Top-up 50 pts", 
+        title: "Top-up 50 pts",
         type: "one_time" as const,
         points: 50,
-        priceUSD: 5.00,
+        priceUSD: 5.0,
       },
       "458255787102310400": {
         title: "Top-up 150 pts",
         type: "one_time" as const,
         points: 150,
-        priceUSD: 15.00,
+        priceUSD: 15.0,
       },
       "458256188073574400": {
         title: "Top-up 500 pts",
         type: "one_time" as const,
         points: 500,
-        priceUSD: 50.00,
+        priceUSD: 50.0,
       },
       "458253675014389760": {
         title: "Basic Monthly Subscription",
         type: "subscription" as const,
         points: 50,
-        priceUSD: 5.00,
+        priceUSD: 5.0,
       },
       "458254106331451392": {
         title: "Pro Monthly Subscription",
         type: "subscription" as const,
         points: 150,
-        priceUSD: 15.00,
+        priceUSD: 15.0,
       },
       "458254569336479744": {
         title: "Basic Annual Subscription",
         type: "subscription" as const,
         points: 600,
-        priceUSD: 50.00,
+        priceUSD: 50.0,
       },
       "458255036057649152": {
         title: "Pro Annual Subscription",
         type: "subscription" as const,
         points: 1800,
-        priceUSD: 150.00,
+        priceUSD: 150.0,
       },
       "321641745958305792": {
         title: "Top-up 50 pts (Legacy)",
         type: "one_time" as const,
         points: 50,
-        priceUSD: 5.00,
+        priceUSD: 5.0,
       },
     };
 
@@ -105,10 +107,13 @@ async function migrateProductsFromGSM() {
 
     // Create products in Firestore
     for (const [paynowProductId, points] of Object.entries(gsmProducts)) {
-      const metadata = productMetadata[paynowProductId as keyof typeof productMetadata];
-      
+      const metadata =
+        productMetadata[paynowProductId as keyof typeof productMetadata];
+
       if (!metadata) {
-        console.warn(`⚠️  No metadata found for product ${paynowProductId}, skipping`);
+        console.warn(
+          `⚠️  No metadata found for product ${paynowProductId}, skipping`,
+        );
         skippedCount++;
         continue;
       }
@@ -156,7 +161,9 @@ async function migrateProductsFromGSM() {
     console.log("\n📊 Migration Summary:");
     console.log(`   Created: ${createdCount} products`);
     console.log(`   Skipped: ${skippedCount} products`);
-    console.log(`   Total: ${Object.keys(gsmProducts).length} products processed`);
+    console.log(
+      `   Total: ${Object.keys(gsmProducts).length} products processed`,
+    );
 
     // Verify migration
     console.log("\n🔍 Verifying migration...");
@@ -169,11 +176,11 @@ async function migrateProductsFromGSM() {
 
     // Check for any missing products
     const firestoreProductIds = new Set(
-      firestoreProducts.docs.map(doc => doc.data().paynowProductId)
+      firestoreProducts.docs.map((doc) => doc.data().paynowProductId),
     );
 
     const missingProducts = Object.keys(gsmProducts).filter(
-      id => !firestoreProductIds.has(id)
+      (id) => !firestoreProductIds.has(id),
     );
 
     if (missingProducts.length > 0) {
@@ -187,7 +194,6 @@ async function migrateProductsFromGSM() {
     console.log("1. Set PRODUCT_SOT=firestore in your environment");
     console.log("2. Test webhook processing with new product catalog");
     console.log("3. Monitor logs for 'product_source' field");
-
   } catch (error) {
     console.error("❌ Migration failed:", error);
     process.exit(1);

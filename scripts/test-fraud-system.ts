@@ -2,7 +2,7 @@
 
 /**
  * Fraud System Test Suite
- * 
+ *
  * Tests all fraud detection functionality including:
  * - Risk evaluation
  * - Velocity tracking
@@ -12,11 +12,11 @@
  */
 
 import { getConfig } from "../src/server/config";
+import { getDb } from "../src/server/firebase/admin-lazy";
+import { botDefenseService } from "../src/server/services/botDefense";
+import { listsService } from "../src/server/services/lists";
 import { riskEngine } from "../src/server/services/riskEngine";
 import { velocityService } from "../src/server/services/velocity";
-import { listsService } from "../src/server/services/lists";
-import { botDefenseService } from "../src/server/services/botDefense";
-import { getDb } from "../src/server/firebase/admin-lazy";
 
 const config = getConfig();
 
@@ -75,9 +75,12 @@ class FraudSystemTester {
         expected: 4,
         actual: counts2.uid.minute,
       });
-
     } catch (error) {
-      this.addResult("Velocity Tracking", false, error instanceof Error ? error.message : "Unknown error");
+      this.addResult(
+        "Velocity Tracking",
+        false,
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   }
 
@@ -123,17 +126,21 @@ class FraudSystemTester {
         { type: "uid", value: "trusted_user_123" },
         { type: "ip", value: "192.168.1.300" },
       ]);
-      this.addResult("Bulk List Check", 
+      this.addResult(
+        "Bulk List Check",
         bulkResult.denied.length === 1 && bulkResult.allowed.length === 1,
-        bulkResult
+        bulkResult,
       );
 
       // Cleanup
       await listsService.removeFromDenylist("ip", "192.168.1.200");
       await listsService.removeFromAllowlist("uid", "trusted_user_123");
-
     } catch (error) {
-      this.addResult("List Management", false, error instanceof Error ? error.message : "Unknown error");
+      this.addResult(
+        "List Management",
+        false,
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   }
 
@@ -145,11 +152,16 @@ class FraudSystemTester {
       const result1 = await botDefenseService.verify({
         uid: this.testUid,
         ip: this.testIp,
-        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         recaptchaToken: "test_token_123",
         appCheckToken: "test_app_check_123",
       });
-      this.addResult("Bot Defense Basic", result1.isHuman !== undefined, result1);
+      this.addResult(
+        "Bot Defense Basic",
+        result1.isHuman !== undefined,
+        result1,
+      );
 
       // Test 2: Bot detection
       const result2 = await botDefenseService.verify({
@@ -166,12 +178,16 @@ class FraudSystemTester {
       const result3 = await botDefenseService.verify({
         uid: this.testUid,
         ip: this.testIp,
-        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       });
       this.addResult("Bot Defense Cache", result3.cached === true, result3);
-
     } catch (error) {
-      this.addResult("Bot Defense", false, error instanceof Error ? error.message : "Unknown error");
+      this.addResult(
+        "Bot Defense",
+        false,
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   }
 
@@ -184,7 +200,8 @@ class FraudSystemTester {
         uid: this.testUid,
         email: "test@example.com",
         ip: this.testIp,
-        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         accountAgeMinutes: 60,
         orderIntent: {
           productId: "test_product",
@@ -192,9 +209,10 @@ class FraudSystemTester {
           price: 10,
         },
       });
-      this.addResult("Risk Engine Basic", 
+      this.addResult(
+        "Risk Engine Basic",
         decision1.action && decision1.score !== undefined,
-        decision1
+        decision1,
       );
 
       // Test 2: High-risk scenario
@@ -210,24 +228,25 @@ class FraudSystemTester {
           price: 1000, // High value
         },
       });
-      this.addResult("Risk Engine High Risk", 
-        decision2.score > 50,
-        {
-          score: decision2.score,
-          action: decision2.action,
-          reasons: decision2.reasons,
-        }
-      );
+      this.addResult("Risk Engine High Risk", decision2.score > 50, {
+        score: decision2.score,
+        action: decision2.action,
+        reasons: decision2.reasons,
+      });
 
       // Test 3: Statistics
       const stats = await riskEngine.getDecisionStats(1);
-      this.addResult("Risk Engine Stats", 
+      this.addResult(
+        "Risk Engine Stats",
         stats.total > 0 && stats.avgScore !== undefined,
-        stats
+        stats,
       );
-
     } catch (error) {
-      this.addResult("Risk Engine", false, error instanceof Error ? error.message : "Unknown error");
+      this.addResult(
+        "Risk Engine",
+        false,
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   }
 
@@ -239,37 +258,46 @@ class FraudSystemTester {
 
       // Test 1: Create manual review
       const reviewId = `test_review_${Date.now()}`;
-      await db.collection("manualReviews").doc(reviewId).set({
-        decisionId: "test_decision_123",
-        uid: this.testUid,
-        status: "open",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        decision: {
-          action: "queue_review",
-          score: 85,
-          reasons: ["high_velocity", "new_account"],
-        },
-        checkout: {
-          productId: "test_product",
-          quantity: 1,
-          price: 50,
-        },
-        requiresReversal: false,
-      });
+      await db
+        .collection("manualReviews")
+        .doc(reviewId)
+        .set({
+          decisionId: "test_decision_123",
+          uid: this.testUid,
+          status: "open",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          decision: {
+            action: "queue_review",
+            score: 85,
+            reasons: ["high_velocity", "new_account"],
+          },
+          checkout: {
+            productId: "test_product",
+            quantity: 1,
+            price: 50,
+          },
+          requiresReversal: false,
+        });
       this.addResult("Create Manual Review", true);
 
       // Test 2: Get recent decisions
-      const recentDecisions = await riskEngine.getRecentDecisions(this.testUid, 5);
+      const recentDecisions = await riskEngine.getRecentDecisions(
+        this.testUid,
+        5,
+      );
       this.addResult("Get Recent Decisions", Array.isArray(recentDecisions), {
         count: recentDecisions.length,
       });
 
       // Cleanup
       await db.collection("manualReviews").doc(reviewId).delete();
-
     } catch (error) {
-      this.addResult("Manual Reviews", false, error instanceof Error ? error.message : "Unknown error");
+      this.addResult(
+        "Manual Reviews",
+        false,
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   }
 
@@ -282,7 +310,8 @@ class FraudSystemTester {
         uid: this.testUid,
         email: "test@example.com",
         ip: this.testIp,
-        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        userAgent:
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         accountAgeMinutes: 30,
         orderIntent: {
           productId: "test_product",
@@ -293,33 +322,45 @@ class FraudSystemTester {
         appCheckToken: "test_app_check",
       });
 
-      this.addResult("Integration Full Flow", 
-        decision.action && decision.score !== undefined && decision.reasons.length > 0,
+      this.addResult(
+        "Integration Full Flow",
+        decision.action &&
+          decision.score !== undefined &&
+          decision.reasons.length > 0,
         {
           action: decision.action,
           score: decision.score,
           reasons: decision.reasons,
           confidence: decision.confidence,
-        }
+        },
       );
 
       // Test 2: Configuration validation
-      const fraudConfig = config.fraud;
-      this.addResult("Configuration Validation",
+      const fraudConfig = (await config).fraud;
+      this.addResult(
+        "Configuration Validation",
         fraudConfig.checkoutCaps.uid.perMinute > 0 &&
-        fraudConfig.riskThresholds.allow < fraudConfig.riskThresholds.deny,
+          fraudConfig.riskThresholds.allow < fraudConfig.riskThresholds.deny,
         {
           caps: fraudConfig.checkoutCaps,
           thresholds: fraudConfig.riskThresholds,
-        }
+        },
       );
-
     } catch (error) {
-      this.addResult("Integration", false, error instanceof Error ? error.message : "Unknown error");
+      this.addResult(
+        "Integration",
+        false,
+        error instanceof Error ? error.message : "Unknown error",
+      );
     }
   }
 
-  private addResult(name: string, passed: boolean, details?: any, error?: string): void {
+  private addResult(
+    name: string,
+    passed: boolean,
+    details?: any,
+    error?: string,
+  ): void {
     this.results.push({
       name,
       passed,
@@ -330,26 +371,28 @@ class FraudSystemTester {
 
   private printResults(): void {
     console.log("\n📋 Test Results Summary");
-    console.log("=" .repeat(50));
+    console.log("=".repeat(50));
 
-    const passed = this.results.filter(r => r.passed).length;
+    const passed = this.results.filter((r) => r.passed).length;
     const total = this.results.length;
 
     this.results.forEach((result, index) => {
       const status = result.passed ? "✅" : "❌";
       console.log(`${status} ${index + 1}. ${result.name}`);
-      
+
       if (!result.passed && result.error) {
         console.log(`   Error: ${result.error}`);
       }
-      
+
       if (result.details) {
         console.log(`   Details: ${JSON.stringify(result.details, null, 2)}`);
       }
     });
 
-    console.log("\n" + "=".repeat(50));
-    console.log(`🎯 Overall: ${passed}/${total} tests passed (${Math.round((passed/total)*100)}%)`);
+    console.log(`\n${"=".repeat(50)}`);
+    console.log(
+      `🎯 Overall: ${passed}/${total} tests passed (${Math.round((passed / total) * 100)}%)`,
+    );
 
     if (passed === total) {
       console.log("🎉 All tests passed! Fraud system is working correctly.");
@@ -361,22 +404,36 @@ class FraudSystemTester {
 
   async cleanup(): Promise<void> {
     console.log("\n🧹 Cleaning up test data...");
-    
+
     try {
       const db = await getDb();
-      
+
       // Clean up test velocity data
-      const dateKey = new Date().toISOString().split('T')[0]?.replace(/-/g, '') || '';
-      await db.collection("fraudSignals").doc(dateKey).collection(this.testUid).doc("counters").delete();
-      await db.collection("fraudSignals").doc(dateKey).collection(this.testIp).doc("counters").delete();
+      const dateKey =
+        new Date().toISOString().split("T")[0]?.replace(/-/g, "") || "";
+      await db
+        .collection("fraudSignals")
+        .doc(dateKey)
+        .collection(this.testUid)
+        .doc("counters")
+        .delete();
+      await db
+        .collection("fraudSignals")
+        .doc(dateKey)
+        .collection(this.testIp)
+        .doc("counters")
+        .delete();
 
       // Clean up test risk decisions
-      const decisions = await db.collection("riskDecisions")
+      const decisions = await db
+        .collection("riskDecisions")
         .where("metadata.uid", "==", this.testUid)
         .get();
-      
+
       const batch = db.batch();
-      decisions.docs.forEach(doc => batch.delete(doc.ref));
+      for (const doc of decisions.docs) {
+        batch.delete(doc.ref);
+      }
       await batch.commit();
 
       console.log("✅ Test data cleaned up successfully");
@@ -389,7 +446,7 @@ class FraudSystemTester {
 // Main execution
 async function main() {
   const tester = new FraudSystemTester();
-  
+
   try {
     await tester.runAllTests();
   } catch (error) {

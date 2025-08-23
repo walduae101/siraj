@@ -11,7 +11,11 @@ export class MetricsService {
   /**
    * Record a counter metric
    */
-  static recordCounter(name: string, value: number, labels: MetricLabels = {}): void {
+  static recordCounter(
+    name: string,
+    value: number,
+    labels: MetricLabels = {},
+  ): void {
     console.log("[metrics] counter", {
       component: "metrics",
       metric_type: "counter",
@@ -25,7 +29,11 @@ export class MetricsService {
   /**
    * Record a histogram metric
    */
-  static recordHistogram(name: string, value: number, labels: MetricLabels = {}): void {
+  static recordHistogram(
+    name: string,
+    value: number,
+    labels: MetricLabels = {},
+  ): void {
     console.log("[metrics] histogram", {
       component: "metrics",
       metric_type: "histogram",
@@ -39,7 +47,11 @@ export class MetricsService {
   /**
    * Record a gauge metric
    */
-  static recordGauge(name: string, value: number, labels: MetricLabels = {}): void {
+  static recordGauge(
+    name: string,
+    value: number,
+    labels: MetricLabels = {},
+  ): void {
     console.log("[metrics] gauge", {
       component: "metrics",
       metric_type: "gauge",
@@ -52,11 +64,17 @@ export class MetricsService {
 
   // Phase 1-3: Core metrics
   static recordWebhookReceived(eventType: string, source: string): void {
-    this.recordCounter("webhook_received", 1, { event_type: eventType, source });
+    this.recordCounter("webhook_received", 1, {
+      event_type: eventType,
+      source,
+    });
   }
 
   static recordWebhookProcessed(eventType: string, status: string): void {
-    this.recordCounter("webhook_processed", 1, { event_type: eventType, status });
+    this.recordCounter("webhook_processed", 1, {
+      event_type: eventType,
+      status,
+    });
   }
 
   static recordWalletCredit(uid: string, amount: number, source: string): void {
@@ -70,13 +88,18 @@ export class MetricsService {
   }
 
   static recordSubscriptionRenewal(uid: string, productId: string): void {
-    this.recordCounter("subscription_renewal", 1, { uid, product_id: productId });
+    this.recordCounter("subscription_renewal", 1, {
+      uid,
+      product_id: productId,
+    });
   }
 
   // Phase 4: Revenue Assurance metrics
   static recordWalletInvariantViolation(uid: string, delta: number): void {
     this.recordCounter("wallet_invariant_violations", 1, { uid });
-    this.recordHistogram("reconciliation_adjustment_amount", Math.abs(delta), { uid });
+    this.recordHistogram("reconciliation_adjustment_amount", Math.abs(delta), {
+      uid,
+    });
   }
 
   static recordBackfillProcessedEvents(count: number, type: string): void {
@@ -85,33 +108,64 @@ export class MetricsService {
 
   // Phase 5: Fraud & Abuse metrics
   static recordRateLimitBlocked(action: string, userRole: string): void {
-    this.recordCounter("rate_limit_blocked", 1, { action, user_role: userRole });
+    this.recordCounter("rate_limit_blocked", 1, {
+      action,
+      user_role: userRole,
+    });
   }
 
-  static recordRiskHoldCreated(uid: string, riskScore: number, eventType: string): void {
+  static recordRiskHoldCreated(
+    uid: string,
+    riskScore: number,
+    eventType: string,
+  ): void {
     this.recordCounter("risk_hold_created", 1, { uid, event_type: eventType });
-    this.recordHistogram("risk_hold_score", riskScore, { uid, event_type: eventType });
+    this.recordHistogram("risk_hold_score", riskScore, {
+      uid,
+      event_type: eventType,
+    });
   }
 
   static recordRiskHoldReleased(uid: string, riskEventId: string): void {
-    this.recordCounter("risk_hold_released", 1, { uid, risk_event_id: riskEventId });
+    this.recordCounter("risk_hold_released", 1, {
+      uid,
+      risk_event_id: riskEventId,
+    });
   }
 
   static recordRiskHoldReversed(uid: string, riskEventId: string): void {
-    this.recordCounter("risk_hold_reversed", 1, { uid, risk_event_id: riskEventId });
+    this.recordCounter("risk_hold_reversed", 1, {
+      uid,
+      risk_event_id: riskEventId,
+    });
   }
 
   static recordRiskHoldOpen(count: number): void {
     this.recordGauge("risk_hold_open", count);
   }
 
-  static recordPromoCodeRedeemed(promoId: string, uid: string, points: number): void {
+  static recordPromoCodeRedeemed(
+    promoId: string,
+    uid: string,
+    points: number,
+  ): void {
     this.recordCounter("promo_code_redeemed", 1, { promo_id: promoId, uid });
-    this.recordHistogram("promo_code_points", points, { promo_id: promoId, uid });
+    this.recordHistogram("promo_code_points", points, {
+      promo_id: promoId,
+      uid,
+    });
   }
 
-  static recordPromoCodeAbuse(promoId: string, uid: string, reason: string): void {
-    this.recordCounter("promo_code_abuse", 1, { promo_id: promoId, uid, reason });
+  static recordPromoCodeAbuse(
+    promoId: string,
+    uid: string,
+    reason: string,
+  ): void {
+    this.recordCounter("promo_code_abuse", 1, {
+      promo_id: promoId,
+      uid,
+      reason,
+    });
   }
 
   /**

@@ -1,12 +1,12 @@
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 import { features } from "../../config/features";
+import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { checkoutRouter } from "./routers/checkout";
+import { fraudRouter } from "./routers/fraud";
 import { paynowRouter } from "./routers/paynow";
 import { pointsRouter } from "./routers/points";
-import { adminRouter } from "./routers/admin";
-import { fraudRouter } from "./routers/fraud";
 
 export const appRouter = createTRPCRouter({
   paynow: paynowRouter,

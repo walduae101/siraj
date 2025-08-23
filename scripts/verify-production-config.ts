@@ -187,16 +187,17 @@ async function main() {
     // Validate the sample config
     const parsed = ConfigSchema.parse(sampleConfig);
     console.log("✅ Sample configuration is valid!");
-    
+
     // Check if we can read from environment
     const hasEnvConfig = !!(
-      process.env.PAYNOW_API_KEY ||
-      process.env.FIREBASE_PROJECT_ID
+      process.env.PAYNOW_API_KEY || process.env.FIREBASE_PROJECT_ID
     );
-    
+
     if (hasEnvConfig) {
-      console.log("\n📋 Environment variables detected. Building config from env...");
-      
+      console.log(
+        "\n📋 Environment variables detected. Building config from env...",
+      );
+
       // Build config from environment (similar to getConfigFromEnv)
       const envConfig = {
         paynow: {
@@ -207,7 +208,8 @@ async function main() {
         },
         subscriptions: {
           plans: JSON.parse(process.env.SUB_PLAN_POINTS_JSON || "{}"),
-          pointsKind: (process.env.SUB_POINTS_KIND as "paid" | "promo") || "promo",
+          pointsKind:
+            (process.env.SUB_POINTS_KIND as "paid" | "promo") || "promo",
           pointsExpireDays: Number(process.env.SUB_POINTS_EXPIRE_DAYS) || 365,
           topupLazy: process.env.SUB_TOPUP_LAZY === "1",
           cronSecret: process.env.CRON_SECRET || "",
@@ -230,7 +232,8 @@ async function main() {
           PAYNOW_LIVE: process.env.PAYNOW_LIVE === "1",
           STUB_CHECKOUT: process.env.STUB_CHECKOUT === "1",
           webhookMode: (process.env.WEBHOOK_MODE as "sync" | "queue") || "sync",
-          PRODUCT_SOT: (process.env.PRODUCT_SOT as "firestore" | "gsm") || "firestore",
+          PRODUCT_SOT:
+            (process.env.PRODUCT_SOT as "firestore" | "gsm") || "firestore",
           ALLOW_NEGATIVE_BALANCE: process.env.ALLOW_NEGATIVE_BALANCE === "1",
           RECONCILIATION_ENABLED: process.env.RECONCILIATION_ENABLED !== "0",
           BACKFILL_ENABLED: process.env.BACKFILL_ENABLED !== "0",
@@ -253,11 +256,13 @@ async function main() {
           },
           routes: {
             webhook: {
-              requestsPerMinute: Number(process.env.RATE_LIMIT_WEBHOOK_RPM) || 300,
+              requestsPerMinute:
+                Number(process.env.RATE_LIMIT_WEBHOOK_RPM) || 300,
               burstSize: Number(process.env.RATE_LIMIT_WEBHOOK_BURST) || 100,
             },
             paywall: {
-              requestsPerMinute: Number(process.env.RATE_LIMIT_PAYWALL_RPM) || 60,
+              requestsPerMinute:
+                Number(process.env.RATE_LIMIT_PAYWALL_RPM) || 60,
               burstSize: Number(process.env.RATE_LIMIT_PAYWALL_BURST) || 30,
             },
             promo: {
@@ -265,13 +270,14 @@ async function main() {
               burstSize: Number(process.env.RATE_LIMIT_PROMO_BURST) || 5,
             },
             admin: {
-              requestsPerMinute: Number(process.env.RATE_LIMIT_ADMIN_ROUTE_RPM) || 3,
+              requestsPerMinute:
+                Number(process.env.RATE_LIMIT_ADMIN_ROUTE_RPM) || 3,
               burstSize: Number(process.env.RATE_LIMIT_ADMIN_ROUTE_BURST) || 1,
             },
           },
         },
       };
-      
+
       try {
         const parsedEnv = ConfigSchema.parse(envConfig);
         console.log("✅ Environment-based configuration is valid!");
@@ -282,13 +288,16 @@ async function main() {
         }
       }
     }
-    
+
     console.log("\n📝 Required configuration structure:");
     console.log(JSON.stringify(sampleConfig, null, 2));
-    
-    console.log("\n⚠️  IMPORTANT: Make sure your production config includes the 'rateLimit' section!");
-    console.log("This was added in Phase 5 and is required for the application to work properly.");
-    
+
+    console.log(
+      "\n⚠️  IMPORTANT: Make sure your production config includes the 'rateLimit' section!",
+    );
+    console.log(
+      "This was added in Phase 5 and is required for the application to work properly.",
+    );
   } catch (error) {
     console.error("❌ Configuration validation failed:");
     if (error instanceof z.ZodError) {

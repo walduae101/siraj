@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getConfig } from "~/server/config";
 import { RiskManagementService } from "~/server/services/riskManagement";
 import { WalletLedgerService } from "~/server/services/walletLedger";
-import { getConfig } from "~/server/config";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const config = getConfig();
@@ -10,10 +10,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Validate admin authentication (in production, implement proper admin auth)
     const authHeader = request.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -22,25 +19,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!holdId || !action || !reason) {
       return NextResponse.json(
         { error: "Missing required fields: holdId, action, reason" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!["release", "reverse", "ban"].includes(action)) {
       return NextResponse.json(
         { error: "Invalid action. Must be 'release', 'reverse', or 'ban'" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get the risk hold
     const openHolds = await RiskManagementService.getOpenRiskHolds();
-    const hold = openHolds.find(h => h.id === holdId);
+    const hold = openHolds.find((h) => h.id === holdId);
 
     if (!hold) {
       return NextResponse.json(
         { error: "Risk hold not found or already resolved" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -68,7 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       holdId,
       decision,
       "admin",
-      actionReason
+      actionReason,
     );
 
     // Update ledger entry status if we have a ledger entry ID
@@ -90,7 +87,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       decision,
       reason: actionReason,
     });
-
   } catch (error) {
     console.error("[admin-risk] Error performing risk hold action", {
       component: "admin_risk",
@@ -99,7 +95,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(
       { error: "Failed to perform risk hold action" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

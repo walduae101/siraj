@@ -23,8 +23,8 @@ type SubDoc = {
 };
 
 export const subscriptions = {
-  getPlan(productId: string) {
-    return getSubscriptionPlan(productId);
+  async getPlan(productId: string) {
+    return await getSubscriptionPlan(productId);
   },
 
   /**
@@ -32,12 +32,12 @@ export const subscriptions = {
    * Creates/updates the subscription doc AND credits the first cycle immediately.
    */
   async recordPurchase(uid: string, productId: string, orderId: string) {
-    const cfg = getConfig();
+    const cfg = await getConfig();
     if (!cfg.features.FEAT_SUB_POINTS) {
       return { ok: false as const, reason: "feature-disabled" };
     }
 
-    const plan = this.getPlan(productId);
+    const plan = await this.getPlan(productId);
     if (!plan) return { ok: false as const, reason: "unknown-plan" };
 
     const db = getFirestore();
@@ -114,7 +114,7 @@ export const subscriptions = {
    * Credit **one** user's due sub(s) if nextCreditAt <= now.
    */
   async creditDueForUser(uid: string) {
-    const cfg = getConfig();
+    const cfg = await getConfig();
     if (!cfg.features.FEAT_SUB_POINTS) {
       return { ok: true as const, credited: 0 };
     }
@@ -130,10 +130,10 @@ export const subscriptions = {
 
     for (const doc of qs.docs) {
       const sub = doc.data() as SubDoc;
-      const plan = this.getPlan(sub.productId);
+      const plan = await this.getPlan(sub.productId);
       if (!plan) continue;
 
-      const cfg = getConfig();
+      const cfg = await getConfig();
       const kind = cfg.subscriptions.pointsKind;
       const expireDays = cfg.subscriptions.pointsExpireDays;
 
@@ -164,7 +164,7 @@ export const subscriptions = {
    * Cron: credit all due across the project (batched).
    */
   async creditAllDue(limit = 300) {
-    const cfg = getConfig();
+    const cfg = await getConfig();
     if (!cfg.features.FEAT_SUB_POINTS) {
       return { ok: true as const, processed: 0 };
     }
@@ -185,10 +185,10 @@ export const subscriptions = {
       const sub = doc.data() as SubDoc;
       const uid = doc.ref.parent.parent?.id;
       if (!uid) continue;
-      const plan = this.getPlan(sub.productId);
+      const plan = await this.getPlan(sub.productId);
       if (!plan) continue;
 
-      const cfg = getConfig();
+      const cfg = await getConfig();
       const kind = cfg.subscriptions.pointsKind;
       const expireDays = cfg.subscriptions.pointsExpireDays;
 
@@ -236,7 +236,7 @@ export const subscriptions = {
     subscriptionData: Record<string, unknown>,
     uid: string,
   ) {
-    const cfg = getConfig();
+    const cfg = await getConfig();
     if (!cfg.features.FEAT_SUB_POINTS) {
       return { ok: false, reason: "feature-disabled" };
     }
@@ -252,7 +252,7 @@ export const subscriptions = {
       throw new Error("Missing product ID or order ID in subscription data");
     }
 
-    const plan = this.getPlan(productId);
+    const plan = await this.getPlan(productId);
     if (!plan) {
       throw new Error(`Unknown subscription plan: ${productId}`);
     }

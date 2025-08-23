@@ -2,15 +2,15 @@ import crypto from "node:crypto";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { withRateLimit } from "~/middleware/ratelimit";
 import { getConfig } from "~/server/config";
 import { db } from "~/server/firebase/admin";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { pointsService } from "~/server/services/points";
+import { ProductCatalogService } from "~/server/services/productCatalog";
 import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
 import { subscriptions } from "~/server/services/subscriptions";
-import { ProductCatalogService } from "~/server/services/productCatalog";
 import { WalletLedgerService } from "~/server/services/walletLedger";
-import { withRateLimit } from "~/middleware/ratelimit";
 
 // PayNow webhook types
 interface PayNowCustomer {
@@ -319,7 +319,7 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
 
   await ensureUserDocument(uid);
 
-  const cfg = getConfig();
+  const cfg = await getConfig();
   let totalCredited = 0;
   const results = [];
 
@@ -335,7 +335,8 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
 
     if (cfg.features.PRODUCT_SOT === "firestore") {
       // Try Firestore first
-      const product = await ProductCatalogService.getProductByPayNowId(productId);
+      const product =
+        await ProductCatalogService.getProductByPayNowId(productId);
       if (product) {
         productPoints = product.points;
         productSource = "firestore";
@@ -343,7 +344,7 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
         firestoreProductId = product.id;
       } else {
         // Fallback to GSM
-        const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+        const gsmProduct = await ProductCatalogService.getProductFromGSM(productId);
         if (gsmProduct) {
           productPoints = gsmProduct.points;
           productSource = "gsm_fallback";
@@ -351,7 +352,7 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
       }
     } else {
       // Use GSM directly
-      const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+      const gsmProduct = await ProductCatalogService.getProductFromGSM(productId);
       if (gsmProduct) {
         productPoints = gsmProduct.points;
         productSource = "gsm";
@@ -362,23 +363,24 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
       const delta = productPoints * quantity;
 
       // Create ledger entry and update balance in single transaction
-      const { ledgerId, newBalance } = await WalletLedgerService.createLedgerEntry(
-        uid,
-        {
-          amount: delta,
-          currency: "POINTS",
-          kind: "purchase",
-          status: "posted",
-          source: {
-            eventId: order.id,
-            orderId: order.pretty_id || order.id,
-            paynowCustomerId: order.customer?.id,
-            productId: firestoreProductId,
-            productVersion,
+      const { ledgerId, newBalance } =
+        await WalletLedgerService.createLedgerEntry(
+          uid,
+          {
+            amount: delta,
+            currency: "POINTS",
+            kind: "purchase",
+            status: "posted",
+            source: {
+              eventId: order.id,
+              orderId: order.pretty_id || order.id,
+              paynowCustomerId: order.customer?.id,
+              productId: firestoreProductId,
+              productVersion,
+            },
           },
-        },
-        "system:webhook"
-      );
+          "system:webhook",
+        );
 
       // Log structured fields for observability
       console.log("[webhook] Order completed", {
@@ -395,9 +397,9 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
       });
 
       totalCredited += delta;
-      results.push({ 
-        productId, 
-        quantity, 
+      results.push({
+        productId,
+        quantity,
         points: delta,
         productSource,
         ledgerId,
@@ -405,7 +407,7 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
     }
 
     // Check if it's a subscription product
-    const plan = subscriptions.getPlan(productId);
+    const plan = await subscriptions.getPlan(productId);
     if (plan) {
       await subscriptions.recordPurchase(
         uid,
@@ -436,7 +438,7 @@ async function handleDeliveryItemAdded(data: PayNowWebhookData) {
 
   await ensureUserDocument(uid);
 
-  const cfg = getConfig();
+  const cfg = await getConfig();
   const productId = String(item.product_id);
   const quantity = Number(item.quantity ?? 1);
 
@@ -456,7 +458,7 @@ async function handleDeliveryItemAdded(data: PayNowWebhookData) {
       firestoreProductId = product.id;
     } else {
       // Fallback to GSM
-      const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+      const gsmProduct = await ProductCatalogService.getProductFromGSM(productId);
       if (gsmProduct) {
         productPoints = gsmProduct.points;
         productSource = "gsm_fallback";
@@ -464,7 +466,7 @@ async function handleDeliveryItemAdded(data: PayNowWebhookData) {
     }
   } else {
     // Use GSM directly
-    const gsmProduct = ProductCatalogService.getProductFromGSM(productId);
+    const gsmProduct = await ProductCatalogService.getProductFromGSM(productId);
     if (gsmProduct) {
       productPoints = gsmProduct.points;
       productSource = "gsm";
@@ -493,7 +495,7 @@ async function handleDeliveryItemAdded(data: PayNowWebhookData) {
         productVersion,
       },
     },
-    "system:webhook"
+    "system:webhook",
   );
 
   // Log structured fields for observability
@@ -558,7 +560,11 @@ async function handleSubscriptionRenewed(data: PayNowWebhookData) {
   //   subscription.id,
   // );
 
-  return { uid, subscriptionId: subscription.id, result: { ok: true, reason: "renewal_processed" } };
+  return {
+    uid,
+    subscriptionId: subscription.id,
+    result: { ok: true, reason: "renewal_processed" },
+  };
 }
 
 // Handle refund events
@@ -597,18 +603,19 @@ async function handleRefund(data: PayNowWebhookData) {
   const originalData = originalEntry.data();
 
   // Create reversal entry
-  const { ledgerId, newBalance } = await WalletLedgerService.createReversalEntry(
-    uid,
-    originalEntry.id,
-    "refund",
-    "system:webhook",
-    "PayNow refund processed"
-  );
+  const { ledgerId, newBalance } =
+    await WalletLedgerService.createReversalEntry(
+      uid,
+      originalEntry.id,
+      "refund",
+      "system:webhook",
+      "PayNow refund processed",
+    );
 
   // Check if balance would go negative
-  const cfg = getConfig();
+  const cfg = await getConfig();
   const negativeBalance = newBalance < 0;
-  
+
   if (negativeBalance && !cfg.features.ALLOW_NEGATIVE_BALANCE) {
     console.warn("[webhook] Refund would create negative balance", {
       user_id: uid,
@@ -678,18 +685,19 @@ async function handleChargeback(data: PayNowWebhookData) {
   const originalData = originalEntry.data();
 
   // Create reversal entry
-  const { ledgerId, newBalance } = await WalletLedgerService.createReversalEntry(
-    uid,
-    originalEntry.id,
-    "chargeback",
-    "system:webhook",
-    "PayNow chargeback processed"
-  );
+  const { ledgerId, newBalance } =
+    await WalletLedgerService.createReversalEntry(
+      uid,
+      originalEntry.id,
+      "chargeback",
+      "system:webhook",
+      "PayNow chargeback processed",
+    );
 
   // Check if balance would go negative
-  const cfg = getConfig();
+  const cfg = await getConfig();
   const negativeBalance = newBalance < 0;
-  
+
   if (negativeBalance && !cfg.features.ALLOW_NEGATIVE_BALANCE) {
     console.warn("[webhook] Chargeback would create negative balance", {
       user_id: uid,
@@ -755,7 +763,7 @@ async function handleWebhook(req: NextRequest) {
     const raw = await req.text();
     console.log("[webhook] Raw body received, length:", raw.length);
 
-    const cfg = getConfig();
+    const cfg = await getConfig();
     console.log(
       "[webhook] Config loaded, has webhook secret:",
       !!cfg.paynow.webhookSecret,

@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
-import { getDb } from "~/server/firebase/admin-lazy";
 import { getConfig } from "~/server/config";
+import { getDb } from "~/server/firebase/admin-lazy";
 
 export interface PromoCode {
   id: string;
@@ -51,7 +51,10 @@ export class PromoGuardService {
    * Hash a promo code with salt
    */
   private static hashCode(code: string, salt: string): string {
-    return crypto.createHash("sha256").update(code + salt).digest("hex");
+    return crypto
+      .createHash("sha256")
+      .update(code + salt)
+      .digest("hex");
   }
 
   /**
@@ -74,7 +77,7 @@ export class PromoGuardService {
       maxPerUser?: number;
       maxPerIpPerDay?: number;
       createdBy: string;
-    }
+    },
   ): Promise<string> {
     const db = await this.getDb();
     const salt = this.generateSalt();
@@ -86,7 +89,9 @@ export class PromoGuardService {
       points,
       usageLimit: options.usageLimit || 1,
       usedBy: [],
-      expiresAt: Timestamp.fromDate(options.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30 days default
+      expiresAt: Timestamp.fromDate(
+        options.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      ), // 30 days default
       minAccountAgeMinutes: options.minAccountAgeMinutes || 0,
       maxPerUser: options.maxPerUser || 1,
       maxPerIpPerDay: options.maxPerIpPerDay || 3,
@@ -114,7 +119,9 @@ export class PromoGuardService {
   /**
    * Redeem a promo code
    */
-  static async redeemPromoCode(request: PromoRedeemRequest): Promise<PromoRedeemResult> {
+  static async redeemPromoCode(
+    request: PromoRedeemRequest,
+  ): Promise<PromoRedeemResult> {
     const db = await this.getDb();
     const config = getConfig();
 
@@ -132,7 +139,7 @@ export class PromoGuardService {
       for (const doc of promoSnapshot.docs) {
         const data = doc.data() as PromoCode;
         const codeHash = this.hashCode(request.promoCode, data.salt);
-        
+
         if (codeHash === data.codeHash) {
           promoCode = data;
           promoId = doc.id;
@@ -205,13 +212,13 @@ export class PromoGuardService {
         // Double-check usage limit in transaction
         const promoRef = db.collection("promoCodes").doc(promoId);
         const promoDoc = await transaction.get(promoRef);
-        
+
         if (!promoDoc.exists) {
           throw new Error("Promo code not found");
         }
 
         const currentPromo = promoDoc.data() as PromoCode;
-        
+
         if (currentPromo.usedBy.length >= currentPromo.usageLimit) {
           throw new Error("Usage limit reached");
         }
@@ -236,18 +243,22 @@ export class PromoGuardService {
         };
         transaction.set(usageRef, usage);
 
-                 // Log successful redemption
-         console.log("[promo-guard] Promo code redeemed", {
-           component: "promo_guard",
-           promo_id: promoId,
-           uid: request.uid,
-           points: promoCode.points,
-           ip: request.ip,
-         });
+        // Log successful redemption
+        console.log("[promo-guard] Promo code redeemed", {
+          component: "promo_guard",
+          promo_id: promoId,
+          uid: request.uid,
+          points: promoCode.points,
+          ip: request.ip,
+        });
 
-         // Record metrics
-         const { MetricsService } = await import("~/server/services/metrics");
-         MetricsService.recordPromoCodeRedeemed(promoId, request.uid, promoCode.points);
+        // Record metrics
+        const { MetricsService } = await import("~/server/services/metrics");
+        MetricsService.recordPromoCodeRedeemed(
+          promoId,
+          request.uid,
+          promoCode.points,
+        );
 
         return {
           success: true,
@@ -256,7 +267,6 @@ export class PromoGuardService {
           usageId: usageRef.id,
         };
       });
-
     } catch (error) {
       console.error("[promo-guard] Error redeeming promo code", {
         component: "promo_guard",
@@ -276,7 +286,7 @@ export class PromoGuardService {
    */
   private static async getAccountAge(uid: string): Promise<number> {
     const db = await this.getDb();
-    
+
     const userDoc = await db.collection("users").doc(uid).get();
     if (!userDoc.exists) {
       return 0;
@@ -296,9 +306,12 @@ export class PromoGuardService {
   /**
    * Get user's usage count for a specific promo code
    */
-  private static async getUserPromoCount(uid: string, promoId: string): Promise<number> {
+  private static async getUserPromoCount(
+    uid: string,
+    promoId: string,
+  ): Promise<number> {
     const db = await this.getDb();
-    
+
     const snapshot = await db
       .collection("promoUsages")
       .where("uid", "==", uid)
@@ -311,10 +324,13 @@ export class PromoGuardService {
   /**
    * Get IP's usage count for a specific promo code in the last 24 hours
    */
-  private static async getIpPromoCount(ip: string, promoId: string): Promise<number> {
+  private static async getIpPromoCount(
+    ip: string,
+    promoId: string,
+  ): Promise<number> {
     const db = await this.getDb();
     const oneDayAgo = Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000);
-    
+
     const snapshot = await db
       .collection("promoUsages")
       .where("ip", "==", ip)
@@ -335,7 +351,7 @@ export class PromoGuardService {
     topUsedCodes: Array<{ promoId: string; usageCount: number }>;
   }> {
     const db = await this.getDb();
-    
+
     // Get total codes
     const totalCodesSnapshot = await db.collection("promoCodes").get();
     const activeCodesSnapshot = await db
@@ -348,7 +364,7 @@ export class PromoGuardService {
 
     // Get top used codes
     const usageCounts: Record<string, number> = {};
-    totalRedemptionsSnapshot.docs.forEach(doc => {
+    totalRedemptionsSnapshot.docs.forEach((doc) => {
       const data = doc.data() as PromoUsage;
       usageCounts[data.promoId] = (usageCounts[data.promoId] || 0) + 1;
     });
@@ -369,9 +385,12 @@ export class PromoGuardService {
   /**
    * Deactivate a promo code
    */
-  static async deactivatePromoCode(promoId: string, deactivatedBy: string): Promise<void> {
+  static async deactivatePromoCode(
+    promoId: string,
+    deactivatedBy: string,
+  ): Promise<void> {
     const db = await this.getDb();
-    
+
     await db.collection("promoCodes").doc(promoId).update({
       active: false,
       deactivatedAt: Timestamp.now(),
@@ -390,15 +409,18 @@ export class PromoGuardService {
    */
   static async getPromoUsageHistory(promoId: string): Promise<PromoUsage[]> {
     const db = await this.getDb();
-    
+
     const snapshot = await db
       .collection("promoUsages")
       .where("promoId", "==", promoId)
       .orderBy("usedAt", "desc")
       .get();
 
-    return snapshot.docs.map(doc => ({
-      ...doc.data(),
-    } as PromoUsage));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          ...doc.data(),
+        }) as PromoUsage,
+    );
   }
 }

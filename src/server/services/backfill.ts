@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { getDb } from "~/server/firebase/admin-lazy";
-import { WalletLedgerService } from "./walletLedger";
 import { ProductCatalogService } from "./productCatalog";
+import { WalletLedgerService } from "./walletLedger";
 
 export interface DataMigration {
   id: string;
@@ -64,7 +64,9 @@ export class BackfillService {
     try {
       // Get webhook events in date range
       const startTimestamp = Timestamp.fromDate(new Date(options.startDate));
-      const endTimestamp = Timestamp.fromDate(new Date(options.endDate + "T23:59:59"));
+      const endTimestamp = Timestamp.fromDate(
+        new Date(options.endDate + "T23:59:59"),
+      );
 
       const eventsSnapshot = await db
         .collection("webhookEvents")
@@ -91,7 +93,7 @@ export class BackfillService {
       for (const eventDoc of events) {
         try {
           const eventData = eventDoc.data();
-          
+
           if (options.dryRun) {
             // Just mark as processed in dry run
             await eventDoc.ref.update({
@@ -111,7 +113,6 @@ export class BackfillService {
             errorCount: errors,
             totalCount: events.length,
           });
-
         } catch (error) {
           errors++;
           console.error("[backfill] Error processing webhook event", {
@@ -151,7 +152,6 @@ export class BackfillService {
         errors,
         total: events.length,
       };
-
     } catch (error) {
       // Mark migration as failed
       await migrationRef.update({
@@ -167,7 +167,10 @@ export class BackfillService {
   /**
    * Process a single webhook event (similar to live webhook processing)
    */
-  private static async processWebhookEvent(eventData: any, eventId: string): Promise<void> {
+  private static async processWebhookEvent(
+    eventData: any,
+    eventId: string,
+  ): Promise<void> {
     const db = await this.getDb();
 
     // Check if already processed
@@ -205,7 +208,10 @@ export class BackfillService {
   /**
    * Process a purchase event
    */
-  private static async processPurchaseEvent(eventData: any, eventId: string): Promise<void> {
+  private static async processPurchaseEvent(
+    eventData: any,
+    eventId: string,
+  ): Promise<void> {
     const { uid, productId, quantity = 1 } = eventData;
 
     if (!uid || !productId) {
@@ -236,7 +242,7 @@ export class BackfillService {
           productVersion: product.version,
         },
       },
-      "system:backfill"
+      "system:backfill",
     );
 
     console.log("[backfill] Processed purchase event", {
@@ -252,14 +258,20 @@ export class BackfillService {
   /**
    * Process a refund event
    */
-  private static async processRefundEvent(eventData: any, eventId: string): Promise<void> {
+  private static async processRefundEvent(
+    eventData: any,
+    eventId: string,
+  ): Promise<void> {
     await this.processReversalEvent(eventData, eventId, "refund");
   }
 
   /**
    * Process a chargeback event
    */
-  private static async processChargebackEvent(eventData: any, eventId: string): Promise<void> {
+  private static async processChargebackEvent(
+    eventData: any,
+    eventId: string,
+  ): Promise<void> {
     await this.processReversalEvent(eventData, eventId, "chargeback");
   }
 
@@ -269,7 +281,7 @@ export class BackfillService {
   private static async processReversalEvent(
     eventData: any,
     eventId: string,
-    kind: "refund" | "chargeback"
+    kind: "refund" | "chargeback",
   ): Promise<void> {
     const { uid, orderId } = eventData;
 
@@ -280,7 +292,9 @@ export class BackfillService {
     // Find the original purchase ledger entry
     const originalEntry = await this.findOriginalPurchaseEntry(uid, orderId);
     if (!originalEntry) {
-      throw new Error(`Original purchase entry not found for order: ${orderId}`);
+      throw new Error(
+        `Original purchase entry not found for order: ${orderId}`,
+      );
     }
 
     // Create reversal entry
@@ -289,7 +303,7 @@ export class BackfillService {
       originalEntry.id,
       kind,
       "system:backfill",
-      `Backfill ${kind} for order ${orderId}`
+      `Backfill ${kind} for order ${orderId}`,
     );
 
     console.log("[backfill] Processed reversal event", {
@@ -307,7 +321,7 @@ export class BackfillService {
    */
   private static async findOriginalPurchaseEntry(
     uid: string,
-    orderId: string
+    orderId: string,
   ): Promise<any> {
     const db = await this.getDb();
 
@@ -368,7 +382,9 @@ export class BackfillService {
     try {
       // Get refund/chargeback events in date range
       const startTimestamp = Timestamp.fromDate(new Date(options.startDate));
-      const endTimestamp = Timestamp.fromDate(new Date(options.endDate + "T23:59:59"));
+      const endTimestamp = Timestamp.fromDate(
+        new Date(options.endDate + "T23:59:59"),
+      );
 
       const eventsSnapshot = await db
         .collection("webhookEvents")
@@ -396,7 +412,7 @@ export class BackfillService {
       for (const eventDoc of events) {
         try {
           const eventData = eventDoc.data();
-          
+
           if (options.dryRun) {
             // Just mark as processed in dry run
             await eventDoc.ref.update({
@@ -406,7 +422,8 @@ export class BackfillService {
             processed++;
           } else {
             // Process the reversal event
-            const kind = eventData.eventType === "ON_REFUND" ? "refund" : "chargeback";
+            const kind =
+              eventData.eventType === "ON_REFUND" ? "refund" : "chargeback";
             await this.processReversalEvent(eventData, eventDoc.id, kind);
             processed++;
           }
@@ -417,7 +434,6 @@ export class BackfillService {
             errorCount: errors,
             totalCount: events.length,
           });
-
         } catch (error) {
           errors++;
           console.error("[backfill] Error processing reversal event", {
@@ -457,7 +473,6 @@ export class BackfillService {
         errors,
         total: events.length,
       };
-
     } catch (error) {
       // Mark migration as failed
       await migrationRef.update({
@@ -475,11 +490,14 @@ export class BackfillService {
    */
   static async getDataMigrations(
     type?: string,
-    limit: number = 50
+    limit = 50,
   ): Promise<DataMigration[]> {
     const db = await this.getDb();
 
-    let query = db.collection("dataMigrations").orderBy("createdAt", "desc").limit(limit);
+    let query = db
+      .collection("dataMigrations")
+      .orderBy("createdAt", "desc")
+      .limit(limit);
 
     if (type) {
       query = query.where("type", "==", type);
@@ -487,9 +505,12 @@ export class BackfillService {
 
     const snapshot = await query.get();
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    } as DataMigration));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        }) as DataMigration,
+    );
   }
 }

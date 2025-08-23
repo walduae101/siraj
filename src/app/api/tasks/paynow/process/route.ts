@@ -365,13 +365,14 @@ async function processSubscriptionEvent(
 // Get points for a product ID
 async function getPointsForProduct(productId: string): Promise<number | null> {
   // First check subscription plans
-  const plan = getSubscriptionPlan(productId);
+  const plan = await getSubscriptionPlan(productId);
   if (plan) {
     return plan.pointsPerCycle;
   }
 
   // Then check regular products via SKU mapping
-  const sku = Object.entries(getConfig().paynow.products).find(
+  const config = await getConfig();
+  const sku = Object.entries(config.paynow.products).find(
     ([_, id]) => id === productId,
   )?.[0];
 

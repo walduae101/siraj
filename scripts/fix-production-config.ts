@@ -5,9 +5,9 @@
  * This script can be used to update the configuration in Secret Manager or generate a fixed config file
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { z } from "zod";
-import * as fs from "fs";
-import * as path from "path";
 
 // Define the rateLimit schema
 const RateLimitConfigSchema = z.object({
@@ -97,37 +97,41 @@ async function main() {
 
   // Check if a config file is provided as argument
   const configPath = process.argv[2];
-  
+
   if (configPath) {
     console.log(`📄 Reading configuration from: ${configPath}`);
-    
+
     try {
-      const configContent = fs.readFileSync(configPath, 'utf-8');
+      const configContent = fs.readFileSync(configPath, "utf-8");
       const config = JSON.parse(configContent);
-      
+
       console.log("✅ Successfully parsed configuration");
-      
+
       // Check if rateLimit is missing
       if (!config.rateLimit) {
-        console.log("⚠️  Missing rateLimit section - adding default configuration");
+        console.log(
+          "⚠️  Missing rateLimit section - adding default configuration",
+        );
         config.rateLimit = defaultRateLimit;
-        
+
         // Also ensure feature flags are set
         config.rateLimitEnabled = config.rateLimitEnabled ?? true;
         config.riskHoldsEnabled = config.riskHoldsEnabled ?? true;
-        
+
         // Write the fixed configuration
-        const outputPath = configPath.replace('.json', '.fixed.json');
+        const outputPath = configPath.replace(".json", ".fixed.json");
         fs.writeFileSync(outputPath, JSON.stringify(config, null, 2));
-        
+
         console.log(`✅ Fixed configuration written to: ${outputPath}`);
         console.log("\n📋 Next steps:");
         console.log("1. Review the fixed configuration");
-        console.log("2. Update your Secret Manager or config file with the fixed version");
+        console.log(
+          "2. Update your Secret Manager or config file with the fixed version",
+        );
         console.log("3. Restart/redeploy your application");
       } else {
         console.log("✅ Configuration already has rateLimit section");
-        
+
         // Validate the rateLimit section
         try {
           RateLimitConfigSchema.parse(config.rateLimit);
@@ -143,14 +147,22 @@ async function main() {
     console.log("📝 Generating default rateLimit configuration...\n");
     console.log("Add this to your production configuration:\n");
     console.log(JSON.stringify({ rateLimit: defaultRateLimit }, null, 2));
-    
+
     console.log("\n📋 You should also ensure these feature flags are set:");
-    console.log(JSON.stringify({
-      rateLimitEnabled: true,
-      riskHoldsEnabled: true,
-    }, null, 2));
-    
-    console.log("\n💡 Usage: tsx scripts/fix-production-config.ts <path-to-config.json>");
+    console.log(
+      JSON.stringify(
+        {
+          rateLimitEnabled: true,
+          riskHoldsEnabled: true,
+        },
+        null,
+        2,
+      ),
+    );
+
+    console.log(
+      "\n💡 Usage: tsx scripts/fix-production-config.ts <path-to-config.json>",
+    );
   }
 }
 

@@ -1,0 +1,51 @@
+# API Keys Setup Checklist
+
+## ✅ Already Configured
+- [x] PayNow API Key: pnapi_v1_DAMjmqeD4F95QAdMnRsAysJZpv1N1jPAiXXXGwic4HcH
+- [x] PayNow Webhook Secret: pn-c5bb14674f5e437c99873be4648e1ab6
+- [x] PayNow Store ID: 321641745957789696
+
+## ⚠️ Need to Configure
+
+### PayNow Products (Required)
+- [ ] 20 Points Product ID: _________________
+- [ ] 50 Points Product ID: _________________
+- [ ] 150 Points Product ID: _________________
+- [ ] 500 Points Product ID: _________________
+
+### Google OAuth (Required)
+- [ ] Google Client ID: _________________
+- [ ] Google Client Secret: _________________
+- [ ] NextAuth URL: _________________
+
+### Firebase (Required)
+- [ ] Firebase Project ID: _________________
+- [ ] Firebase Service Account JSON: _________________
+
+### OpenAI (Optional)
+- [ ] OpenAI API Key: _________________
+
+### Cron Secret (Required)
+- [ ] Generated Cron Secret: _________________
+
+### Optional Security
+- [ ] reCAPTCHA Site Key: _________________
+- [ ] reCAPTCHA Project ID: _________________
+- [ ] App Check Public Key: _________________
+
+## 🔧 Setup Steps
+1. [ ] Generate cron secret using PowerShell
+2. [ ] Create PayNow products and get IDs
+3. [ ] Create Google OAuth credentials
+4. [ ] Download Firebase service account
+5. [ ] Create OpenAI API key
+6. [ ] Update config.json with all values
+7. [ ] Upload to Google Secret Manager
+8. [ ] Test application
+
+## 📝 Notes
+- PayNow products need to be created in merchant portal
+- Google OAuth needs redirect URI: https://your-domain.com/api/auth/callback/google
+- Firebase service account JSON should be the entire file content
+- Cron secret should be 64 characters long
+- All secrets should be uploaded to Google Secret Manager for production

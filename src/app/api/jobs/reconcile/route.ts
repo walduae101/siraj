@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!validateOIDC(request)) {
       return NextResponse.json(
         { error: "Unauthorized - OIDC token required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
       results,
       timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error("[reconcile-job] Reconciliation failed", {
       component: "reconcile-job",
@@ -85,15 +84,12 @@ export async function POST(request: NextRequest) {
         details: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 // Only allow POST requests
 export async function GET() {
-  return NextResponse.json(
-    { error: "Method not allowed" },
-    { status: 405 }
-  );
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }

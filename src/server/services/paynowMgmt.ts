@@ -10,8 +10,8 @@ function clean(key: string) {
   return (key ?? "").replace(/["'\r\n]/g, "").trim();
 }
 
-function headers() {
-  const cfg = getConfig();
+async function headers() {
+  const cfg = await getConfig();
   const apiKey = clean(cfg.paynow.apiKey);
   if (!apiKey) throw new Error("PayNow API key missing in config");
   return {
@@ -35,11 +35,11 @@ export async function ensureCustomerId(
   }
 
   // Create a customer (management API)
-  const cfg = getConfig();
+  const cfg = await getConfig();
   const storeId = clean(cfg.paynow.storeId);
   const res = await fetch(`${API}/v1/stores/${storeId}/customers`, {
     method: "POST",
-    headers: headers(),
+    headers: await headers(),
     body: JSON.stringify({
       name: opts.name || uid,
       metadata: { uid, email: opts.email },
@@ -106,11 +106,11 @@ export async function createCheckout(args: {
     ],
   };
 
-  const cfg = getConfig();
+  const cfg = await getConfig();
   const storeId = clean(cfg.paynow.storeId);
   const res = await fetch(`${API}/v1/stores/${storeId}/checkouts`, {
     method: "POST",
-    headers: headers(),
+    headers: await headers(),
     body: JSON.stringify(body),
   });
 
@@ -128,10 +128,10 @@ export async function createCheckout(args: {
 
 // Get order (to verify on success page if needed)
 export async function getOrder(orderId: string) {
-  const cfg = getConfig();
+  const cfg = await getConfig();
   const storeId = clean(cfg.paynow.storeId);
   const res = await fetch(`${API}/v1/stores/${storeId}/orders/${orderId}`, {
-    headers: headers(),
+    headers: await headers(),
   });
 
   if (!res.ok) {

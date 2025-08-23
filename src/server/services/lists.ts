@@ -1,5 +1,5 @@
-import { getDb } from "~/server/firebase/admin-lazy";
 import { TRPCError } from "@trpc/server";
+import { getDb } from "~/server/firebase/admin-lazy";
 
 export type ListType = "ip" | "uid" | "emailDomain" | "device" | "bin";
 
@@ -19,22 +19,31 @@ export interface ListQuery {
 }
 
 export class ListsService {
-
   /**
    * Check if a value is in the denylist
    */
   async isDenied(query: ListQuery): Promise<boolean> {
     const db = await getDb();
-    const doc = await db.collection("denylist").doc(query.type).collection(query.value).doc("entry").get();
+    const doc = await db
+      .collection("denylist")
+      .doc(query.type)
+      .collection(query.value)
+      .doc("entry")
+      .get();
     if (!doc.exists) return false;
-    
+
     const data = doc.data()!;
     if (data.expiresAt && new Date(data.expiresAt.toDate()) < new Date()) {
       // Entry has expired, remove it
-      await db.collection("denylist").doc(query.type).collection(query.value).doc("entry").delete();
+      await db
+        .collection("denylist")
+        .doc(query.type)
+        .collection(query.value)
+        .doc("entry")
+        .delete();
       return false;
     }
-    
+
     return true;
   }
 
@@ -43,16 +52,26 @@ export class ListsService {
    */
   async isAllowed(query: ListQuery): Promise<boolean> {
     const db = await getDb();
-    const doc = await db.collection("allowlist").doc(query.type).collection(query.value).doc("entry").get();
+    const doc = await db
+      .collection("allowlist")
+      .doc(query.type)
+      .collection(query.value)
+      .doc("entry")
+      .get();
     if (!doc.exists) return false;
-    
+
     const data = doc.data()!;
     if (data.expiresAt && new Date(data.expiresAt.toDate()) < new Date()) {
       // Entry has expired, remove it
-      await db.collection("allowlist").doc(query.type).collection(query.value).doc("entry").delete();
+      await db
+        .collection("allowlist")
+        .doc(query.type)
+        .collection(query.value)
+        .doc("entry")
+        .delete();
       return false;
     }
-    
+
     return true;
   }
 
@@ -62,11 +81,16 @@ export class ListsService {
   async addToDenylist(entry: Omit<ListEntry, "addedAt">): Promise<void> {
     this.validateEntry(entry);
     const db = await getDb();
-    
-    await db.collection("denylist").doc(entry.type).collection(entry.value).doc("entry").set({
-      ...entry,
-      addedAt: new Date(),
-    });
+
+    await db
+      .collection("denylist")
+      .doc(entry.type)
+      .collection(entry.value)
+      .doc("entry")
+      .set({
+        ...entry,
+        addedAt: new Date(),
+      });
   }
 
   /**
@@ -75,11 +99,16 @@ export class ListsService {
   async addToAllowlist(entry: Omit<ListEntry, "addedAt">): Promise<void> {
     this.validateEntry(entry);
     const db = await getDb();
-    
-    await db.collection("allowlist").doc(entry.type).collection(entry.value).doc("entry").set({
-      ...entry,
-      addedAt: new Date(),
-    });
+
+    await db
+      .collection("allowlist")
+      .doc(entry.type)
+      .collection(entry.value)
+      .doc("entry")
+      .set({
+        ...entry,
+        addedAt: new Date(),
+      });
   }
 
   /**
@@ -87,7 +116,12 @@ export class ListsService {
    */
   async removeFromDenylist(type: ListType, value: string): Promise<void> {
     const db = await getDb();
-    await db.collection("denylist").doc(type).collection(value).doc("entry").delete();
+    await db
+      .collection("denylist")
+      .doc(type)
+      .collection(value)
+      .doc("entry")
+      .delete();
   }
 
   /**
@@ -95,7 +129,12 @@ export class ListsService {
    */
   async removeFromAllowlist(type: ListType, value: string): Promise<void> {
     const db = await getDb();
-    await db.collection("allowlist").doc(type).collection(value).doc("entry").delete();
+    await db
+      .collection("allowlist")
+      .doc(type)
+      .collection(value)
+      .doc("entry")
+      .delete();
   }
 
   /**
@@ -103,15 +142,21 @@ export class ListsService {
    */
   async listDenylist(type?: ListType): Promise<ListEntry[]> {
     const entries: ListEntry[] = [];
-    
+
     if (type) {
       const db = await getDb();
-      const snapshot = await db.collection("denylist").doc(type).listCollections();
+      const snapshot = await db
+        .collection("denylist")
+        .doc(type)
+        .listCollections();
       for (const subcollection of snapshot) {
         const doc = await subcollection.doc("entry").get();
         if (doc.exists) {
           const data = doc.data()!;
-          if (!data.expiresAt || new Date(data.expiresAt.toDate()) >= new Date()) {
+          if (
+            !data.expiresAt ||
+            new Date(data.expiresAt.toDate()) >= new Date()
+          ) {
             entries.push({
               value: subcollection.id,
               type,
@@ -131,7 +176,7 @@ export class ListsService {
         entries.push(...typeEntries);
       }
     }
-    
+
     return entries.sort((a, b) => b.addedAt.getTime() - a.addedAt.getTime());
   }
 
@@ -140,15 +185,21 @@ export class ListsService {
    */
   async listAllowlist(type?: ListType): Promise<ListEntry[]> {
     const entries: ListEntry[] = [];
-    
+
     if (type) {
       const db = await getDb();
-      const snapshot = await db.collection("allowlist").doc(type).listCollections();
+      const snapshot = await db
+        .collection("allowlist")
+        .doc(type)
+        .listCollections();
       for (const subcollection of snapshot) {
         const doc = await subcollection.doc("entry").get();
         if (doc.exists) {
           const data = doc.data()!;
-          if (!data.expiresAt || new Date(data.expiresAt.toDate()) >= new Date()) {
+          if (
+            !data.expiresAt ||
+            new Date(data.expiresAt.toDate()) >= new Date()
+          ) {
             entries.push({
               value: subcollection.id,
               type,
@@ -168,7 +219,7 @@ export class ListsService {
         entries.push(...typeEntries);
       }
     }
-    
+
     return entries.sort((a, b) => b.addedAt.getTime() - a.addedAt.getTime());
   }
 
@@ -194,7 +245,7 @@ export class ListsService {
         } else if (isAllowed) {
           allowed.push(query);
         }
-      })
+      }),
     );
 
     return { denied, allowed };
@@ -212,12 +263,18 @@ export class ListsService {
 
     for (const type of types) {
       // Clean denylist
-      const denylistSnapshot = await db.collection("denylist").doc(type).listCollections();
+      const denylistSnapshot = await db
+        .collection("denylist")
+        .doc(type)
+        .listCollections();
       for (const subcollection of denylistSnapshot) {
         const doc = await subcollection.doc("entry").get();
         if (doc.exists) {
           const data = doc.data()!;
-          if (data.expiresAt && new Date(data.expiresAt.toDate()) < new Date()) {
+          if (
+            data.expiresAt &&
+            new Date(data.expiresAt.toDate()) < new Date()
+          ) {
             await subcollection.doc("entry").delete();
             denylistRemoved++;
           }
@@ -225,12 +282,18 @@ export class ListsService {
       }
 
       // Clean allowlist
-      const allowlistSnapshot = await db.collection("allowlist").doc(type).listCollections();
+      const allowlistSnapshot = await db
+        .collection("allowlist")
+        .doc(type)
+        .listCollections();
       for (const subcollection of allowlistSnapshot) {
         const doc = await subcollection.doc("entry").get();
         if (doc.exists) {
           const data = doc.data()!;
-          if (data.expiresAt && new Date(data.expiresAt.toDate()) < new Date()) {
+          if (
+            data.expiresAt &&
+            new Date(data.expiresAt.toDate()) < new Date()
+          ) {
             await subcollection.doc("entry").delete();
             allowlistRemoved++;
           }
@@ -293,13 +356,15 @@ export class ListsService {
   }
 
   private isValidIP(ip: string): boolean {
-    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const ipv4Regex =
+      /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
     return ipv4Regex.test(ip) || ipv6Regex.test(ip);
   }
 
   private isValidEmailDomain(domain: string): boolean {
-    const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    const domainRegex =
+      /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     return domainRegex.test(domain);
   }
 

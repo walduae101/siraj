@@ -1,6 +1,6 @@
 import { Timestamp } from "firebase-admin/firestore";
-import { getDb } from "~/server/firebase/admin-lazy";
 import { getConfig } from "~/server/config";
+import { getDb } from "~/server/firebase/admin-lazy";
 
 export interface Product {
   id: string;
@@ -44,9 +44,11 @@ export class ProductCatalogService {
   /**
    * Get product by PayNow product ID (latest active version)
    */
-  static async getProductByPayNowId(paynowProductId: string): Promise<Product | null> {
+  static async getProductByPayNowId(
+    paynowProductId: string,
+  ): Promise<Product | null> {
     const db = await this.getDb();
-    
+
     const snapshot = await db
       .collection("products")
       .where("paynowProductId", "==", paynowProductId)
@@ -74,9 +76,9 @@ export class ProductCatalogService {
    */
   static async getProductById(productId: string): Promise<Product | null> {
     const db = await this.getDb();
-    
+
     const doc = await db.collection("products").doc(productId).get();
-    
+
     if (!doc.exists) {
       return null;
     }
@@ -92,25 +94,31 @@ export class ProductCatalogService {
    */
   static async getActiveProducts(): Promise<Product[]> {
     const db = await this.getDb();
-    
+
     const snapshot = await db
       .collection("products")
       .where("active", "==", true)
       .orderBy("effectiveFrom", "desc")
       .get();
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    } as Product));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        }) as Product,
+    );
   }
 
   /**
    * Create or update a product
    */
   static async upsertProduct(
-    productData: Omit<Product, "createdAt" | "updatedAt" | "createdBy" | "updatedBy"> & { id?: string },
-    userId: string
+    productData: Omit<
+      Product,
+      "createdAt" | "updatedAt" | "createdBy" | "updatedBy"
+    > & { id?: string },
+    userId: string,
   ): Promise<Product> {
     const db = await this.getDb();
     const now = Timestamp.now();
@@ -133,7 +141,7 @@ export class ProductCatalogService {
     };
 
     const docRef = await db.collection("products").add(productDoc);
-    
+
     return {
       id: docRef.id,
       ...productDoc,
@@ -145,7 +153,7 @@ export class ProductCatalogService {
    */
   static async getPromotionByCode(code: string): Promise<Promotion | null> {
     const db = await this.getDb();
-    
+
     const snapshot = await db
       .collection("promotions")
       .where("code", "==", code.toUpperCase())
@@ -172,17 +180,20 @@ export class ProductCatalogService {
    */
   static async getActivePromotions(): Promise<Promotion[]> {
     const db = await this.getDb();
-    
+
     const snapshot = await db
       .collection("promotions")
       .where("active", "==", true)
       .orderBy("startsAt", "desc")
       .get();
 
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    } as Promotion));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        }) as Promotion,
+    );
   }
 
   /**
@@ -190,7 +201,7 @@ export class ProductCatalogService {
    */
   static async upsertPromotion(
     promotionData: Omit<Promotion, "id" | "createdAt" | "updatedAt">,
-    userId: string
+    userId: string,
   ): Promise<Promotion> {
     const db = await this.getDb();
     const now = Timestamp.now();
@@ -203,7 +214,7 @@ export class ProductCatalogService {
     };
 
     const docRef = await db.collection("promotions").add(promotionDoc);
-    
+
     return {
       id: docRef.id,
       ...promotionDoc,
@@ -213,17 +224,19 @@ export class ProductCatalogService {
   /**
    * Fallback to GSM product mapping (for backward compatibility)
    */
-  static getProductFromGSM(paynowProductId: string): { points: number; source: "gsm" } | null {
-    const cfg = getConfig();
+  static async getProductFromGSM(
+    paynowProductId: string,
+  ): Promise<{ points: number; source: "gsm" } | null> {
+    const cfg = await getConfig();
     const points = cfg.paynow.products[paynowProductId];
-    
+
     if (points) {
       return {
         points: Number(points),
         source: "gsm" as const,
       };
     }
-    
+
     return null;
   }
 }

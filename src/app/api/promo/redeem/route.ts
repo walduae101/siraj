@@ -15,7 +15,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
     if (!promoCode || typeof promoCode !== "string") {
       return NextResponse.json(
         { error: "Promo code is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -24,7 +24,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
     if (!authHeader?.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Authentication required" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -33,7 +33,10 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
     const uid = Buffer.from(token).toString("base64").substring(0, 16);
 
     // Get IP address
-    const ip = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+    const ip =
+      request.headers.get("x-forwarded-for") ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
     const userAgent = request.headers.get("user-agent");
 
     // Attempt to redeem promo code
@@ -45,10 +48,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!redeemResult.success) {
-      return NextResponse.json(
-        { error: redeemResult.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: redeemResult.error }, { status: 400 });
     }
 
     // Check velocity rules for the promo credit
@@ -69,7 +69,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
         amount: redeemResult.points,
         source: "promo_guard",
         ip,
-      }
+      },
     );
 
     // Create ledger entry
@@ -86,7 +86,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
         },
         status: velocityResult.decision,
       },
-      `promo:${uid}`
+      `promo:${uid}`,
     );
 
     // Log successful promo redemption
@@ -105,11 +105,11 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
       success: true,
       points: redeemResult.points,
       status: velocityResult.decision,
-      message: velocityResult.decision === "hold" 
-        ? "Promo code redeemed but credit is under review"
-        : "Promo code redeemed successfully",
+      message:
+        velocityResult.decision === "hold"
+          ? "Promo code redeemed but credit is under review"
+          : "Promo code redeemed successfully",
     });
-
   } catch (error) {
     console.error("[promo-redeem] Error processing promo redemption", {
       component: "promo_redeem",
@@ -118,7 +118,7 @@ async function handlePromoRedeem(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(
       { error: "Failed to process promo code" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

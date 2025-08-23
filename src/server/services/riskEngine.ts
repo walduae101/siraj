@@ -1,9 +1,9 @@
-import { getDb } from "~/server/firebase/admin-lazy";
-import { getConfig } from "~/server/config";
-import { velocityService } from "./velocity";
-import { listsService } from "./lists";
-import { botDefenseService } from "./botDefense";
 import crypto from "crypto";
+import { getConfig } from "~/server/config";
+import { getDb } from "~/server/firebase/admin-lazy";
+import { botDefenseService } from "./botDefense";
+import { listsService } from "./lists";
+import { velocityService } from "./velocity";
 
 export interface RiskInput {
   uid: string;
@@ -48,7 +48,7 @@ export interface RiskSignal {
 }
 
 export class RiskEngine {
-  private config = getConfig();
+  private config: any = null;
 
   /**
    * Evaluate risk for a checkout attempt
@@ -65,7 +65,9 @@ export class RiskEngine {
           id: decisionId,
           action: "deny",
           score: 100,
-          reasons: listChecks.denied.map(d => `denylist_${d.type}_${d.value}`),
+          reasons: listChecks.denied.map(
+            (d) => `denylist_${d.type}_${d.value}`,
+          ),
           confidence: 100,
           metadata: {
             uid: input.uid,
@@ -83,7 +85,9 @@ export class RiskEngine {
           id: decisionId,
           action: "allow",
           score: 0,
-          reasons: listChecks.allowed.map(d => `allowlist_${d.type}_${d.value}`),
+          reasons: listChecks.allowed.map(
+            (d) => `allowlist_${d.type}_${d.value}`,
+          ),
           confidence: 100,
           metadata: {
             uid: input.uid,
@@ -102,8 +106,10 @@ export class RiskEngine {
         ip: input.ip,
         uaHash: this.hashUserAgent(input.userAgent),
       };
-      const velocityCounts = await velocityService.incrementAndGetCounts(velocityInput);
-      const velocityLimits = await velocityService.checkVelocityLimits(velocityInput);
+      const velocityCounts =
+        await velocityService.incrementAndGetCounts(velocityInput);
+      const velocityLimits =
+        await velocityService.checkVelocityLimits(velocityInput);
 
       // 3. Run bot defense checks
       const botDefenseResult = await botDefenseService.verify({
@@ -115,16 +121,21 @@ export class RiskEngine {
       });
 
       // 4. Calculate risk score
-      const signals = await this.calculateRiskSignals(input, velocityCounts, velocityLimits, botDefenseResult);
+      const signals = await this.calculateRiskSignals(
+        input,
+        velocityCounts,
+        velocityLimits,
+        botDefenseResult,
+      );
       const score = this.calculateWeightedScore(signals);
-      const action = this.determineAction(score);
+      const action = await this.determineAction(score);
 
       // 5. Create and persist decision
       const decision = await this.createDecision({
         id: decisionId,
         action,
         score,
-        reasons: signals.map(s => s.reason),
+        reasons: signals.map((s) => s.reason),
         confidence: this.calculateConfidence(signals),
         metadata: {
           uid: input.uid,
@@ -142,7 +153,7 @@ export class RiskEngine {
       return decision;
     } catch (error) {
       console.error("Risk evaluation error:", error);
-      
+
       // On error, create a safe decision
       return await this.createDecision({
         id: decisionId,
@@ -169,9 +180,14 @@ export class RiskEngine {
     input: RiskInput,
     velocityCounts: any,
     velocityLimits: any,
-    botDefenseResult: any
+    botDefenseResult: any,
   ): Promise<RiskSignal[]> {
     const signals: RiskSignal[] = [];
+    
+    // Load config if not loaded
+    if (!this.config) {
+      this.config = await getConfig();
+    }
     const config = this.config.fraud;
 
     // 1. Velocity signals
@@ -194,7 +210,8 @@ export class RiskEngine {
     }
 
     // High velocity but not exceeded
-    const uidVelocityRatio = velocityCounts.uid.minute / config.checkoutCaps.uid.perMinute;
+    const uidVelocityRatio =
+      velocityCounts.uid.minute / config.checkoutCaps.uid.perMinute;
     if (uidVelocityRatio > 0.8) {
       signals.push({
         name: "velocity_uid_high",
@@ -209,7 +226,7 @@ export class RiskEngine {
       signals.push({
         name: "new_account",
         weight: 20,
-        score: Math.max(50, 100 - (input.accountAgeMinutes * 2)),
+        score: Math.max(50, 100 - input.accountAgeMinutes * 2),
         reason: "new_account",
       });
     }
@@ -275,7 +292,10 @@ export class RiskEngine {
     if (signals.length === 0) return 0;
 
     const totalWeight = signals.reduce((sum, signal) => sum + signal.weight, 0);
-    const weightedSum = signals.reduce((sum, signal) => sum + (signal.score * signal.weight), 0);
+    const weightedSum = signals.reduce(
+      (sum, signal) => sum + signal.score * signal.weight,
+      0,
+    );
 
     return Math.min(100, weightedSum / totalWeight);
   }
@@ -283,7 +303,13 @@ export class RiskEngine {
   /**
    * Determine action based on score and thresholds
    */
-  private determineAction(score: number): "allow" | "challenge" | "deny" | "queue_review" {
+  private async determineAction(
+    score: number,
+  ): Promise<"allow" | "challenge" | "deny" | "queue_review"> {
+    // Load config if not loaded
+    if (!this.config) {
+      this.config = await getConfig();
+    }
     const thresholds = this.config.fraud.riskThresholds;
 
     if (score <= thresholds.allow) return "allow";
@@ -308,12 +334,16 @@ export class RiskEngine {
   /**
    * Check allow/deny lists
    */
-  private async checkLists(input: RiskInput): Promise<{ denied: any[]; allowed: any[] }> {
+  private async checkLists(
+    input: RiskInput,
+  ): Promise<{ denied: any[]; allowed: any[] }> {
     const emailDomain = input.email.split("@")[1];
     const queries = [
       { type: "uid" as const, value: input.uid },
       { type: "ip" as const, value: input.ip },
-      ...(emailDomain ? [{ type: "emailDomain" as const, value: emailDomain }] : []),
+      ...(emailDomain
+        ? [{ type: "emailDomain" as const, value: emailDomain }]
+        : []),
     ];
 
     return await listsService.bulkCheck(queries);
@@ -340,23 +370,29 @@ export class RiskEngine {
   /**
    * Log structured risk decision
    */
-  private logRiskDecision(decision: RiskDecision, input: RiskInput, durationMs: number): void {
-    console.log(JSON.stringify({
-      component: "fraud",
-      level: "info",
-      message: "Risk decision made",
-      decisionId: decision.id,
-      uid: input.uid,
-      ip: input.ip,
-      action: decision.action,
-      score: decision.score,
-      reasons: decision.reasons,
-      confidence: decision.confidence,
-      durationMs,
-      orderValue: input.orderIntent.price * input.orderIntent.quantity,
-      accountAgeMinutes: input.accountAgeMinutes,
-      timestamp: new Date().toISOString(),
-    }));
+  private logRiskDecision(
+    decision: RiskDecision,
+    input: RiskInput,
+    durationMs: number,
+  ): void {
+    console.log(
+      JSON.stringify({
+        component: "fraud",
+        level: "info",
+        message: "Risk decision made",
+        decisionId: decision.id,
+        uid: input.uid,
+        ip: input.ip,
+        action: decision.action,
+        score: decision.score,
+        reasons: decision.reasons,
+        confidence: decision.confidence,
+        durationMs,
+        orderValue: input.orderIntent.price * input.orderIntent.quantity,
+        accountAgeMinutes: input.accountAgeMinutes,
+        timestamp: new Date().toISOString(),
+      }),
+    );
   }
 
   /**
@@ -370,15 +406,20 @@ export class RiskEngine {
    * Hash user agent for privacy
    */
   private hashUserAgent(userAgent: string): string {
-    return crypto.createHash("sha256").update(userAgent).digest("hex").substring(0, 16);
+    return crypto
+      .createHash("sha256")
+      .update(userAgent)
+      .digest("hex")
+      .substring(0, 16);
   }
 
   /**
    * Get recent decisions for a user
    */
-  async getRecentDecisions(uid: string, limit: number = 10): Promise<RiskDecision[]> {
+  async getRecentDecisions(uid: string, limit = 10): Promise<RiskDecision[]> {
     const db = await getDb();
-    const snapshot = await db.collection("riskDecisions")
+    const snapshot = await db
+      .collection("riskDecisions")
       .where("metadata.uid", "==", uid)
       .orderBy("createdAt", "desc")
       .limit(limit)
@@ -399,7 +440,7 @@ export class RiskEngine {
   /**
    * Get decision statistics
    */
-  async getDecisionStats(days: number = 1): Promise<{
+  async getDecisionStats(days = 1): Promise<{
     total: number;
     byAction: Record<string, number>;
     avgScore: number;
@@ -408,7 +449,8 @@ export class RiskEngine {
     cutoff.setDate(cutoff.getDate() - days);
 
     const db = await getDb();
-    const snapshot = await db.collection("riskDecisions")
+    const snapshot = await db
+      .collection("riskDecisions")
       .where("createdAt", ">=", cutoff)
       .get();
 

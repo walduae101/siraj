@@ -5,7 +5,7 @@ export async function GET() {
   try {
     // You can add additional health checks here if needed
     // For example: database connectivity, external service checks, etc.
-    
+
     return NextResponse.json(
       {
         status: "healthy",
@@ -13,7 +13,7 @@ export async function GET() {
         service: "siraj",
         version: process.env.npm_package_version || "unknown",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     return NextResponse.json(
@@ -22,7 +22,7 @@ export async function GET() {
         timestamp: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }

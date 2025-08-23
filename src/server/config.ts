@@ -1,6 +1,7 @@
 // Centralized configuration loader for Google Secret Manager
 import fs from "node:fs";
 import { z } from "zod";
+import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 
 // Validate no secrets in environment variables
 function validateNoSecretsInEnv() {
@@ -82,118 +83,188 @@ const ConfigSchema = z.object({
     EDGE_RATE_LIMIT_ENABLED: z.boolean().default(true),
     APP_RATE_LIMIT_ENABLED: z.boolean().default(true),
   }),
-  
+
   // Fraud detection configuration
-  fraud: z.object({
-    // Rate limiting caps per UID and per IP
-    checkoutCaps: z.object({
-      uid: z.object({
-        perMinute: z.number().default(5),
-        perHour: z.number().default(20),
-        perDay: z.number().default(100),
-      }).default({ perMinute: 5, perHour: 20, perDay: 100 }),
-      ip: z.object({
-        perMinute: z.number().default(10),
-        perHour: z.number().default(50),
-        perDay: z.number().default(200),
-      }).default({ perMinute: 10, perHour: 50, perDay: 200 }),
-    }).default({
-      uid: { perMinute: 5, perHour: 20, perDay: 100 },
-      ip: { perMinute: 10, perHour: 50, perDay: 200 },
+  fraud: z
+    .object({
+      // Rate limiting caps per UID and per IP
+      checkoutCaps: z
+        .object({
+          uid: z
+            .object({
+              perMinute: z.number().default(5),
+              perHour: z.number().default(20),
+              perDay: z.number().default(100),
+            })
+            .default({ perMinute: 5, perHour: 20, perDay: 100 }),
+          ip: z
+            .object({
+              perMinute: z.number().default(10),
+              perHour: z.number().default(50),
+              perDay: z.number().default(200),
+            })
+            .default({ perMinute: 10, perHour: 50, perDay: 200 }),
+        })
+        .default({
+          uid: { perMinute: 5, perHour: 20, perDay: 100 },
+          ip: { perMinute: 10, perHour: 50, perDay: 200 },
+        }),
+
+      // Risk scoring thresholds
+      minAccountAgeMinutes: z.number().default(10),
+      riskThresholds: z
+        .object({
+          allow: z.number().default(30),
+          challenge: z.number().default(70),
+          deny: z.number().default(90),
+        })
+        .default({ allow: 30, challenge: 70, deny: 90 }),
+
+      // Bot defense
+      recaptchaSiteKey: z.string().optional(),
+      recaptchaProject: z.string().optional(),
+      appCheckPublicKeys: z.array(z.string()).default([]),
+    })
+    .default({
+      checkoutCaps: {
+        uid: { perMinute: 5, perHour: 20, perDay: 100 },
+        ip: { perMinute: 10, perHour: 50, perDay: 200 },
+      },
+      minAccountAgeMinutes: 10,
+      riskThresholds: { allow: 30, challenge: 70, deny: 90 },
+      recaptchaSiteKey: undefined,
+      recaptchaProject: undefined,
+      appCheckPublicKeys: [],
     }),
-    
-    // Risk scoring thresholds
-    minAccountAgeMinutes: z.number().default(10),
-    riskThresholds: z.object({
-      allow: z.number().default(30),
-      challenge: z.number().default(70),
-      deny: z.number().default(90),
-    }).default({ allow: 30, challenge: 70, deny: 90 }),
-    
-    // Bot defense
-    recaptchaSiteKey: z.string().optional(),
-    recaptchaProject: z.string().optional(),
-    appCheckPublicKeys: z.array(z.string()).default([]),
-  }).default({
-    checkoutCaps: {
-      uid: { perMinute: 5, perHour: 20, perDay: 100 },
-      ip: { perMinute: 10, perHour: 50, perDay: 200 },
-    },
-    minAccountAgeMinutes: 10,
-    riskThresholds: { allow: 30, challenge: 70, deny: 90 },
-    recaptchaSiteKey: undefined,
-    recaptchaProject: undefined,
-    appCheckPublicKeys: [],
-  }),
-  
+
   // Rate limiting configuration
-  rateLimit: z.object({
-    // Default limits per role
-    authenticated: z.object({
-      requestsPerMinute: z.number().default(30),
-      burstSize: z.number().default(15),
-    }).default({ requestsPerMinute: 30, burstSize: 15 }),
-    anonymous: z.object({
-      requestsPerMinute: z.number().default(10),
-      burstSize: z.number().default(5),
-    }).default({ requestsPerMinute: 10, burstSize: 5 }),
-    admin: z.object({
-      requestsPerMinute: z.number().default(3),
-      burstSize: z.number().default(1),
-    }).default({ requestsPerMinute: 3, burstSize: 1 }),
-    
-    // Per-route overrides
-    routes: z.object({
-      webhook: z.object({
-        requestsPerMinute: z.number().default(300),
-        burstSize: z.number().default(100),
-      }).default({ requestsPerMinute: 300, burstSize: 100 }),
-      paywall: z.object({
-        requestsPerMinute: z.number().default(60),
-        burstSize: z.number().default(30),
-      }).default({ requestsPerMinute: 60, burstSize: 30 }),
-      promo: z.object({
-        requestsPerMinute: z.number().default(10),
-        burstSize: z.number().default(5),
-      }).default({ requestsPerMinute: 10, burstSize: 5 }),
-      admin: z.object({
-        requestsPerMinute: z.number().default(3),
-        burstSize: z.number().default(1),
-      }).default({ requestsPerMinute: 3, burstSize: 1 }),
-    }).default({
-      webhook: { requestsPerMinute: 300, burstSize: 100 },
-      paywall: { requestsPerMinute: 60, burstSize: 30 },
-      promo: { requestsPerMinute: 10, burstSize: 5 },
+  rateLimit: z
+    .object({
+      // Default limits per role
+      authenticated: z
+        .object({
+          requestsPerMinute: z.number().default(30),
+          burstSize: z.number().default(15),
+        })
+        .default({ requestsPerMinute: 30, burstSize: 15 }),
+      anonymous: z
+        .object({
+          requestsPerMinute: z.number().default(10),
+          burstSize: z.number().default(5),
+        })
+        .default({ requestsPerMinute: 10, burstSize: 5 }),
+      admin: z
+        .object({
+          requestsPerMinute: z.number().default(3),
+          burstSize: z.number().default(1),
+        })
+        .default({ requestsPerMinute: 3, burstSize: 1 }),
+
+      // Per-route overrides
+      routes: z
+        .object({
+          webhook: z
+            .object({
+              requestsPerMinute: z.number().default(300),
+              burstSize: z.number().default(100),
+            })
+            .default({ requestsPerMinute: 300, burstSize: 100 }),
+          paywall: z
+            .object({
+              requestsPerMinute: z.number().default(60),
+              burstSize: z.number().default(30),
+            })
+            .default({ requestsPerMinute: 60, burstSize: 30 }),
+          promo: z
+            .object({
+              requestsPerMinute: z.number().default(10),
+              burstSize: z.number().default(5),
+            })
+            .default({ requestsPerMinute: 10, burstSize: 5 }),
+          admin: z
+            .object({
+              requestsPerMinute: z.number().default(3),
+              burstSize: z.number().default(1),
+            })
+            .default({ requestsPerMinute: 3, burstSize: 1 }),
+        })
+        .default({
+          webhook: { requestsPerMinute: 300, burstSize: 100 },
+          paywall: { requestsPerMinute: 60, burstSize: 30 },
+          promo: { requestsPerMinute: 10, burstSize: 5 },
+          admin: { requestsPerMinute: 3, burstSize: 1 },
+        }),
+    })
+    .default({
+      authenticated: { requestsPerMinute: 30, burstSize: 15 },
+      anonymous: { requestsPerMinute: 10, burstSize: 5 },
       admin: { requestsPerMinute: 3, burstSize: 1 },
+      routes: {
+        webhook: { requestsPerMinute: 300, burstSize: 100 },
+        paywall: { requestsPerMinute: 60, burstSize: 30 },
+        promo: { requestsPerMinute: 10, burstSize: 5 },
+        admin: { requestsPerMinute: 3, burstSize: 1 },
+      },
     }),
-  }).default({
-    authenticated: { requestsPerMinute: 30, burstSize: 15 },
-    anonymous: { requestsPerMinute: 10, burstSize: 5 },
-    admin: { requestsPerMinute: 3, burstSize: 1 },
-    routes: {
-      webhook: { requestsPerMinute: 300, burstSize: 100 },
-      paywall: { requestsPerMinute: 60, burstSize: 30 },
-      promo: { requestsPerMinute: 10, burstSize: 5 },
-      admin: { requestsPerMinute: 3, burstSize: 1 },
-    },
-  }),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
 
-const CONFIG_PATH =
-  process.env.SIRAJ_CONFIG_PATH ?? "/var/secrets/siraj/config.json";
+// Google Secret Manager client
+let secretManagerClient: SecretManagerServiceClient | null = null;
 
 // Simple TTL cache so we can pick up rotations without hurting latency
 let cached: Config | null = null;
 let expiresAt = 0;
 const TTL_MS = 60_000; // re-read at most once per minute
 
-export function getConfig(): Config {
+async function getSecretManagerClient(): Promise<SecretManagerServiceClient> {
+  if (!secretManagerClient) {
+    secretManagerClient = new SecretManagerServiceClient();
+  }
+  return secretManagerClient;
+}
+
+async function getSecret(secretName: string): Promise<string> {
+  try {
+    const client = await getSecretManagerClient();
+    const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
+    if (!projectId) {
+      throw new Error("GOOGLE_CLOUD_PROJECT or FIREBASE_PROJECT_ID environment variable is required");
+    }
+    
+    const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
+    const [version] = await client.accessSecretVersion({ name });
+    
+    if (!version.payload?.data) {
+      throw new Error(`Secret ${secretName} not found or empty`);
+    }
+    
+    return version.payload.data.toString();
+  } catch (error) {
+    console.error(`Failed to fetch secret ${secretName}:`, error);
+    throw error;
+  }
+}
+
+export async function getConfig(): Promise<Config> {
   const now = Date.now();
   if (cached && now < expiresAt) return cached;
 
   try {
+    // Try to load from Google Secret Manager first
+    if (process.env.NODE_ENV === "production" || process.env.USE_SECRET_MANAGER === "true") {
+      console.log("[config] Loading configuration from Google Secret Manager");
+      
+      const configSecret = await getSecret("siraj-config");
+      const parsed = ConfigSchema.parse(JSON.parse(configSecret));
+      cached = parsed;
+      expiresAt = now + TTL_MS;
+      return parsed;
+    }
+    
+    // Fallback to local config file for development
+    const CONFIG_PATH = process.env.SIRAJ_CONFIG_PATH ?? "/var/secrets/siraj/config.json";
     const raw = fs.readFileSync(CONFIG_PATH, "utf8");
     const parsed = ConfigSchema.parse(JSON.parse(raw));
     cached = parsed;
@@ -201,14 +272,23 @@ export function getConfig(): Config {
     return parsed;
   } catch (error) {
     // In development, fall back to environment variables
-    if (process.env.NODE_ENV === "development" && !fs.existsSync(CONFIG_PATH)) {
+    if (process.env.NODE_ENV === "development") {
       console.warn(
-        `[config] ${CONFIG_PATH} not found, falling back to env vars`,
+        `[config] Secret Manager and config file not available, falling back to env vars`,
       );
       return getConfigFromEnv();
     }
     throw error;
   }
+}
+
+// Synchronous version for backward compatibility
+export function getConfigSync(): Config {
+  if (cached) return cached;
+  
+  // For synchronous access, use environment variables
+  console.warn("[config] Using synchronous config access - consider using async getConfig()");
+  return getConfigFromEnv();
 }
 
 // Fallback for local development - reads from environment variables
@@ -247,7 +327,8 @@ function getConfigFromEnv(): Config {
       PAYNOW_LIVE: process.env.PAYNOW_LIVE === "1",
       STUB_CHECKOUT: process.env.STUB_CHECKOUT === "1",
       webhookMode: (process.env.WEBHOOK_MODE as "sync" | "queue") ?? "sync",
-      PRODUCT_SOT: (process.env.PRODUCT_SOT as "firestore" | "gsm") ?? "firestore",
+      PRODUCT_SOT:
+        (process.env.PRODUCT_SOT as "firestore" | "gsm") ?? "firestore",
       ALLOW_NEGATIVE_BALANCE: process.env.ALLOW_NEGATIVE_BALANCE === "1",
       // PHASE 4: Revenue Assurance
       RECONCILIATION_ENABLED: process.env.RECONCILIATION_ENABLED !== "0",
@@ -274,7 +355,8 @@ function getConfigFromEnv(): Config {
           perDay: Number(process.env.FRAUD_CHECKOUT_CAPS_IP_RPD) || 200,
         },
       },
-      minAccountAgeMinutes: Number(process.env.FRAUD_MIN_ACCOUNT_AGE_MINUTES) || 10,
+      minAccountAgeMinutes:
+        Number(process.env.FRAUD_MIN_ACCOUNT_AGE_MINUTES) || 10,
       riskThresholds: {
         allow: Number(process.env.FRAUD_RISK_THRESHOLDS_ALLOW) || 30,
         challenge: Number(process.env.FRAUD_RISK_THRESHOLDS_CHALLENGE) || 70,
@@ -311,7 +393,8 @@ function getConfigFromEnv(): Config {
           burstSize: Number(process.env.RATE_LIMIT_PROMO_BURST) || 5,
         },
         admin: {
-          requestsPerMinute: Number(process.env.RATE_LIMIT_ADMIN_ROUTE_RPM) || 3,
+          requestsPerMinute:
+            Number(process.env.RATE_LIMIT_ADMIN_ROUTE_RPM) || 3,
           burstSize: Number(process.env.RATE_LIMIT_ADMIN_ROUTE_BURST) || 1,
         },
       },
@@ -320,14 +403,14 @@ function getConfigFromEnv(): Config {
 }
 
 // Helper to get product mapping
-export function getProductId(sku: string): string | undefined {
-  const cfg = getConfig();
+export async function getProductId(sku: string): Promise<string | undefined> {
+  const cfg = await getConfig();
   return cfg.paynow.products[sku];
 }
 
 // Helper to get subscription plan
-export function getSubscriptionPlan(productId: string) {
-  const cfg = getConfig();
+export async function getSubscriptionPlan(productId: string) {
+  const cfg = await getConfig();
   // First check if it's a subscription product
   const skuEntry = Object.entries(cfg.paynow.products).find(
     ([_, id]) => id === productId,

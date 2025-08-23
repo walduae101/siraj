@@ -1,6 +1,6 @@
-import { getDb } from "~/server/firebase/admin-lazy";
-import { getConfig } from "~/server/config";
 import { TRPCError } from "@trpc/server";
+import { getConfig } from "~/server/config";
+import { getDb } from "~/server/firebase/admin-lazy";
 
 export interface BotDefenseInput {
   uid: string;
@@ -18,7 +18,7 @@ export interface BotDefenseResult {
 }
 
 export class BotDefenseService {
-  private config = getConfig();
+  private config: any = null;
 
   /**
    * Verify bot defense mechanisms and return confidence score
@@ -56,7 +56,10 @@ export class BotDefenseService {
     // 2. Verify reCAPTCHA Enterprise (if provided)
     if (input.recaptchaToken) {
       try {
-        const recaptchaResult = await this.verifyRecaptcha(input.recaptchaToken, input.ip);
+        const recaptchaResult = await this.verifyRecaptcha(
+          input.recaptchaToken,
+          input.ip,
+        );
         if (recaptchaResult.score >= 0.7) {
           confidence += 50;
           reasons.push("recaptcha_high_score");
@@ -110,11 +113,16 @@ export class BotDefenseService {
         return false;
       }
 
+      // Load config if not loaded
+      if (!this.config) {
+        this.config = await getConfig();
+      }
+
       // Check if token is in the allowed public keys list
       const publicKeys = this.config.fraud.appCheckPublicKeys;
       if (publicKeys.length > 0) {
         // This is a simplified check - in reality you'd verify the JWT
-        return publicKeys.some(key => token.includes(key.substring(0, 10)));
+        return publicKeys.some((key: string) => token.includes(key.substring(0, 10)));
       }
 
       // If no public keys configured, assume valid for development
@@ -128,7 +136,10 @@ export class BotDefenseService {
   /**
    * Verify reCAPTCHA Enterprise assessment
    */
-  private async verifyRecaptcha(token: string, ip: string): Promise<{ score: number }> {
+  private async verifyRecaptcha(
+    token: string,
+    ip: string,
+  ): Promise<{ score: number }> {
     try {
       // For now, we'll simulate reCAPTCHA verification
       // In production, you'd call the reCAPTCHA Enterprise API
@@ -159,7 +170,10 @@ export class BotDefenseService {
   /**
    * Run basic heuristic checks
    */
-  private runHeuristicChecks(input: BotDefenseInput): { score: number; reasons: string[] } {
+  private runHeuristicChecks(input: BotDefenseInput): {
+    score: number;
+    reasons: string[];
+  } {
     const reasons: string[] = [];
     let score = 0;
 
@@ -168,7 +182,11 @@ export class BotDefenseService {
     if (ua.includes("bot") || ua.includes("crawler") || ua.includes("spider")) {
       score -= 30;
       reasons.push("bot_user_agent");
-    } else if (ua.includes("chrome") || ua.includes("firefox") || ua.includes("safari")) {
+    } else if (
+      ua.includes("chrome") ||
+      ua.includes("firefox") ||
+      ua.includes("safari")
+    ) {
       score += 10;
       reasons.push("browser_user_agent");
     }
@@ -191,17 +209,28 @@ export class BotDefenseService {
   /**
    * Check for known bot patterns
    */
-  private checkBotPatterns(input: BotDefenseInput): { score: number; reasons: string[] } {
+  private checkBotPatterns(input: BotDefenseInput): {
+    score: number;
+    reasons: string[];
+  } {
     const reasons: string[] = [];
     let score = 0;
 
     // Check for suspicious user agent patterns
     const ua = input.userAgent.toLowerCase();
-    
+
     // Common bot patterns
     const botPatterns = [
-      "python", "curl", "wget", "scrapy", "selenium", "puppeteer",
-      "playwright", "cypress", "phantomjs", "nightmare"
+      "python",
+      "curl",
+      "wget",
+      "scrapy",
+      "selenium",
+      "puppeteer",
+      "playwright",
+      "cypress",
+      "phantomjs",
+      "nightmare",
     ];
 
     for (const pattern of botPatterns) {
@@ -231,7 +260,7 @@ export class BotDefenseService {
 
       const data = doc.data()!;
       const expiresAt = data.expiresAt.toDate();
-      
+
       if (expiresAt < new Date()) {
         // Expired, remove it
         await db.collection("botDefenseCache").doc(key).delete();
@@ -253,7 +282,10 @@ export class BotDefenseService {
   /**
    * Cache result for 5 minutes
    */
-  private async cacheResult(key: string, result: BotDefenseResult): Promise<void> {
+  private async cacheResult(
+    key: string,
+    result: BotDefenseResult,
+  ): Promise<void> {
     try {
       const db = await getDb();
       const expiresAt = new Date();
@@ -277,7 +309,8 @@ export class BotDefenseService {
   async cleanupCache(): Promise<number> {
     try {
       const db = await getDb();
-      const snapshot = await db.collection("botDefenseCache")
+      const snapshot = await db
+        .collection("botDefenseCache")
         .where("expiresAt", "<", new Date())
         .get();
 

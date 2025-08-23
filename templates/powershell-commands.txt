@@ -1,0 +1,27 @@
+# PowerShell Commands - Copy & Paste
+
+# 1. Generate Cron Secret
+$cronSecret = -join ((48..57) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
+Write-Host "Generated cron secret: $cronSecret"
+
+# 2. View Current Config
+Get-Content "c:\var\secrets\siraj\config.json" | ConvertFrom-Json | ConvertTo-Json -Depth 10
+
+# 3. Upload to Secret Manager
+gcloud secrets versions add siraj-config --data-file="c:\var\secrets\siraj\config.json"
+
+# 4. Test Application
+npm run build
+npm run dev
+
+# 5. Check if config file exists
+Test-Path "c:\var\secrets\siraj\config.json"
+
+# 6. Create directory if it doesn't exist
+New-Item -ItemType Directory -Force -Path "c:\var\secrets\siraj"
+
+# 7. List all secrets in project
+gcloud secrets list --project=$(gcloud config get-value project)
+
+# 8. View specific secret
+gcloud secrets versions access latest --secret=siraj-config --project=$(gcloud config get-value project)

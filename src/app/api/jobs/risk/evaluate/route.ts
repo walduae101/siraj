@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getConfig } from "~/server/config";
 import { RiskManagementService } from "~/server/services/riskManagement";
 import { WalletLedgerService } from "~/server/services/walletLedger";
-import { getConfig } from "~/server/config";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const config = getConfig();
@@ -10,15 +10,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Validate OIDC token (in production, implement proper OIDC validation)
     const authHeader = request.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get open risk holds
     const openHolds = await RiskManagementService.getOpenRiskHolds();
-    
+
     console.log("[risk-evaluate] Starting risk evaluation", {
       component: "risk_evaluate",
       open_holds_count: openHolds.length,
@@ -61,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           hold.id,
           decision,
           "system",
-          reason
+          reason,
         );
 
         // Update ledger entry status if we have a ledger entry ID
@@ -84,7 +81,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           decision,
           reason,
         });
-
       } catch (error) {
         console.error("[risk-evaluate] Error processing risk hold", {
           component: "risk_evaluate",
@@ -115,7 +111,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       remainingOpenHolds: stats.openHolds,
       avgRiskScore: stats.avgRiskScore,
     });
-
   } catch (error) {
     console.error("[risk-evaluate] Error in risk evaluation job", {
       component: "risk_evaluate",
@@ -124,7 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(
       { error: "Failed to evaluate risk holds" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

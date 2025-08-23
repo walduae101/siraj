@@ -1,10 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure, adminProcedure } from "~/server/api/trpc";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+} from "~/server/api/trpc";
 import { getConfig } from "~/server/config";
-import { riskEngine } from "~/server/services/riskEngine";
-import { listsService, type ListType } from "~/server/services/lists";
 import { getDb } from "~/server/firebase/admin-lazy";
+import { type ListType, listsService } from "~/server/services/lists";
+import { riskEngine } from "~/server/services/riskEngine";
 
 export const fraudRouter = createTRPCRouter({
   // Risk evaluation (server-only, called by checkout flow)
@@ -17,13 +21,13 @@ export const fraudRouter = createTRPCRouter({
           price: z.number().positive(),
           recaptchaToken: z.string().optional(),
           appCheckToken: z.string().optional(),
-        })
+        }),
       )
       .mutation(async ({ ctx, input }) => {
         const uid = ctx.user?.uid ?? ctx.userId;
         if (!uid) throw new TRPCError({ code: "UNAUTHORIZED" });
 
-        const config = getConfig();
+        const config = await getConfig();
         const db = await getDb();
 
         // Get user data
@@ -34,18 +38,21 @@ export const fraudRouter = createTRPCRouter({
 
         const userData = userDoc.data()!;
         const email = userData.email || "";
-        
+
         // Calculate account age
         const createdAt = userData.createdAt?.toDate() || new Date();
-        const accountAgeMinutes = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60));
+        const accountAgeMinutes = Math.floor(
+          (Date.now() - createdAt.getTime()) / (1000 * 60),
+        );
 
         // Get client IP (from headers or context)
-        const ip = ctx.headers?.get("x-forwarded-for") as string || 
-                  ctx.headers?.get("x-real-ip") as string || 
-                  "127.0.0.1";
+        const ip =
+          (ctx.headers?.get("x-forwarded-for") as string) ||
+          (ctx.headers?.get("x-real-ip") as string) ||
+          "127.0.0.1";
 
         // Get user agent
-        const userAgent = ctx.headers?.get("user-agent") as string || "";
+        const userAgent = (ctx.headers?.get("user-agent") as string) || "";
 
         // Evaluate risk
         const decision = await riskEngine.evaluateCheckout({
@@ -129,9 +136,11 @@ export const fraudRouter = createTRPCRouter({
       list: adminProcedure
         .input(
           z.object({
-            type: z.enum(["ip", "uid", "emailDomain", "device", "bin"]).optional(),
+            type: z
+              .enum(["ip", "uid", "emailDomain", "device", "bin"])
+              .optional(),
             list: z.enum(["denylist", "allowlist"]),
-          })
+          }),
         )
         .query(async ({ input }) => {
           if (input.list === "denylist") {
@@ -150,7 +159,7 @@ export const fraudRouter = createTRPCRouter({
             reason: z.string(),
             notes: z.string().optional(),
             expiresAt: z.date().optional(),
-          })
+          }),
         )
         .mutation(async ({ ctx, input }) => {
           const adminUid = ctx.adminUser?.uid;
@@ -177,7 +186,7 @@ export const fraudRouter = createTRPCRouter({
             reason: z.string(),
             notes: z.string().optional(),
             expiresAt: z.date().optional(),
-          })
+          }),
         )
         .mutation(async ({ ctx, input }) => {
           const adminUid = ctx.adminUser?.uid;
@@ -201,7 +210,7 @@ export const fraudRouter = createTRPCRouter({
           z.object({
             type: z.enum(["ip", "uid", "emailDomain", "device", "bin"]),
             value: z.string(),
-          })
+          }),
         )
         .mutation(async ({ input }) => {
           await listsService.removeFromDenylist(input.type, input.value);
@@ -214,7 +223,7 @@ export const fraudRouter = createTRPCRouter({
           z.object({
             type: z.enum(["ip", "uid", "emailDomain", "device", "bin"]),
             value: z.string(),
-          })
+          }),
         )
         .mutation(async ({ input }) => {
           await listsService.removeFromAllowlist(input.type, input.value);
@@ -236,19 +245,25 @@ export const fraudRouter = createTRPCRouter({
             status: z.enum(["open", "approved", "denied"]).optional(),
             limit: z.number().int().min(1).max(100).default(50),
             offset: z.number().int().min(0).default(0),
-          })
+          }),
         )
         .query(async ({ input }) => {
           const db = await getDb();
-          let query = db.collection("manualReviews").orderBy("createdAt", "desc");
+          let query = db
+            .collection("manualReviews")
+            .orderBy("createdAt", "desc");
 
           if (input.status) {
             query = query.where("status", "==", input.status);
           }
 
-          const snapshot = await query.limit(input.limit).offset(input.offset).get();
-          
-                                  return snapshot.docs.map((doc: any) => {
+          const snapshot = await query
+            .limit(input.limit)
+            .offset(input.offset)
+            .get();
+
+          return snapshot.docs
+            .map((doc: any) => {
               const data = doc.data();
               if (!data) return null;
               return {
@@ -257,7 +272,8 @@ export const fraudRouter = createTRPCRouter({
                 createdAt: data.createdAt?.toDate(),
                 updatedAt: data.updatedAt?.toDate(),
               };
-            }).filter(Boolean);
+            })
+            .filter(Boolean);
         }),
 
       // Get single review
@@ -266,9 +282,12 @@ export const fraudRouter = createTRPCRouter({
         .query(async ({ input }) => {
           const db = await getDb();
           const doc = await db.collection("manualReviews").doc(input.id).get();
-          
+
           if (!doc.exists) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Review not found" });
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Review not found",
+            });
           }
 
           const data = doc.data()!;
@@ -287,7 +306,7 @@ export const fraudRouter = createTRPCRouter({
             id: z.string(),
             action: z.enum(["approve", "deny"]),
             notes: z.string(),
-          })
+          }),
         )
         .mutation(async ({ ctx, input }) => {
           const adminUid = ctx.adminUser?.uid;
@@ -295,19 +314,25 @@ export const fraudRouter = createTRPCRouter({
 
           const db = await getDb();
           const reviewRef = db.collection("manualReviews").doc(input.id);
-          
+
           const review = await reviewRef.get();
           if (!review.exists) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Review not found" });
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "Review not found",
+            });
           }
 
           const reviewData = review.data()!;
           if (reviewData.status !== "open") {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Review already resolved" });
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: "Review already resolved",
+            });
           }
 
           const status = input.action === "approve" ? "approved" : "denied";
-          
+
           await reviewRef.update({
             status,
             resolvedBy: adminUid,
@@ -338,28 +363,31 @@ export const fraudRouter = createTRPCRouter({
           z.object({
             uid: z.string().optional(),
             limit: z.number().int().min(1).max(100).default(20),
-          })
+          }),
         )
         .query(async ({ input }) => {
           if (input.uid) {
             return await riskEngine.getRecentDecisions(input.uid, input.limit);
           } else {
             const db = await getDb();
-            const snapshot = await db.collection("riskDecisions")
+            const snapshot = await db
+              .collection("riskDecisions")
               .orderBy("createdAt", "desc")
               .limit(input.limit)
               .get();
 
-            return snapshot.docs.map((doc: any) => {
-              const data = doc.data();
-              if (!data) return null;
-              return {
-                id: doc.id,
-                ...data,
-                createdAt: data.createdAt?.toDate(),
-                expiresAt: data.expiresAt?.toDate(),
-              };
-            }).filter(Boolean);
+            return snapshot.docs
+              .map((doc: any) => {
+                const data = doc.data();
+                if (!data) return null;
+                return {
+                  id: doc.id,
+                  ...data,
+                  createdAt: data.createdAt?.toDate(),
+                  expiresAt: data.expiresAt?.toDate(),
+                };
+              })
+              .filter(Boolean);
           }
         }),
     }),
@@ -367,28 +395,35 @@ export const fraudRouter = createTRPCRouter({
 });
 
 // Helper function to create manual review
-async function createManualReview(decision: any, uid: string, checkoutInput: any) {
+async function createManualReview(
+  decision: any,
+  uid: string,
+  checkoutInput: any,
+) {
   const db = await getDb();
   const reviewId = `review_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  await db.collection("manualReviews").doc(reviewId).set({
-    decisionId: decision.id,
-    uid,
-    status: "open",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    decision: {
-      action: decision.action,
-      score: decision.score,
-      reasons: decision.reasons,
-    },
-    checkout: {
-      productId: checkoutInput.productId,
-      quantity: checkoutInput.quantity,
-      price: checkoutInput.price,
-    },
-    requiresReversal: false, // Set based on business logic
-  });
+  await db
+    .collection("manualReviews")
+    .doc(reviewId)
+    .set({
+      decisionId: decision.id,
+      uid,
+      status: "open",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      decision: {
+        action: decision.action,
+        score: decision.score,
+        reasons: decision.reasons,
+      },
+      checkout: {
+        productId: checkoutInput.productId,
+        quantity: checkoutInput.quantity,
+        price: checkoutInput.price,
+      },
+      requiresReversal: false, // Set based on business logic
+    });
 }
 
 // Helper function to create reversal

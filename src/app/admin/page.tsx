@@ -1,16 +1,22 @@
 "use client";
 
+import { getAuth } from "firebase/auth";
 import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { getAuth } from "firebase/auth";
-import { api } from "~/trpc/react";
+import { toast } from "sonner";
+import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
-import { Badge } from "~/components/ui/badge";
 import { Separator } from "~/components/ui/separator";
-import { toast } from "sonner";
+import { api } from "~/trpc/react";
 
 export default function AdminPage() {
   const [user, loading] = useAuthState(getAuth());
@@ -27,13 +33,13 @@ export default function AdminPage() {
   // Search user
   const searchUser = api.admin.searchUser.useQuery(
     { email: searchEmail },
-    { enabled: false }
+    { enabled: false },
   );
 
   // Get user wallet and ledger
   const userWallet = api.admin.getUserWallet.useQuery(
     { uid: selectedUser?.uid ?? "", limit: 50 },
-    { enabled: !!selectedUser?.uid }
+    { enabled: !!selectedUser?.uid },
   );
 
   // Manual adjustment mutation
@@ -65,7 +71,7 @@ export default function AdminPage() {
       return;
     }
 
-    const amount = parseFloat(adjustmentAmount);
+    const amount = Number.parseFloat(adjustmentAmount);
     if (isNaN(amount) || amount === 0) {
       toast.error("Please enter a valid non-zero amount");
       return;
@@ -82,10 +88,25 @@ export default function AdminPage() {
     if (!selectedUser?.uid) return;
 
     try {
-      const data = await fetch(`/api/trpc/admin.exportLedger?input=${encodeURIComponent(JSON.stringify({ uid: selectedUser.uid, limit: 1000 }))}`).then(r => r.json());
+      const data = await fetch(
+        `/api/trpc/admin.exportLedger?input=${encodeURIComponent(JSON.stringify({ uid: selectedUser.uid, limit: 1000 }))}`,
+      ).then((r) => r.json());
       const ledgerData = data.result?.data || [];
       const csv = [
-        ["ID", "Created At", "Kind", "Amount", "Balance After", "Currency", "Order ID", "Product ID", "Product Version", "Reversal Of", "Reason", "Created By"],
+        [
+          "ID",
+          "Created At",
+          "Kind",
+          "Amount",
+          "Balance After",
+          "Currency",
+          "Order ID",
+          "Product ID",
+          "Product Version",
+          "Reversal Of",
+          "Reason",
+          "Created By",
+        ],
         ...ledgerData.map((entry: any) => [
           entry.id,
           entry.createdAt,
@@ -99,8 +120,10 @@ export default function AdminPage() {
           entry.reversalOf,
           entry.reason,
           entry.createdBy,
-        ])
-      ].map(row => row.join(",")).join("\n");
+        ]),
+      ]
+        .map((row) => row.join(","))
+        .join("\n");
 
       const blob = new Blob([csv], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
@@ -120,13 +143,17 @@ export default function AdminPage() {
   }
 
   if (!user) {
-    return <div className="container mx-auto p-6">Please sign in to access admin panel.</div>;
+    return (
+      <div className="container mx-auto p-6">
+        Please sign in to access admin panel.
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Admin Panel</h1>
+        <h1 className="font-bold text-3xl">Admin Panel</h1>
         <Badge variant="outline">Admin</Badge>
       </div>
 
@@ -134,7 +161,9 @@ export default function AdminPage() {
       <Card>
         <CardHeader>
           <CardTitle>User Search</CardTitle>
-          <CardDescription>Search for a user by email to view their wallet and ledger</CardDescription>
+          <CardDescription>
+            Search for a user by email to view their wallet and ledger
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
@@ -150,23 +179,37 @@ export default function AdminPage() {
           </div>
 
           {searchUser.error && (
-            <div className="text-red-500 text-sm">{searchUser.error.message}</div>
+            <div className="text-red-500 text-sm">
+              {searchUser.error.message}
+            </div>
           )}
 
           {searchUser.data && (
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-semibold mb-2">User Found:</h3>
-              <p><strong>UID:</strong> {searchUser.data.uid}</p>
-              <p><strong>Email:</strong> {searchUser.data.email}</p>
-              <p><strong>Display Name:</strong> {searchUser.data.displayName || "N/A"}</p>
-              <p><strong>Created:</strong> {new Date(searchUser.data.createdAt).toLocaleString()}</p>
-              <Button 
-                onClick={() => setSelectedUser({
-                  uid: searchUser.data.uid,
-                  email: searchUser.data.email || "",
-                  displayName: searchUser.data.displayName,
-                  createdAt: searchUser.data.createdAt
-                })}
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-2 font-semibold">User Found:</h3>
+              <p>
+                <strong>UID:</strong> {searchUser.data.uid}
+              </p>
+              <p>
+                <strong>Email:</strong> {searchUser.data.email}
+              </p>
+              <p>
+                <strong>Display Name:</strong>{" "}
+                {searchUser.data.displayName || "N/A"}
+              </p>
+              <p>
+                <strong>Created:</strong>{" "}
+                {new Date(searchUser.data.createdAt).toLocaleString()}
+              </p>
+              <Button
+                onClick={() =>
+                  setSelectedUser({
+                    uid: searchUser.data.uid,
+                    email: searchUser.data.email || "",
+                    displayName: searchUser.data.displayName,
+                    createdAt: searchUser.data.createdAt,
+                  })
+                }
                 className="mt-2"
               >
                 View Wallet & Ledger
@@ -181,26 +224,29 @@ export default function AdminPage() {
         <Card>
           <CardHeader>
             <CardTitle>Wallet & Ledger - {selectedUser.email}</CardTitle>
-            <CardDescription>Current balance and transaction history</CardDescription>
+            <CardDescription>
+              Current balance and transaction history
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Wallet Balance */}
             {userWallet.data?.wallet && (
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-semibold mb-2">Current Balance</h3>
-                <div className="text-2xl font-bold">
+              <div className="rounded-lg border p-4">
+                <h3 className="mb-2 font-semibold">Current Balance</h3>
+                <div className="font-bold text-2xl">
                   {userWallet.data.wallet.paidBalance} Points
                 </div>
-                <p className="text-sm text-gray-500">
-                  Last updated: {userWallet.data.wallet.updatedAt.toDate().toLocaleString()}
+                <p className="text-gray-500 text-sm">
+                  Last updated:{" "}
+                  {userWallet.data.wallet.updatedAt.toDate().toLocaleString()}
                 </p>
               </div>
             )}
 
             {/* Manual Adjustment */}
-            <div className="p-4 border rounded-lg">
-              <h3 className="font-semibold mb-4">Manual Adjustment</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-lg border p-4">
+              <h3 className="mb-4 font-semibold">Manual Adjustment</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
                   <Label htmlFor="amount">Amount</Label>
                   <Input
@@ -221,7 +267,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button 
+                  <Button
                     onClick={handleAdjustment}
                     disabled={adjustWallet.isPending}
                     className="w-full"
@@ -241,50 +287,53 @@ export default function AdminPage() {
 
             {/* Ledger Entries */}
             <div>
-              <h3 className="font-semibold mb-4">Recent Transactions</h3>
+              <h3 className="mb-4 font-semibold">Recent Transactions</h3>
               {userWallet.isLoading ? (
                 <div>Loading ledger...</div>
               ) : userWallet.data?.ledger ? (
                 <div className="space-y-2">
                   {userWallet.data.ledger.map((entry) => (
-                    <div key={entry.id} className="p-3 border rounded-lg">
-                      <div className="flex justify-between items-start">
+                    <div key={entry.id} className="rounded-lg border p-3">
+                      <div className="flex items-start justify-between">
                         <div>
                           <div className="font-medium">
                             {entry.kind.replace("_", " ").toUpperCase()}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-gray-500 text-sm">
                             {entry.createdAt.toDate().toLocaleString()}
                           </div>
                           {entry.source.reason && (
-                            <div className="text-sm text-gray-600">
+                            <div className="text-gray-600 text-sm">
                               Reason: {entry.source.reason}
                             </div>
                           )}
                           {entry.source.orderId && (
-                            <div className="text-sm text-gray-600">
+                            <div className="text-gray-600 text-sm">
                               Order: {entry.source.orderId}
                             </div>
                           )}
                         </div>
                         <div className="text-right">
-                          <div className={`font-bold ${entry.amount >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {entry.amount >= 0 ? "+" : ""}{entry.amount} Points
+                          <div
+                            className={`font-bold ${entry.amount >= 0 ? "text-green-600" : "text-red-600"}`}
+                          >
+                            {entry.amount >= 0 ? "+" : ""}
+                            {entry.amount} Points
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-gray-500 text-sm">
                             Balance: {entry.balanceAfter}
                           </div>
                         </div>
                       </div>
                       {entry.source.reversalOf && (
-                        <div className="mt-2 text-sm text-blue-600">
+                        <div className="mt-2 text-blue-600 text-sm">
                           Reversal of: {entry.source.reversalOf}
                         </div>
                       )}
                     </div>
                   ))}
                   {userWallet.data.hasMore && (
-                    <Button 
+                    <Button
                       onClick={() => userWallet.refetch()}
                       variant="outline"
                       className="w-full"
@@ -313,12 +362,13 @@ export default function AdminPage() {
           ) : products.data ? (
             <div className="space-y-2">
               {products.data.map((product) => (
-                <div key={product.id} className="p-3 border rounded-lg">
-                  <div className="flex justify-between items-center">
+                <div key={product.id} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between">
                     <div>
                       <div className="font-medium">{product.title}</div>
-                      <div className="text-sm text-gray-500">
-                        {product.points} points • ${product.priceUSD} • {product.type}
+                      <div className="text-gray-500 text-sm">
+                        {product.points} points • ${product.priceUSD} •{" "}
+                        {product.type}
                       </div>
                     </div>
                     <Badge variant={product.active ? "default" : "secondary"}>
@@ -346,14 +396,16 @@ export default function AdminPage() {
           ) : promotions.data ? (
             <div className="space-y-2">
               {promotions.data.map((promotion) => (
-                <div key={promotion.id} className="p-3 border rounded-lg">
-                  <div className="flex justify-between items-center">
+                <div key={promotion.id} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between">
                     <div>
                       <div className="font-medium">Code: {promotion.code}</div>
-                      <div className="text-sm text-gray-500">
-                        {promotion.discountPercent ? `${promotion.discountPercent}% off` : `${promotion.bonusPoints} bonus points`}
+                      <div className="text-gray-500 text-sm">
+                        {promotion.discountPercent
+                          ? `${promotion.discountPercent}% off`
+                          : `${promotion.bonusPoints} bonus points`}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-gray-500 text-sm">
                         Usage: {promotion.usageCount}/{promotion.usageLimit}
                       </div>
                     </div>

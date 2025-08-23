@@ -6,10 +6,10 @@ import { ZodError } from "zod";
 
 import type Context from "./types/context";
 
+import { TRPCError } from "@trpc/server";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
 import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
-import { TRPCError } from "@trpc/server";
 
 export const createTRPCContext = async ({
   headers,
@@ -124,7 +124,7 @@ export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   // Check admin claims
   const auth = await getAdminAuth();
   const userRecord = await auth.getUser(ctx.firebaseUser.uid);
-  
+
   if (!userRecord.customClaims?.admin) {
     throw new TRPCError({
       code: "FORBIDDEN",

@@ -36,8 +36,8 @@ class MockReconciliationService {
       .doc("points")
       .get();
 
-    const walletBalance = walletDoc.exists 
-      ? (walletDoc.data()?.paidBalance || 0)
+    const walletBalance = walletDoc.exists
+      ? walletDoc.data()?.paidBalance || 0
       : 0;
 
     // Sum all ledger entries
@@ -73,7 +73,8 @@ class MockReconciliationService {
 
     try {
       // Compute invariant
-      const invariant = await MockReconciliationService.computeWalletInvariant(uid);
+      const invariant =
+        await MockReconciliationService.computeWalletInvariant(uid);
       const { walletBalance, ledgerSum, ledgerCount, delta } = invariant;
 
       // Determine status
@@ -81,7 +82,11 @@ class MockReconciliationService {
 
       // If there's a significant delta, create adjustment
       if (Math.abs(delta) >= 0.01) {
-        await MockReconciliationService.createReconciliationAdjustment(uid, -delta, reportId);
+        await MockReconciliationService.createReconciliationAdjustment(
+          uid,
+          -delta,
+          reportId,
+        );
       }
 
       // Create reconciliation report
@@ -110,7 +115,6 @@ class MockReconciliationService {
         id: reportId,
         ...report,
       };
-
     } catch (error) {
       return {
         id: reportId,
@@ -132,7 +136,7 @@ class MockReconciliationService {
   private static async createReconciliationAdjustment(
     uid: string,
     delta: number,
-    reportId: string
+    reportId: string,
   ): Promise<void> {
     await db.runTransaction(async (transaction) => {
       // Get current wallet
@@ -143,8 +147,8 @@ class MockReconciliationService {
         .doc("points");
 
       const walletDoc = await transaction.get(walletRef);
-      const currentBalance = walletDoc.exists 
-        ? (walletDoc.data()?.paidBalance || 0)
+      const currentBalance = walletDoc.exists
+        ? walletDoc.data()?.paidBalance || 0
         : 0;
 
       const newBalance = currentBalance + delta;
@@ -194,7 +198,7 @@ class MockReconciliationService {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return hash.toString(16);
@@ -232,7 +236,9 @@ class MockBackfillService {
     try {
       // Get webhook events in date range
       const startTimestamp = Timestamp.fromDate(new Date(options.startDate));
-      const endTimestamp = Timestamp.fromDate(new Date(`${options.endDate}T23:59:59`));
+      const endTimestamp = Timestamp.fromDate(
+        new Date(`${options.endDate}T23:59:59`),
+      );
 
       // Simplified query to avoid index requirements
       const eventsSnapshot = await db
@@ -269,7 +275,6 @@ class MockBackfillService {
             errorCount: errors,
             totalCount: events.length,
           });
-
         } catch (error) {
           errors++;
           await migrationRef.update({
@@ -293,7 +298,6 @@ class MockBackfillService {
         errors,
         total: events.length,
       };
-
     } catch (error) {
       // Mark migration as failed
       await migrationRef.update({
@@ -334,8 +338,14 @@ async function runPhase4Tests() {
         console.log(`✅ ${name}`);
       } catch (error) {
         results.failed++;
-        results.tests.push({ name, passed: false, error: error instanceof Error ? error.message : String(error) });
-        console.log(`❌ ${name}: ${error instanceof Error ? error.message : String(error)}`);
+        results.tests.push({
+          name,
+          passed: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        console.log(
+          `❌ ${name}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     };
   }
@@ -345,14 +355,22 @@ async function runPhase4Tests() {
     // Clean up existing data first
     await db.runTransaction(async (transaction) => {
       // Delete existing wallet and ledger entries
-      const walletRef = db.collection("users").doc(TEST_USER_1).collection("wallet").doc("points");
+      const walletRef = db
+        .collection("users")
+        .doc(TEST_USER_1)
+        .collection("wallet")
+        .doc("points");
       const walletDoc = await transaction.get(walletRef);
       if (walletDoc.exists) {
         transaction.delete(walletRef);
       }
 
       // Delete all ledger entries for this user
-      const ledgerSnapshot = await db.collection("users").doc(TEST_USER_1).collection("ledger").get();
+      const ledgerSnapshot = await db
+        .collection("users")
+        .doc(TEST_USER_1)
+        .collection("ledger")
+        .get();
       for (const doc of ledgerSnapshot.docs) {
         transaction.delete(doc.ref);
       }
@@ -360,7 +378,11 @@ async function runPhase4Tests() {
 
     // Create a clean wallet with matching ledger
     await db.runTransaction(async (transaction) => {
-      const walletRef = db.collection("users").doc(TEST_USER_1).collection("wallet").doc("points");
+      const walletRef = db
+        .collection("users")
+        .doc(TEST_USER_1)
+        .collection("wallet")
+        .doc("points");
       transaction.set(walletRef, {
         paidBalance: 100,
         createdAt: Timestamp.now(),
@@ -370,7 +392,11 @@ async function runPhase4Tests() {
         v: 1,
       });
 
-      const ledgerRef = db.collection("users").doc(TEST_USER_1).collection("ledger").doc();
+      const ledgerRef = db
+        .collection("users")
+        .doc(TEST_USER_1)
+        .collection("ledger")
+        .doc();
       transaction.set(ledgerRef, {
         amount: 100,
         balanceAfter: 100,
@@ -382,10 +408,13 @@ async function runPhase4Tests() {
       });
     });
 
-    const invariant = await MockReconciliationService.computeWalletInvariant(TEST_USER_1);
-    
+    const invariant =
+      await MockReconciliationService.computeWalletInvariant(TEST_USER_1);
+
     if (invariant.walletBalance !== 100) {
-      throw new Error(`Expected wallet balance 100, got ${invariant.walletBalance}`);
+      throw new Error(
+        `Expected wallet balance 100, got ${invariant.walletBalance}`,
+      );
     }
     if (invariant.ledgerSum !== 100) {
       throw new Error(`Expected ledger sum 100, got ${invariant.ledgerSum}`);
@@ -400,14 +429,22 @@ async function runPhase4Tests() {
     // Clean up existing data first
     await db.runTransaction(async (transaction) => {
       // Delete existing wallet and ledger entries
-      const walletRef = db.collection("users").doc(TEST_USER_2).collection("wallet").doc("points");
+      const walletRef = db
+        .collection("users")
+        .doc(TEST_USER_2)
+        .collection("wallet")
+        .doc("points");
       const walletDoc = await transaction.get(walletRef);
       if (walletDoc.exists) {
         transaction.delete(walletRef);
       }
 
       // Delete all ledger entries for this user
-      const ledgerSnapshot = await db.collection("users").doc(TEST_USER_2).collection("ledger").get();
+      const ledgerSnapshot = await db
+        .collection("users")
+        .doc(TEST_USER_2)
+        .collection("ledger")
+        .get();
       for (const doc of ledgerSnapshot.docs) {
         transaction.delete(doc.ref);
       }
@@ -415,7 +452,11 @@ async function runPhase4Tests() {
 
     // Create a wallet with drift (wallet = 150, ledger = 100)
     await db.runTransaction(async (transaction) => {
-      const walletRef = db.collection("users").doc(TEST_USER_2).collection("wallet").doc("points");
+      const walletRef = db
+        .collection("users")
+        .doc(TEST_USER_2)
+        .collection("wallet")
+        .doc("points");
       transaction.set(walletRef, {
         paidBalance: 150, // Drift: +50
         createdAt: Timestamp.now(),
@@ -425,7 +466,11 @@ async function runPhase4Tests() {
         v: 1,
       });
 
-      const ledgerRef = db.collection("users").doc(TEST_USER_2).collection("ledger").doc();
+      const ledgerRef = db
+        .collection("users")
+        .doc(TEST_USER_2)
+        .collection("ledger")
+        .doc();
       transaction.set(ledgerRef, {
         amount: 100,
         balanceAfter: 100,
@@ -437,10 +482,13 @@ async function runPhase4Tests() {
       });
     });
 
-    const invariant = await MockReconciliationService.computeWalletInvariant(TEST_USER_2);
-    
+    const invariant =
+      await MockReconciliationService.computeWalletInvariant(TEST_USER_2);
+
     if (invariant.walletBalance !== 150) {
-      throw new Error(`Expected wallet balance 150, got ${invariant.walletBalance}`);
+      throw new Error(
+        `Expected wallet balance 150, got ${invariant.walletBalance}`,
+      );
     }
     if (invariant.ledgerSum !== 100) {
       throw new Error(`Expected ledger sum 100, got ${invariant.ledgerSum}`);
@@ -453,8 +501,11 @@ async function runPhase4Tests() {
   // Test 3: Reconciliation - Self-healing drift
   await addTest("Reconciliation - Self-healing drift", async () => {
     const date = new Date().toISOString().split("T")[0] || "";
-    const report = await MockReconciliationService.reconcileUser(TEST_USER_2, date);
-    
+    const report = await MockReconciliationService.reconcileUser(
+      TEST_USER_2,
+      date,
+    );
+
     if (report.status !== "adjusted") {
       throw new Error(`Expected status 'adjusted', got ${report.status}`);
     }
@@ -484,24 +535,31 @@ async function runPhase4Tests() {
     const adjustment = adjustmentDoc.data();
     // The adjustment should be negative to correct the drift (wallet was 150, ledger was 100, so we need -50)
     if (adjustment.amount !== -50) {
-      throw new Error(`Expected adjustment amount -50, got ${adjustment.amount}`);
+      throw new Error(
+        `Expected adjustment amount -50, got ${adjustment.amount}`,
+      );
     }
   })();
 
   // Test 4: Backfill - Webhook replay (dry run)
   await addTest("Backfill - Webhook replay (dry run)", async () => {
     // Clean up existing test events
-    const existingEvents = await db.collection("webhookEvents")
+    const existingEvents = await db
+      .collection("webhookEvents")
       .where("uid", "==", TEST_USER_3)
       .get();
-    
+
     for (const doc of existingEvents.docs) {
       await doc.ref.delete();
     }
 
     // Create test webhook events
     const testEvents = [
-      { eventType: "ON_ORDER_COMPLETED", uid: TEST_USER_3, productId: "test_product" },
+      {
+        eventType: "ON_ORDER_COMPLETED",
+        uid: TEST_USER_3,
+        productId: "test_product",
+      },
       { eventType: "ON_REFUND", uid: TEST_USER_3, orderId: "test_order" },
     ];
 
@@ -555,7 +613,9 @@ async function runPhase4Tests() {
       throw new Error(`Expected status 'completed', got ${migration.status}`);
     }
     if (migration.processedCount !== 2) {
-      throw new Error(`Expected processed count 2, got ${migration.processedCount}`);
+      throw new Error(
+        `Expected processed count 2, got ${migration.processedCount}`,
+      );
     }
   })();
 
@@ -576,7 +636,9 @@ async function runPhase4Tests() {
   // Test 8: Feature flags - Environment
   await addTest("Feature Flags - Environment", async () => {
     if (mockConfig.features.ENVIRONMENT !== "test") {
-      throw new Error(`Expected environment 'test', got ${mockConfig.features.ENVIRONMENT}`);
+      throw new Error(
+        `Expected environment 'test', got ${mockConfig.features.ENVIRONMENT}`,
+      );
     }
   })();
 
@@ -619,8 +681,14 @@ async function runPhase4Tests() {
       throw new Error("No migration document found");
     }
     const migration = migrationDoc.data();
-    const requiredFields = ["type", "status", "startDate", "endDate", "createdAt"];
-    
+    const requiredFields = [
+      "type",
+      "status",
+      "startDate",
+      "endDate",
+      "createdAt",
+    ];
+
     for (const field of requiredFields) {
       if (!(field in migration)) {
         throw new Error(`Missing required field: ${field}`);
@@ -631,14 +699,21 @@ async function runPhase4Tests() {
   // Test 11: Reconciliation - Error handling
   await addTest("Reconciliation - Error handling", async () => {
     const date = new Date().toISOString().split("T")[0] || "";
-    const report = await MockReconciliationService.reconcileUser("non_existent_user", date);
-    
+    const report = await MockReconciliationService.reconcileUser(
+      "non_existent_user",
+      date,
+    );
+
     // Non-existent user should result in clean status (no wallet, no ledger = no drift)
     if (report.status !== "clean") {
-      throw new Error(`Expected status 'clean' for non-existent user, got ${report.status}`);
+      throw new Error(
+        `Expected status 'clean' for non-existent user, got ${report.status}`,
+      );
     }
     if (report.delta !== 0) {
-      throw new Error(`Expected delta 0 for non-existent user, got ${report.delta}`);
+      throw new Error(
+        `Expected delta 0 for non-existent user, got ${report.delta}`,
+      );
     }
   })();
 
@@ -664,18 +739,20 @@ async function runPhase4Tests() {
   if (results.failed > 0) {
     console.log("\n❌ Failed Tests:");
     results.tests
-      .filter(test => !test.passed)
-      .forEach(test => {
+      .filter((test) => !test.passed)
+      .forEach((test) => {
         console.log(`   - ${test.name}: ${test.error}`);
       });
   }
 
   console.log("\n🎉 PHASE 4 Test Scenarios completed!");
-  
+
   if (results.failed === 0) {
     console.log("✅ All tests passed! PHASE 4 is ready for production.");
   } else {
-    console.log("⚠️  Some tests failed. Please review and fix issues before deploying.");
+    console.log(
+      "⚠️  Some tests failed. Please review and fix issues before deploying.",
+    );
     process.exit(1);
   }
 }
