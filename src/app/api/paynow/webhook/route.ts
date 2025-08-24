@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { withRateLimit } from "~/middleware/ratelimit";
 import { getConfig } from "~/server/config";
-import { db } from "~/server/firebase/admin";
+// import { db } from "~/server/firebase/admin"; - Using getDb() instead
 import { getDb } from "~/server/firebase/admin-lazy";
 import { pointsService } from "~/server/services/points";
 import { ProductCatalogService } from "~/server/services/productCatalog";
@@ -147,6 +147,7 @@ function isValidTimestamp(timestamp: string): boolean {
 
 // Ensure user document exists before any wallet operations
 async function ensureUserDocument(uid: string): Promise<void> {
+  const db = await getDb();
   const userRef = db.collection("users").doc(uid);
   const userDoc = await userRef.get();
 
@@ -170,6 +171,8 @@ async function resolveUser(customer: PayNowCustomer): Promise<string | null> {
     return customer.metadata.uid;
   }
 
+  const db = await getDb();
+  
   // Secondary: look up by PayNow customer ID
   if (customer?.id) {
     const customerMapping = await db
@@ -219,6 +222,7 @@ async function processWebhookEvent(
   eventType: string,
   eventData: PayNowWebhookData,
 ) {
+  const db = await getDb();
   const webhookRef = db.collection("webhookEvents").doc(eventId);
 
   // Check if already processed (idempotency)
@@ -743,7 +747,7 @@ async function handleSubscriptionEnded(
   if (!uid) return { reason: "no_user_mapping" };
 
   // Update subscription status
-  const subRef = subscriptions.getSubRef(uid, subscription.id);
+  const subRef = await subscriptions.getSubRef(uid, subscription.id);
   const status =
     eventType === "ON_SUBSCRIPTION_CANCELED" ? "canceled" : "expired";
 
@@ -812,6 +816,7 @@ async function handleWebhook(req: NextRequest) {
           now.toMillis() + 30 * 24 * 60 * 60 * 1000, // 30 days TTL
         );
 
+        const db = await getDb();
         await db
           .collection("webhookEvents")
           .doc(eventId)

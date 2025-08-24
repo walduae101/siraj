@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
 
     // Test database connection
     try {
-      const { db } = await import("~/server/firebase/admin");
+      const { getDb } = await import("~/server/firebase/admin-lazy");
+      const db = await getDb();
       const testDoc = await db.collection("webhookEvents").limit(1).get();
       console.log(
         "[webhook-debug] Database connection successful, test query returned:",

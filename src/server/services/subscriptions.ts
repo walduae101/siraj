@@ -1,4 +1,5 @@
-import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getDb } from "../firebase/admin-lazy";
 import type { Transaction } from "firebase-admin/firestore";
 import { getConfig, getSubscriptionPlan } from "~/server/config";
 import { pointsService } from "~/server/services/points";
@@ -40,7 +41,7 @@ export const subscriptions = {
     const plan = await this.getPlan(productId);
     if (!plan) return { ok: false as const, reason: "unknown-plan" };
 
-    const db = getFirestore();
+    const db = await getDb();
     const now = Timestamp.now();
     const subRef = db
       .collection("users")
@@ -119,7 +120,7 @@ export const subscriptions = {
       return { ok: true as const, credited: 0 };
     }
 
-    const db = getFirestore();
+    const db = await getDb();
     const now = Timestamp.now();
     const col = db.collection("users").doc(uid).collection("subscriptions");
     const qs = await col
@@ -169,7 +170,7 @@ export const subscriptions = {
       return { ok: true as const, processed: 0 };
     }
 
-    const db = getFirestore();
+    const db = await getDb();
     const now = Timestamp.now();
 
     // collectionGroup over all subscriptions
@@ -218,8 +219,8 @@ export const subscriptions = {
   /**
    * Helper to get subscription reference
    */
-  getSubRef(uid: string, orderId: string) {
-    const db = getFirestore();
+  async getSubRef(uid: string, orderId: string) {
+    const db = await getDb();
     return db
       .collection("users")
       .doc(uid)
@@ -262,7 +263,7 @@ export const subscriptions = {
       eventType === "subscription.renewed"
     ) {
       // Record the subscription purchase and credit initial points
-      const subRef = this.getSubRef(uid, orderId as string);
+      const subRef = await this.getSubRef(uid, orderId as string);
       const existingSub = await transaction.get(subRef);
 
       if (existingSub.exists && eventType === "subscription.created") {

@@ -2,7 +2,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getConfig, getProductId, getSubscriptionPlan } from "~/server/config";
-import { db } from "~/server/firebase/admin";
+import { getDb } from "~/server/firebase/admin-lazy";
 import { pointsService } from "~/server/services/points";
 import { skuMap } from "~/server/services/skuMap";
 import { subscriptions } from "~/server/services/subscriptions";
@@ -131,6 +131,7 @@ async function processPaynowEvent(
   attributes: Record<string, string>,
   startTime: number,
 ): Promise<{ success: boolean; terminal?: boolean; reason?: string }> {
+  const db = await getDb();
   const webhookRef = db.collection("webhookEvents").doc(eventId);
 
   try {

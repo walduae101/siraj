@@ -1,18 +1,34 @@
 import "server-only";
+import { getConfig } from "../config";
 
 let cachedApp: import("firebase-admin/app").App | null = null;
 
 export async function getAdminApp() {
-  const { getApps, initializeApp, applicationDefault } = await import(
+  const { getApps, initializeApp, cert } = await import(
     "firebase-admin/app"
   );
   if (!cachedApp) {
-    cachedApp =
-      getApps()[0] ??
-      initializeApp({
-        // On GCP, default ADC is available; locally, configure gcloud auth/applicationDefault
-        credential: applicationDefault(),
-      });
+    if (getApps().length > 0) {
+      cachedApp = getApps()[0]!;
+    } else {
+      const config = await getConfig();
+      
+      // If we have a service account JSON, use it
+      if (config.firebase.serviceAccountJson) {
+        const serviceAccount = JSON.parse(config.firebase.serviceAccountJson);
+        cachedApp = initializeApp({
+          credential: cert(serviceAccount),
+          projectId: serviceAccount.project_id || config.firebase.projectId,
+        });
+      } else {
+        // Otherwise, try to use application default credentials with explicit project ID
+        const { applicationDefault } = await import("firebase-admin/app");
+        cachedApp = initializeApp({
+          credential: applicationDefault(),
+          projectId: config.firebase.projectId,
+        });
+      }
+    }
   }
   return cachedApp;
 }

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Timestamp } from "firebase-admin/firestore";
 import type { Transaction } from "firebase-admin/firestore";
 // import { env } from "~/env-server";
-import { db } from "../firebase/admin"; // server-only admin
+import { getDb } from "../firebase/admin-lazy"; // server-only admin
 
 // Type definitions for points system
 interface PromoLot {
@@ -21,15 +21,26 @@ interface WalletData {
   v: number;
 }
 
-const USERS = db.collection("users");
-const WALLETS = (uid: string) =>
-  db.collection("users").doc(uid).collection("wallet").doc("points");
-const LEDGER = (uid: string) =>
-  db.collection("users").doc(uid).collection("ledger");
+// Collection reference helpers
+async function USERS() {
+  const db = await getDb();
+  return db.collection("users");
+}
+
+async function WALLETS(uid: string) {
+  const db = await getDb();
+  return db.collection("users").doc(uid).collection("wallet").doc("points");
+}
+
+async function LEDGER(uid: string) {
+  const db = await getDb();
+  return db.collection("users").doc(uid).collection("ledger");
+}
 
 // Ensure user document exists before wallet operations
 async function ensureUserDocument(uid: string): Promise<void> {
-  const userRef = USERS.doc(uid);
+  const users = await USERS();
+  const userRef = users.doc(uid);
   const userDoc = await userRef.get();
 
   if (!userDoc.exists) {
@@ -70,7 +81,8 @@ export const pointsService = {
       }
     }
 
-    const snap = await WALLETS(uid).get();
+    const walletRef = await WALLETS(uid);
+    const snap = await walletRef.get();
     if (!snap.exists) {
       const init = {
         paidBalance: 0,
@@ -80,7 +92,7 @@ export const pointsService = {
         updatedAt: nowTs(),
         v: 1,
       };
-      await WALLETS(uid).set(init);
+      await walletRef.set(init);
       return init;
     }
     return snap.data();
@@ -100,7 +112,7 @@ export const pointsService = {
       unitPrice?: string;
     },
   ) {
-    const walletRef = WALLETS(uid);
+    const walletRef = await WALLETS(uid);
     const walletSnap = await transaction.get(walletRef);
 
     if (!walletSnap.exists) {
@@ -111,7 +123,8 @@ export const pointsService = {
     if (!wallet) {
       throw new Error("Wallet data not found");
     }
-    const ledgerRef = LEDGER(uid).doc(metadata.eventId);
+    const ledgerCol = await LEDGER(uid);
+    const ledgerRef = ledgerCol.doc(metadata.eventId);
 
     // Check for duplicate (idempotency)
     const existingEntry = await transaction.get(ledgerRef);
@@ -197,8 +210,12 @@ export const pointsService = {
     // Ensure user document exists first
     await ensureUserDocument(uid);
 
+    const db = await getDb();
+    const walletRef = await WALLETS(uid);
+    const ledgerCol = await LEDGER(uid);
+    
     return await db.runTransaction(async (tx) => {
-      const ref = WALLETS(uid);
+      const ref = walletRef;
       const snap = await tx.get(ref);
       const w =
         snap.exists && snap.data()
@@ -211,7 +228,7 @@ export const pointsService = {
               updatedAt: nowTs(),
               v: 1,
             };
-      const dup = await tx.get(LEDGER(uid).doc(actionId));
+      const dup = await tx.get(ledgerCol.doc(actionId));
       if (dup.exists) return dup.data();
 
       let remaining = cost;
@@ -279,7 +296,7 @@ export const pointsService = {
         createdBy: uid,
         v: 1,
       };
-      tx.set(LEDGER(uid).doc(actionId), entry);
+      tx.set(ledgerCol.doc(actionId), entry);
       return entry;
     });
   },
@@ -302,8 +319,12 @@ export const pointsService = {
     // Ensure user document exists first
     await ensureUserDocument(uid);
 
+    const db = await getDb();
+    const walletRef = await WALLETS(uid);
+    const ledgerCol = await LEDGER(uid);
+    
     return await db.runTransaction(async (tx) => {
-      const ref = WALLETS(uid);
+      const ref = walletRef;
       const snap = await tx.get(ref);
       const w =
         snap.exists && snap.data()
@@ -316,7 +337,7 @@ export const pointsService = {
               updatedAt: nowTs(),
               v: 1,
             };
-      const dup = await tx.get(LEDGER(uid).doc(actionId));
+      const dup = await tx.get(ledgerCol.doc(actionId));
       if (dup.exists) return dup.data();
 
       const pre = { paid: w.paidBalance, promo: w.promoBalance };
@@ -365,7 +386,7 @@ export const pointsService = {
       if (creditLot) {
         (entry as any).creditLot = creditLot;
       }
-      tx.set(LEDGER(uid).doc(actionId), entry);
+      tx.set(ledgerCol.doc(actionId), entry);
       return entry;
     });
   },
@@ -375,9 +396,10 @@ export const pointsService = {
     limit,
     cursor,
   }: { uid: string; limit: number; cursor?: string }) {
-    let q = LEDGER(uid).orderBy("createdAt", "desc").limit(limit);
+    const ledgerCol = await LEDGER(uid);
+    let q = ledgerCol.orderBy("createdAt", "desc").limit(limit);
     if (cursor) {
-      const after = await LEDGER(uid).doc(cursor).get();
+      const after = await ledgerCol.doc(cursor).get();
       if (after.exists) q = q.startAfter(after);
     }
     const snap = await q.get();

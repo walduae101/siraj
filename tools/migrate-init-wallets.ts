@@ -1,7 +1,7 @@
 import { getAuth } from "firebase-admin/auth";
 import { Timestamp } from "firebase-admin/firestore";
 // @ts-nocheck
-import { db } from "../src/server/firebase/admin";
+import { getDb } from "../src/server/firebase/admin-lazy";
 
 async function listAllAuthUsers(nextPageToken?: string) {
   const auth = getAuth();
@@ -17,6 +17,7 @@ async function listAllAuthUsers(nextPageToken?: string) {
 
 async function main() {
   const users = await listAllAuthUsers();
+  const db = await getDb();
   for (const user of users) {
     const ref = db
       .collection("users")
