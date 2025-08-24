@@ -63,6 +63,56 @@ function SuccessContent() {
     loadFirebaseConfig();
   }, []);
 
+  // Auto-process order when page loads
+  useEffect(() => {
+    const autoProcessOrder = async () => {
+      if (!orderId && !checkoutId) return;
+      
+      // Wait a bit for Firebase to initialize
+      setTimeout(async () => {
+        try {
+          // Try to get user ID from Firebase first
+          let uid = userId;
+          
+          // If no Firebase user, try to get from URL
+          if (!uid) {
+            const urlParams = new URLSearchParams(window.location.search);
+            uid = urlParams.get('uid');
+          }
+          
+          if (!uid) {
+            console.log("[checkout/success] No user ID available for auto-processing");
+            return;
+          }
+          
+          console.log("[checkout/success] Auto-processing order for user:", uid);
+          
+          const response = await fetch('/api/paynow/process-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: orderId || checkoutId,
+              userId: uid
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (response.ok && result.credited > 0) {
+            console.log("[checkout/success] Auto-processed order, credited:", result.credited);
+            setCredited(true);
+          } else {
+            console.log("[checkout/success] Auto-process failed or no points credited:", result);
+          }
+        } catch (error) {
+          console.error("[checkout/success] Auto-process error:", error);
+        }
+      }, 2000); // Wait 2 seconds for Firebase to initialize
+    };
+    
+    autoProcessOrder();
+  }, [orderId, checkoutId, userId]);
+
   // Watch wallet balance
   useEffect(() => {
     if (!userId) return;
@@ -130,7 +180,7 @@ function SuccessContent() {
             {manualCompleting ? "Processing..." : "Complete Order Manually"}
           </button>
           
-          {/* Admin override button */}
+          {/* Process Order button - works without Firebase auth */}
           <button
             onClick={async () => {
               setManualCompleting(true);
@@ -145,7 +195,7 @@ function SuccessContent() {
                   return;
                 }
                 
-                const response = await fetch('/api/admin/credit-points', {
+                const response = await fetch('/api/paynow/process-order', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -170,9 +220,9 @@ function SuccessContent() {
               }
             }}
             disabled={manualCompleting}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
           >
-            Admin Override
+            Process Order
           </button>
         </div>
       </main>
