@@ -34,6 +34,7 @@ const ConfigSchema = z.object({
   paynow: z.object({
     apiKey: z.string(),
     webhookSecret: z.string(),
+    webhookId: z.string().optional(),
     storeId: z.string(),
     products: z.record(z.string(), z.string()),
   }),
@@ -44,6 +45,8 @@ const ConfigSchema = z.object({
         name: z.string(),
         cycle: z.enum(["month", "year"]),
         pointsPerCycle: z.number().int().nonnegative(),
+        paynowProductId: z.string(),
+        price: z.number().int().nonnegative(),
       }),
     ),
     pointsKind: z.enum(["paid", "promo"]).default("promo"),
