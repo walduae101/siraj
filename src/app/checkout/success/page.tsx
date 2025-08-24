@@ -31,18 +31,36 @@ function SuccessContent() {
     },
   });
 
-  // Get current user
+  // Load Firebase config and get current user
   useEffect(() => {
-    try {
-      const auth = getFirebaseAuth();
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        setUserId(user?.uid || null);
-      });
-      return () => unsubscribe();
-    } catch (error) {
-      console.error("[checkout/success] Firebase auth error:", error);
-      // Firebase might not be initialized properly, but we can still try to complete the order
-    }
+    const loadFirebaseConfig = async () => {
+      try {
+        // Load Firebase config from runtime endpoint
+        const response = await fetch("/api/config/firebase");
+        if (response.ok) {
+          const config = await response.json();
+          console.log("[checkout/success] Loaded Firebase config:", config);
+          
+          // Set the Firebase config
+          const { setFirebaseConfig } = await import("~/lib/firebase/client");
+          setFirebaseConfig(config);
+          
+          // Now try to get auth
+          const auth = getFirebaseAuth();
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setUserId(user?.uid || null);
+          });
+          return () => unsubscribe();
+        } else {
+          console.error("[checkout/success] Failed to load Firebase config");
+        }
+      } catch (error) {
+        console.error("[checkout/success] Firebase auth error:", error);
+        // Firebase might not be initialized properly, but we can still try to complete the order
+      }
+    };
+    
+    loadFirebaseConfig();
   }, []);
 
   // Watch wallet balance
@@ -107,9 +125,54 @@ function SuccessContent() {
               completeMutation.mutate({ orderId: orderId || checkoutId });
             }}
             disabled={manualCompleting || completeMutation.isPending}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 mr-2"
           >
             {manualCompleting ? "Processing..." : "Complete Order Manually"}
+          </button>
+          
+          {/* Admin override button */}
+          <button
+            onClick={async () => {
+              setManualCompleting(true);
+              try {
+                // Get user ID from URL or prompt
+                const urlParams = new URLSearchParams(window.location.search);
+                const uid = urlParams.get('uid') || prompt('Enter your user ID:');
+                
+                if (!uid) {
+                  alert('User ID required');
+                  setManualCompleting(false);
+                  return;
+                }
+                
+                const response = await fetch('/api/admin/credit-points', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderId: orderId || checkoutId,
+                    userId: uid
+                  })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                  alert(`Success! Credited ${result.credited} points.`);
+                  setCredited(true);
+                  setTimeout(() => window.location.reload(), 1000);
+                } else {
+                  alert(`Error: ${result.error}`);
+                }
+              } catch (error) {
+                alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              } finally {
+                setManualCompleting(false);
+              }
+            }}
+            disabled={manualCompleting}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+          >
+            Admin Override
           </button>
         </div>
       </main>
