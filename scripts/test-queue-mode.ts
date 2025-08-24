@@ -166,7 +166,9 @@ async function testQueueMode() {
     
     const durations = await Promise.all(promises);
     const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
-    const p95Duration = durations.sort((a, b) => a - b)[Math.floor(durations.length * 0.95)];
+    const sortedDurations = durations.sort((a, b) => a - b);
+    const p95Index = Math.floor(sortedDurations.length * 0.95);
+    const p95Duration = sortedDurations[p95Index] || 0;
     
     const success = avgDuration < 100 && p95Duration < 200; // Performance targets
     results.push({
