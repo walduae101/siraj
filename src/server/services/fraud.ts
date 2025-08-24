@@ -312,20 +312,22 @@ export class FraudService {
       .map((r) => ({ type: r.check.type, value: r.check.value }));
 
     if (denied.length > 0) {
+      const firstDenied = denied[0];
       return {
         allowed: [],
         denied: denied,
         verdict: "deny",
-        reason: `denylist_${denied[0].type}_${denied[0].value}`,
+        reason: `denylist_${firstDenied.type}_${firstDenied.value}`,
       };
     }
 
     if (allowed.length > 0) {
+      const firstAllowed = allowed[0];
       return {
         allowed: allowed,
         denied: [],
         verdict: "allow",
-        reason: `allowlist_${allowed[0].type}_${allowed[0].value}`,
+        reason: `allowlist_${firstAllowed.type}_${firstAllowed.value}`,
       };
     }
 
