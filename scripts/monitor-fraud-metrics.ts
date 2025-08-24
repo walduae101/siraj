@@ -63,7 +63,7 @@ async function getFraudMetrics(hours: number = 24): Promise<FraudMetrics> {
 
   // Count rate limit blocks
   const rateLimitBlocks = decisions.filter(d => 
-    d.reasons && d.reasons.some(r => r.includes("rate_limit"))
+    d.reasons && d.reasons.some((r: string) => r.includes("rate_limit"))
   ).length;
 
   return {
