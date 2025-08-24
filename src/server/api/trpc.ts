@@ -75,7 +75,15 @@ export const createTRPCContext = async ({
       firebaseUser = await auth.verifyIdToken(token);
       console.log("Firebase user authenticated:", firebaseUser.uid);
     } catch (error) {
-      console.warn("Failed to verify Firebase token:", error);
+      console.error("Failed to verify Firebase token:", {
+        error: error instanceof Error ? error.message : String(error),
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 20) + "...",
+      });
+    }
+  } else {
+    if (authHeader) {
+      console.warn("Invalid auth header format:", authHeader.substring(0, 50));
     }
   }
 
