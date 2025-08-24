@@ -36,7 +36,7 @@ async function testPhase6AWebhook() {
     });
 
     console.log(`   Status: ${response.status}`);
-    console.log(`   ✅ Webhook endpoint responding`);
+    console.log("   ✅ Webhook endpoint responding");
 
     // Test 3: Pub/Sub Publishing
     console.log("\n📋 Test 3: Pub/Sub Publishing");
@@ -57,7 +57,7 @@ async function testPhase6AWebhook() {
 
     console.log(`   Message ID: ${messageId}`);
     console.log(`   Publish time: ${publishMs}ms`);
-    console.log(`   ✅ Pub/Sub publishing working`);
+    console.log("   ✅ Pub/Sub publishing working");
 
     // Test 4: Worker Endpoint
     console.log("\n📋 Test 4: Worker Endpoint");
@@ -84,7 +84,7 @@ async function testPhase6AWebhook() {
     });
 
     console.log(`   Worker Status: ${workerResponse.status}`);
-    console.log(`   ✅ Worker endpoint responding`);
+    console.log("   ✅ Worker endpoint responding");
 
     console.log("\n🎯 Phase 6A Webhook Validation: ✅ READY");
     console.log("   - Configuration: ✅");
