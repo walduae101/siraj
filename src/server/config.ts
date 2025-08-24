@@ -260,9 +260,18 @@ export async function getConfig(): Promise<Config> {
   if (cached && now < expiresAt) return cached;
 
   try {
-    // Try to load from Google Secret Manager first
+    // Check if config is available as environment variable first (Cloud Run mounted secret)
+    if (process.env.SIRAJ_CONFIG) {
+      console.log("[config] Loading configuration from SIRAJ_CONFIG environment variable");
+      const parsed = ConfigSchema.parse(JSON.parse(process.env.SIRAJ_CONFIG));
+      cached = parsed;
+      expiresAt = now + TTL_MS;
+      return parsed;
+    }
+    
+    // Try to load from Google Secret Manager API
     if (process.env.NODE_ENV === "production" || process.env.USE_SECRET_MANAGER === "true") {
-      console.log("[config] Loading configuration from Google Secret Manager");
+      console.log("[config] Loading configuration from Google Secret Manager API");
       
       const configSecret = await getSecret("siraj-config");
       const parsed = ConfigSchema.parse(JSON.parse(configSecret));
