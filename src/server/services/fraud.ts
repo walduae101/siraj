@@ -100,6 +100,9 @@ export class FraudService {
           reasons: ["rate_limit_exceeded"],
           mode: effectiveMode,
           canary: isCanary,
+          processingMs: Date.now() - startTime,
+          threshold: 100,
+          linkedSignalIds: [],
         });
 
         return {
@@ -121,6 +124,9 @@ export class FraudService {
           reasons: [listsResult.reason],
           mode: effectiveMode,
           canary: isCanary,
+          processingMs: Date.now() - startTime,
+          threshold: 100,
+          linkedSignalIds: [],
         });
 
         return {
@@ -140,6 +146,9 @@ export class FraudService {
           reasons: [listsResult.reason],
           mode: effectiveMode,
           canary: isCanary,
+          processingMs: Date.now() - startTime,
+          threshold: 0,
+          linkedSignalIds: [],
         });
 
         return {
@@ -170,6 +179,9 @@ export class FraudService {
         reasons,
         mode: effectiveMode,
         canary: isCanary,
+        processingMs: Date.now() - startTime,
+        threshold,
+        linkedSignalIds: signals.map(s => s.signalId),
       });
 
       // Determine if transaction should be allowed
@@ -196,6 +208,9 @@ export class FraudService {
         reasons: ["evaluation_error"],
         mode: config.fraud.FRAUD_MODE,
         canary: false,
+        processingMs: Date.now() - startTime,
+        threshold: 0,
+        linkedSignalIds: [],
       });
 
       return {
