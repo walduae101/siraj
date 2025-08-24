@@ -46,5 +46,6 @@ files = [
   "docs/PHASE_4/CUTOVER_CHECKLIST.md",
   "docs/PHASE_4/BACKFILL_RUNBOOK.md",
   "docs/PHASE_4/README.md",
-  "PAYNOW_WEBHOOK_IMPLEMENTATION.md"
+  "PAYNOW_WEBHOOK_IMPLEMENTATION.md",
+  "src/env.js"
 ]
