@@ -190,6 +190,7 @@ export const checkoutRouter = createTRPCRouter({
 
       // Handle risk decision
               const config = await getConfig();
+      console.log('[checkout] FRAUD_SHADOW_MODE:', config.features.FRAUD_SHADOW_MODE);
       if (!config.features.FRAUD_SHADOW_MODE) {
         // Enforce mode: block based on decision
         switch (riskDecision.action) {
