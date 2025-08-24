@@ -30,9 +30,9 @@ export async function publishPaynowEvent(
   const orderingKey = uid || paynowCustomerId || "unknown";
 
   // Get config for schema versioning
-  const { getConfig } = await import("../config.js");
+  const { getConfig } = await import("../config");
   const config = await getConfig();
-  
+
   // Create message with schema versioning
   const message = {
     version: config.features.eventSchema.version,
