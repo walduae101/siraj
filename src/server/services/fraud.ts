@@ -53,6 +53,7 @@ export interface RiskDecision {
   processingMs: number;
   createdAt: Date;
   expiresAt: Date;
+  canary?: boolean;
 }
 
 export interface FraudEvaluationResult {
@@ -75,145 +76,131 @@ export class FraudService {
   /**
    * Evaluate fraud risk for a transaction
    */
-  async evaluateFraud(context: FraudContext): Promise<FraudEvaluationResult> {
+  async evaluateFraud(
+    context: FraudContext,
+  ): Promise<FraudEvaluationResult> {
     const startTime = Date.now();
+    const config = await this.getConfig();
 
     try {
-      const config = await this.getConfig();
+      // 1% Shadow Canary - Route 1% of evaluations to shadow mode for comparison
+      const canaryHash = this.generateCanaryHash(context.uid, context.subjectId);
+      const isCanary = canaryHash % 100 < 1; // 1% canary rate
+      const effectiveMode = isCanary ? "shadow" : config.fraud.FRAUD_MODE;
 
-      // 1. Check rate limits first (fastest)
+      // Check rate limits first
       const rateLimitResult = await this.checkRateLimits(context);
       if (!rateLimitResult.allowed) {
         const decision = await this.createRiskDecision({
-          mode: config.mode,
+          uid: context.uid,
+          subjectType: context.subjectType,
+          subjectId: context.subjectId,
           score: 100,
           verdict: "deny",
-          threshold: 0,
           reasons: ["rate_limit_exceeded"],
-          subjectType: context.subjectType,
-          subjectId: context.subjectId,
-          uid: context.uid,
-          linkedSignalIds: [],
-          processingMs: Date.now() - startTime,
+          mode: effectiveMode,
+          canary: isCanary,
         });
 
         return {
           allowed: false,
           decision,
-          signals: [],
           processingMs: Date.now() - startTime,
         };
       }
 
-      // 2. Check allow/deny lists
-      const listChecks = await this.checkLists(context);
-      if (listChecks.denied.length > 0) {
+      // Check allow/deny lists
+      const listsResult = await this.checkLists(context);
+      if (listsResult.verdict === "deny") {
         const decision = await this.createRiskDecision({
-          mode: config.mode,
+          uid: context.uid,
+          subjectType: context.subjectType,
+          subjectId: context.subjectId,
           score: 100,
           verdict: "deny",
-          threshold: 0,
-          reasons: listChecks.denied.map(
-            (d) => `denylist_${d.type}_${d.value}`,
-          ),
-          subjectType: context.subjectType,
-          subjectId: context.subjectId,
-          uid: context.uid,
-          linkedSignalIds: [],
-          processingMs: Date.now() - startTime,
+          reasons: [listsResult.reason],
+          mode: effectiveMode,
+          canary: isCanary,
         });
 
         return {
           allowed: false,
           decision,
-          signals: [],
           processingMs: Date.now() - startTime,
         };
       }
 
-      if (listChecks.allowed.length > 0) {
+      if (listsResult.verdict === "allow") {
         const decision = await this.createRiskDecision({
-          mode: config.mode,
+          uid: context.uid,
+          subjectType: context.subjectType,
+          subjectId: context.subjectId,
           score: 0,
           verdict: "allow",
-          threshold: 0,
-          reasons: listChecks.allowed.map(
-            (d) => `allowlist_${d.type}_${d.value}`,
-          ),
-          subjectType: context.subjectType,
-          subjectId: context.subjectId,
-          uid: context.uid,
-          linkedSignalIds: [],
-          processingMs: Date.now() - startTime,
+          reasons: [listsResult.reason],
+          mode: effectiveMode,
+          canary: isCanary,
         });
 
         return {
           allowed: true,
           decision,
-          signals: [],
           processingMs: Date.now() - startTime,
         };
       }
 
-      // 3. Collect fraud signals
+      // Collect fraud signals
       const signals = await this.collectFraudSignals(context);
 
-      // 4. Calculate risk score
+      // Calculate risk score
       const score = await this.calculateRiskScore(signals, context);
 
-      // 5. Determine verdict based on mode and score
+      // Determine verdict
       const threshold = await this.getThreshold(context.subjectType);
       const verdict = this.determineVerdict(score, threshold);
+      const reasons = await this.generateReasons(signals, context, score);
 
-      // 6. Create risk decision
+      // Create decision
       const decision = await this.createRiskDecision({
-        mode: config.mode,
-        score,
-        verdict,
-        threshold,
-        reasons: await this.generateReasons(signals, context),
+        uid: context.uid,
         subjectType: context.subjectType,
         subjectId: context.subjectId,
-        uid: context.uid,
-        linkedSignalIds: signals.map((s) => s.signalId),
-        processingMs: Date.now() - startTime,
+        score,
+        verdict,
+        reasons,
+        mode: effectiveMode,
+        canary: isCanary,
       });
 
-      // 7. Log structured data
-      this.logFraudEvaluation(
-        context,
-        decision,
-        signals,
-        Date.now() - startTime,
-      );
+      // Determine if transaction should be allowed
+      const allowed = effectiveMode === "shadow" || verdict === "allow";
+
+      // Log fraud evaluation
+      await this.logFraudEvaluation(context, decision, allowed, Date.now() - startTime);
 
       return {
-        allowed: config.mode === "shadow" || verdict === "allow",
+        allowed,
         decision,
-        signals,
         processingMs: Date.now() - startTime,
       };
     } catch (error) {
       console.error("Fraud evaluation error:", error);
-      // On error, allow in shadow mode, deny in enforce mode
-      const config = await this.getConfig();
+      
+      // On error, create a decision with error information
       const decision = await this.createRiskDecision({
-        mode: config.mode,
-        score: 50,
-        verdict: config.mode === "shadow" ? "allow" : "deny",
-        threshold: 0,
-        reasons: ["evaluation_error"],
+        uid: context.uid,
         subjectType: context.subjectType,
         subjectId: context.subjectId,
-        uid: context.uid,
-        linkedSignalIds: [],
-        processingMs: Date.now() - startTime,
+        score: 0,
+        verdict: "allow", // Default to allow on error
+        reasons: ["evaluation_error"],
+        mode: config.fraud.FRAUD_MODE,
+        canary: false,
       });
 
       return {
-        allowed: config.mode === "shadow",
+        allowed: true, // Default to allow on error
         decision,
-        signals: [],
         processingMs: Date.now() - startTime,
       };
     }
@@ -269,6 +256,8 @@ export class FraudService {
   private async checkLists(context: FraudContext): Promise<{
     allowed: Array<{ type: string; value: string }>;
     denied: Array<{ type: string; value: string }>;
+    verdict: "allow" | "deny";
+    reason: string;
   }> {
     const checks: Array<{ type: ListType; value: string }> = [
       { type: "uid", value: context.uid },
@@ -302,7 +291,30 @@ export class FraudService {
       .filter((r) => r.isDenied)
       .map((r) => ({ type: r.check.type, value: r.check.value }));
 
-    return { allowed, denied };
+    if (denied.length > 0) {
+      return {
+        allowed: [],
+        denied: denied,
+        verdict: "deny",
+        reason: `denylist_${denied[0].type}_${denied[0].value}`,
+      };
+    }
+
+    if (allowed.length > 0) {
+      return {
+        allowed: allowed,
+        denied: [],
+        verdict: "allow",
+        reason: `allowlist_${allowed[0].type}_${allowed[0].value}`,
+      };
+    }
+
+    return {
+      allowed: [],
+      denied: [],
+      verdict: "allow",
+      reason: "",
+    };
   }
 
   /**
@@ -429,6 +441,7 @@ export class FraudService {
   private async generateReasons(
     signals: FraudSignal[],
     context: FraudContext,
+    score: number,
   ): Promise<string[]> {
     const config = await this.getConfig();
     const reasons: string[] = [];
@@ -522,30 +535,116 @@ export class FraudService {
   /**
    * Log structured fraud evaluation data
    */
-  private logFraudEvaluation(
+  private async logFraudEvaluation(
     context: FraudContext,
     decision: RiskDecision,
-    signals: FraudSignal[],
+    allowed: boolean,
     processingMs: number,
-  ): void {
-    console.log(
-      JSON.stringify({
-        component: "fraud",
-        level: "info",
-        message: "Fraud evaluation completed",
-        mode: decision.mode,
-        score: decision.score,
-        verdict: decision.verdict,
-        threshold: decision.threshold,
-        uid: context.uid,
-        subjectType: context.subjectType,
-        subjectId: context.subjectId,
-        reasons: decision.reasons,
-        processing_ms: processingMs,
-        signal_count: signals.length,
-        timestamp: new Date().toISOString(),
-      }),
-    );
+  ): Promise<void> {
+    const db = await getDb();
+    const logRef = db.collection("fraudLogs").doc();
+    await logRef.set({
+      decisionId: decision.decisionId,
+      mode: decision.mode,
+      score: decision.score,
+      verdict: decision.verdict,
+      threshold: decision.threshold,
+      uid: context.uid,
+      subjectType: context.subjectType,
+      subjectId: context.subjectId,
+      reasons: decision.reasons,
+      processing_ms: processingMs,
+      signal_count: 0, // Placeholder, will be updated when signals are stored
+      timestamp: new Date().toISOString(),
+      canary: decision.canary,
+      allowed: allowed,
+    });
+  }
+
+  /**
+   * Auto-escalate manual reviews older than 7 days
+   */
+  async escalateStaleReviews(): Promise<void> {
+    const db = await getDb();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const staleReviews = await db
+      .collection("manualReviews")
+      .where("status", "in", ["pending", "in_review"])
+      .where("createdAt", "<", sevenDaysAgo)
+      .get();
+
+    const batch = db.batch();
+    let escalatedCount = 0;
+
+    for (const doc of staleReviews.docs) {
+      batch.update(doc.ref, {
+        status: "escalated",
+        escalatedAt: new Date(),
+        escalationReason: "auto_escalation_7_days",
+      });
+      escalatedCount++;
+    }
+
+    if (escalatedCount > 0) {
+      await batch.commit();
+      console.log(`Auto-escalated ${escalatedCount} stale manual reviews`);
+    }
+  }
+
+  /**
+   * Get manual review statistics by age buckets
+   */
+  async getManualReviewStats(): Promise<{
+    pending: { "0-1": number; "2-3": number; "4-7": number; ">7": number };
+    inReview: { "0-1": number; "2-3": number; "4-7": number; ">7": number };
+    escalated: { "0-1": number; "2-3": number; "4-7": number; ">7": number };
+  }> {
+    const db = await getDb();
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const stats = {
+      pending: { "0-1": 0, "2-3": 0, "4-7": 0, ">7": 0 },
+      inReview: { "0-1": 0, "2-3": 0, "4-7": 0, ">7": 0 },
+      escalated: { "0-1": 0, "2-3": 0, "4-7": 0, ">7": 0 },
+    };
+
+    // Get all manual reviews
+    const reviews = await db.collection("manualReviews").get();
+
+    for (const doc of reviews.docs) {
+      const data = doc.data();
+      const createdAt = data.createdAt.toDate();
+      const ageInDays = (now.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000);
+
+      let ageBucket: "0-1" | "2-3" | "4-7" | ">7";
+      if (ageInDays <= 1) ageBucket = "0-1";
+      else if (ageInDays <= 3) ageBucket = "2-3";
+      else if (ageInDays <= 7) ageBucket = "4-7";
+      else ageBucket = ">7";
+
+      const status = data.status as keyof typeof stats;
+      if (status in stats) {
+        stats[status][ageBucket]++;
+      }
+    }
+
+    return stats;
+  }
+
+  private generateCanaryHash(uid: string, subjectId: string): number {
+    // Simple hash function for canary routing
+    let hash = 0;
+    const str = uid + subjectId;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
   }
 }
 

@@ -1,8 +1,69 @@
-# Phase 5: Operational Runbook
+# Phase 5 Fraud Detection Runbook
 
 ## Overview
+This runbook covers operational procedures for the Phase 5 fraud detection system, including monitoring, alerting, and incident response.
 
-This runbook provides operational procedures for managing the Phase 5 fraud detection system in production.
+## Weekly Canary Comparison
+
+### Purpose
+The 1% shadow canary routes 1% of fraud evaluations to shadow mode while the rest go to enforce mode. This allows us to compare decision consistency and detect any drift between modes.
+
+### Monitoring Schedule
+- **Frequency**: Weekly (every Monday)
+- **Data Source**: `riskDecisions` collection with `canary=true` filter
+- **Comparison Period**: Last 7 days
+
+### Metrics to Compare
+1. **Decision Distribution**
+   - Enforce mode: allow/deny/review percentages
+   - Shadow mode: allow/deny/review percentages
+   - Expected: Similar distributions for benign traffic
+
+2. **Score Distribution**
+   - Enforce mode: average score, p50, p95
+   - Shadow mode: average score, p50, p95
+   - Expected: Similar score distributions
+
+3. **Processing Performance**
+   - Enforce mode: p95 processing time
+   - Shadow mode: p95 processing time
+   - Expected: Similar performance (within 10ms)
+
+### Analysis Query
+```sql
+-- Weekly canary comparison
+SELECT 
+  mode,
+  canary,
+  COUNT(*) as total_decisions,
+  AVG(score) as avg_score,
+  PERCENTILE_CONT(score, 0.5) OVER (PARTITION BY mode, canary) as p50_score,
+  PERCENTILE_CONT(score, 0.95) OVER (PARTITION BY mode, canary) as p95_score,
+  AVG(processing_ms) as avg_processing_ms,
+  PERCENTILE_CONT(processing_ms, 0.95) OVER (PARTITION BY mode, canary) as p95_processing_ms,
+  COUNTIF(verdict = 'allow') / COUNT(*) as allow_rate,
+  COUNTIF(verdict = 'deny') / COUNT(*) as deny_rate,
+  COUNTIF(verdict = 'review') / COUNT(*) as review_rate
+FROM `siraj-prod.fraud.risk_decisions`
+WHERE created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+  AND (mode = 'enforce' OR canary = true)
+GROUP BY mode, canary
+ORDER BY mode, canary;
+```
+
+### Alert Thresholds
+- **Decision Rate Drift**: >5% difference in allow/deny rates between modes
+- **Score Drift**: >10% difference in average scores between modes
+- **Performance Drift**: >20ms difference in p95 processing times
+
+### Action Items
+- **Minor Drift (<5%)**: Monitor for another week
+- **Moderate Drift (5-10%)**: Investigate signal collection or scoring changes
+- **Major Drift (>10%)**: Immediate investigation and potential rollback
+
+### Documentation
+- Store weekly comparison results in `docs/STATUS/CANARY_COMPARISON_YYYY-MM-DD.md`
+- Update this runbook with any pattern changes or threshold adjustments
 
 ## Emergency Procedures
 
