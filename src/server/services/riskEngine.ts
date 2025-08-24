@@ -354,15 +354,21 @@ export class RiskEngine {
    */
   private async createDecision(decision: RiskDecision): Promise<RiskDecision> {
     const db = await getDb();
-    await db.collection("riskDecisions").doc(decision.id).set({
+    const data: any = {
       action: decision.action,
       score: decision.score,
       reasons: decision.reasons,
       confidence: decision.confidence,
       metadata: decision.metadata,
       createdAt: decision.createdAt,
-      expiresAt: decision.expiresAt,
-    });
+    };
+    
+    // Only include expiresAt if it's defined
+    if (decision.expiresAt) {
+      data.expiresAt = decision.expiresAt;
+    }
+    
+    await db.collection("riskDecisions").doc(decision.id).set(data);
 
     return decision;
   }
