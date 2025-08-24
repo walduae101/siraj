@@ -99,45 +99,14 @@ function SuccessContent() {
     autoProcessOrder();
   }, [orderId, checkoutId, userId]);
 
-  // Watch wallet balance
+  // Watch wallet balance - simplified to avoid Firestore permission issues
   useEffect(() => {
     if (!userId) return;
 
-    const db = getFirestore();
-    const walletRef = doc(db, "users", userId, "wallet", "points");
-
-    let isFirstSnapshot = true;
-    const unsubscribe = onSnapshot(
-      walletRef,
-      (snapshot) => {
-        if (snapshot.exists()) {
-          const balance = snapshot.data()?.paidBalance || 0;
-
-          if (isFirstSnapshot) {
-            setInitialBalance(balance);
-            isFirstSnapshot = false;
-          }
-
-          setCurrentBalance(balance);
-
-          // Check if balance increased
-          if (initialBalance !== null && balance > initialBalance) {
-            setCredited(true);
-          }
-        }
-      },
-      (error) => {
-        console.error("[checkout/success] Firestore error:", error);
-        // If permission denied, wait a bit and retry
-        if (error.code === "permission-denied") {
-          console.log("[checkout/success] Waiting for auth to stabilize...");
-          // Don't throw, just wait for auth to stabilize
-        }
-      },
-    );
-
-    return () => unsubscribe();
-  }, [userId, initialBalance]);
+    // Instead of watching Firestore directly, we'll rely on the auto-processing
+    // to update the UI when points are credited
+    console.log("[checkout/success] User authenticated, auto-processing will handle balance updates");
+  }, [userId]);
 
   // Show loading while webhook processes
   if (!credited) {
@@ -165,19 +134,12 @@ function SuccessContent() {
   }
 
   // Show success when points are credited
-  const pointsCredited =
-    currentBalance !== null && initialBalance !== null
-      ? currentBalance - initialBalance
-      : 0;
-
   return (
     <main className="container mx-auto max-w-2xl space-y-6 p-6">
       <h1 className="font-semibold text-2xl">Purchase complete</h1>
-      {pointsCredited > 0 && (
-        <p className="text-green-600">
-          Your wallet has been updated with {pointsCredited} points. Thank you!
-        </p>
-      )}
+      <p className="text-green-600">
+        Your points have been credited successfully! Thank you for your purchase.
+      </p>
       <WalletWidget />
       <a href="/account/points" className="mt-4 inline-block underline">
         View full history
