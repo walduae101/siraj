@@ -40,7 +40,7 @@ export default function RiskQueuePage(props: RiskQueueProps) {
   ) => {
     try {
       setActionLoading(true);
-      const response = await fetch(`/api/admin/risk/action`, {
+      const response = await fetch("/api/admin/risk/action", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -128,10 +128,10 @@ export default function RiskQueuePage(props: RiskQueueProps) {
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="mx-auto max-w-7xl">
           <div className="animate-pulse">
-            <div className="mb-6 h-8 w-1/4 rounded bg-gray-200"></div>
+            <div className="mb-6 h-8 w-1/4 rounded bg-gray-200" />
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-20 rounded bg-gray-200"></div>
+                <div key={i} className="h-20 rounded bg-gray-200" />
               ))}
             </div>
           </div>

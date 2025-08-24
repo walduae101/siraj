@@ -1,8 +1,8 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { getDb } from "../firebase/admin-lazy";
 import type { Transaction } from "firebase-admin/firestore";
 import { getConfig, getSubscriptionPlan } from "~/server/config";
 import { pointsService } from "~/server/services/points";
+import { getDb } from "../firebase/admin-lazy";
 import { addMonths, addYears } from "./util-date";
 
 type Cycle = "month" | "year";

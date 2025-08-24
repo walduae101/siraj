@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getAdminAuth } from "~/server/firebase/admin-lazy";
+import { type NextRequest, NextResponse } from "next/server";
 import { getConfig } from "~/server/config";
+import { getAdminAuth } from "~/server/firebase/admin-lazy";
 
 export async function GET(req: NextRequest) {
   try {
     // Get auth header
     const authHeader = req.headers.get("authorization");
-    
+
     // Get config
     const config = await getConfig();
-    
+
     // Basic info (safe to expose)
     const debugInfo: any = {
       hasAuthHeader: !!authHeader,
@@ -30,14 +30,18 @@ export async function GET(req: NextRequest) {
         debugInfo.tokenProject = decodedToken.firebase?.sign_in_provider;
       } catch (error) {
         debugInfo.tokenValid = false;
-        debugInfo.tokenError = error instanceof Error ? error.message : "Unknown error";
+        debugInfo.tokenError =
+          error instanceof Error ? error.message : "Unknown error";
       }
     }
 
     return NextResponse.json(debugInfo);
   } catch (error) {
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : "Unknown error",
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }

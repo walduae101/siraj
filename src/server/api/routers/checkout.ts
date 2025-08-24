@@ -58,14 +58,14 @@ export const checkoutRouter = createTRPCRouter({
 
       let totalCredited = 0;
       const config = await getConfig();
-      
+
       for (const line of order.lines ?? []) {
         const pid = String(line.product_id);
         const qty = Number(line.quantity ?? 1);
-        
+
         // Find the product points - first check if it's in Firestore
         let points: number | null = null;
-        
+
         // Try to get from ProductCatalogService
         const product = await ProductCatalogService.getProductByPayNowId(pid);
         if (product) {
@@ -77,7 +77,7 @@ export const checkoutRouter = createTRPCRouter({
             points = gsmProduct.points;
           }
         }
-        
+
         if (points && qty > 0) {
           const delta = points * qty;
           await pointsService.credit({
@@ -113,7 +113,8 @@ export const checkoutRouter = createTRPCRouter({
       if (!uid) throw new Error("Not authenticated");
 
       // Resolve product ID from SKU or direct productId
-      const resolvedProductId = input.productId ?? (await getProductId(input.sku ?? "")) ?? "";
+      const resolvedProductId =
+        input.productId ?? (await getProductId(input.sku ?? "")) ?? "";
       const productId = resolvedProductId;
       if (!productId) {
         const cfg = await getConfig();
@@ -127,7 +128,7 @@ export const checkoutRouter = createTRPCRouter({
       // First try to get product from Firestore by PayNow ID
       let productData: any = null;
       let price = 0;
-      
+
       // Check if we have a product in Firestore with this PayNow ID
       const productSnapshot = await db
         .collection("products")
@@ -135,7 +136,7 @@ export const checkoutRouter = createTRPCRouter({
         .where("active", "==", true)
         .limit(1)
         .get();
-      
+
       if (!productSnapshot.empty) {
         const productDoc = productSnapshot.docs[0];
         if (productDoc) {
@@ -146,24 +147,26 @@ export const checkoutRouter = createTRPCRouter({
         // Fallback: Get price from PayNow products config
         // The price mapping is not in our config, so we'll use a default based on points
         const cfg = await getConfig();
-        const sku = Object.entries(cfg.paynow.products).find(([_, id]) => id === productId)?.[0];
-        
+        const sku = Object.entries(cfg.paynow.products).find(
+          ([_, id]) => id === productId,
+        )?.[0];
+
         if (sku) {
           // Extract points from SKU name (e.g., "points_20" -> 20)
           const pointsMatch = sku.match(/points_(\d+)/);
-          if (pointsMatch && pointsMatch[1]) {
-            const points = parseInt(pointsMatch[1], 10);
+          if (pointsMatch?.[1]) {
+            const points = Number.parseInt(pointsMatch[1], 10);
             // Use the price structure from the paywall page
             const priceMap: Record<number, number> = {
-              20: 2.00,
-              50: 5.00,
-              150: 12.00,
-              500: 25.00
+              20: 2.0,
+              50: 5.0,
+              150: 12.0,
+              500: 25.0,
             };
             price = priceMap[points] || 0;
           }
         }
-        
+
         if (!price) {
           throw new Error("Product not found");
         }
@@ -207,8 +210,11 @@ export const checkoutRouter = createTRPCRouter({
       });
 
       // Handle risk decision
-              const config = await getConfig();
-      console.log('[checkout] FRAUD_SHADOW_MODE:', config.features.FRAUD_SHADOW_MODE);
+      const config = await getConfig();
+      console.log(
+        "[checkout] FRAUD_SHADOW_MODE:",
+        config.features.FRAUD_SHADOW_MODE,
+      );
       if (!config.features.FRAUD_SHADOW_MODE) {
         // Enforce mode: block based on decision
         switch (riskDecision.action) {
@@ -220,8 +226,6 @@ export const checkoutRouter = createTRPCRouter({
 
           case "queue_review":
             throw new Error("Checkout queued for manual review");
-
-          case "allow":
           default:
             // Continue with checkout
             break;

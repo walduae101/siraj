@@ -35,6 +35,12 @@
 - [**CI Guardrails**](./PHASE_4/CIS_GUARDRAILS.md) - Secret scanning and security controls
 - [**Cutover Checklist**](./PHASE_4/CUTOVER_CHECKLIST.md) - Production deployment guide
 
+### 🛡️ **Phase 5: Fraud Detection & Prevention**
+- [**Design**](./PHASE_5/DESIGN.md) - Architecture and implementation details
+- [**Configuration**](./PHASE_5/CONFIG.md) - All configuration options and feature flags
+- [**Runbook**](./PHASE_5/RUNBOOK.md) - Operational procedures and incident response
+- [**Observability**](./PHASE_5/OBSERVABILITY.md) - Monitoring, metrics, alerts, and dashboards
+
 ### 🛡️ **Security**
 - [**Wallet Contract**](./SECURITY/WALLET_CONTRACT.md) - Canonical paths and restrictions
 - [**TTL Configuration**](./SECURITY/WEBHOOK_TTL_CONFIGURATION.md) - Firestore cleanup setup
@@ -58,6 +64,8 @@
 | Run reconciliation | [Phase 4 Guide](./PHASE_4/README.md) |
 | Execute backfill | [Backfill Runbook](./PHASE_4/BACKFILL_RUNBOOK.md) |
 | Production cutover | [Cutover Checklist](./PHASE_4/CUTOVER_CHECKLIST.md) |
+| Fraud management | [Phase 5 Runbook](./PHASE_5/RUNBOOK.md) |
+| Fraud configuration | [Phase 5 Config](./PHASE_5/CONFIG.md) |
 | Respond to alerts | [Webhook Runbook](./RUNBOOKS/WEBHOOK_RUNBOOK.md) |
 | Security review | [Wallet Contract](./SECURITY/WALLET_CONTRACT.md) |
 
@@ -86,6 +94,15 @@ PayNow → Webhook → Process → Credit Points → Firestore
 PayNow → Webhook (Fast ACK) → Pub/Sub → Worker → Firestore
                                   ↓
                              Dead Letter Queue
+```
+
+### Current (Phase 5)
+```
+PayNow → Webhook → Fraud Evaluation → Rate Limits → Bot Defense → Firestore
+                ↓
+         Structured Logs → Metrics → Dashboard + Alerts
+                ↓
+         Manual Review Queue → Admin Interface
 ```
 
 ---

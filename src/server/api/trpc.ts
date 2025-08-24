@@ -78,7 +78,7 @@ export const createTRPCContext = async ({
       console.error("Failed to verify Firebase token:", {
         error: error instanceof Error ? error.message : String(error),
         tokenLength: token.length,
-        tokenPrefix: token.substring(0, 20) + "...",
+        tokenPrefix: `${token.substring(0, 20)}...`,
       });
     }
   } else {

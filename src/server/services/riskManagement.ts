@@ -59,7 +59,7 @@ export class RiskManagementService {
       };
     }
 
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
     const now = Timestamp.now();
     const oneHourAgo = Timestamp.fromMillis(now.toMillis() - 60 * 60 * 1000);
     const oneDayAgo = Timestamp.fromMillis(
@@ -70,7 +70,7 @@ export class RiskManagementService {
     const riskReasons: string[] = [];
 
     // Check 1: Max credited points per hour (200/h)
-    const hourlyCredits = await this.getCreditsInTimeframe(
+    const hourlyCredits = await RiskManagementService.getCreditsInTimeframe(
       check.uid,
       oneHourAgo,
       now,
@@ -83,7 +83,7 @@ export class RiskManagementService {
     }
 
     // Check 2: Max credited points per day (800/day)
-    const dailyCredits = await this.getCreditsInTimeframe(
+    const dailyCredits = await RiskManagementService.getCreditsInTimeframe(
       check.uid,
       oneDayAgo,
       now,
@@ -97,11 +97,12 @@ export class RiskManagementService {
 
     // Check 3: Promo redeems per day (3/day)
     if (check.eventType === "promo_redeem") {
-      const dailyPromos = await this.getPromoRedeemsInTimeframe(
-        check.uid,
-        oneDayAgo,
-        now,
-      );
+      const dailyPromos =
+        await RiskManagementService.getPromoRedeemsInTimeframe(
+          check.uid,
+          oneDayAgo,
+          now,
+        );
       if (dailyPromos >= 3) {
         riskScore += 40;
         riskReasons.push(`Daily promo limit exceeded: ${dailyPromos}/3`);
@@ -110,11 +111,12 @@ export class RiskManagementService {
 
     // Check 4: Multiple accounts with same PayNow customerId
     if (check.customerId) {
-      const accountsWithCustomerId = await this.getAccountsWithCustomerId(
-        check.customerId,
-        oneDayAgo,
-        now,
-      );
+      const accountsWithCustomerId =
+        await RiskManagementService.getAccountsWithCustomerId(
+          check.customerId,
+          oneDayAgo,
+          now,
+        );
       if (accountsWithCustomerId > 3) {
         riskScore += 60;
         riskReasons.push(
@@ -124,7 +126,7 @@ export class RiskManagementService {
     }
 
     // Check 5: Account age + high velocity
-    const accountAge = await this.getAccountAge(check.uid);
+    const accountAge = await RiskManagementService.getAccountAge(check.uid);
     if (accountAge < 60 && hourlyCredits + check.amount > 100) {
       riskScore += 40;
       riskReasons.push(
@@ -134,7 +136,7 @@ export class RiskManagementService {
 
     // Check 6: IP-based velocity
     if (check.ip) {
-      const ipCredits = await this.getCreditsByIpInTimeframe(
+      const ipCredits = await RiskManagementService.getCreditsByIpInTimeframe(
         check.ip,
         oneHourAgo,
         now,
@@ -167,7 +169,7 @@ export class RiskManagementService {
     velocityResult: VelocityResult,
     metadata: RiskEvent["metadata"],
   ): Promise<string> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
     const riskEventRef = db.collection("riskEvents").doc();
 
     const riskEvent: Omit<RiskEvent, "id"> = {
@@ -212,7 +214,7 @@ export class RiskManagementService {
     start: Timestamp,
     end: Timestamp,
   ): Promise<number> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
 
     const snapshot = await db
       .collection("users")
@@ -237,7 +239,7 @@ export class RiskManagementService {
     start: Timestamp,
     end: Timestamp,
   ): Promise<number> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
 
     const snapshot = await db
       .collection("users")
@@ -259,7 +261,7 @@ export class RiskManagementService {
     start: Timestamp,
     end: Timestamp,
   ): Promise<number> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
 
     const snapshot = await db
       .collection("paynowCustomers")
@@ -275,7 +277,7 @@ export class RiskManagementService {
    * Get account age in minutes
    */
   private static async getAccountAge(uid: string): Promise<number> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
 
     const userDoc = await db.collection("users").doc(uid).get();
     if (!userDoc.exists) {
@@ -301,7 +303,7 @@ export class RiskManagementService {
     start: Timestamp,
     end: Timestamp,
   ): Promise<number> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
 
     // This would require storing IP addresses in ledger entries
     // For now, return 0 as placeholder
@@ -312,7 +314,7 @@ export class RiskManagementService {
    * Get open risk holds
    */
   static async getOpenRiskHolds(): Promise<RiskEvent[]> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
 
     const snapshot = await db
       .collection("riskEvents")
@@ -339,7 +341,7 @@ export class RiskManagementService {
     resolvedBy: string,
     reason: string,
   ): Promise<void> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
 
     await db.collection("riskEvents").doc(riskEventId).update({
       decision,
@@ -375,7 +377,7 @@ export class RiskManagementService {
     avgRiskScore: number;
     topReasons: string[];
   }> {
-    const db = await this.getDb();
+    const db = await RiskManagementService.getDb();
     const now = Timestamp.now();
     const oneDayAgo = Timestamp.fromMillis(
       now.toMillis() - 24 * 60 * 60 * 1000,

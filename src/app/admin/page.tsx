@@ -72,7 +72,7 @@ export default function AdminPage() {
     }
 
     const amount = Number.parseFloat(adjustmentAmount);
-    if (isNaN(amount) || amount === 0) {
+    if (Number.isNaN(amount) || amount === 0) {
       toast.error("Please enter a valid non-zero amount");
       return;
     }

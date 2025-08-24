@@ -186,7 +186,10 @@ class MockWalletLedgerService {
     createdBy: string,
     reason?: string,
   ) {
-    const originalEntry = await MockWalletLedgerService.getLedgerEntry(uid, originalLedgerId);
+    const originalEntry = await MockWalletLedgerService.getLedgerEntry(
+      uid,
+      originalLedgerId,
+    );
     if (!originalEntry) {
       throw new Error(`Original ledger entry not found: ${originalLedgerId}`);
     }
@@ -203,7 +206,11 @@ class MockWalletLedgerService {
       createdBy,
     };
 
-    return await MockWalletLedgerService.createLedgerEntry(uid, reversalEntry, createdBy);
+    return await MockWalletLedgerService.createLedgerEntry(
+      uid,
+      reversalEntry,
+      createdBy,
+    );
   }
 
   static async getLedgerEntry(uid: string, ledgerId: string) {
@@ -241,7 +248,11 @@ class MockWalletLedgerService {
       createdBy: `admin:${adminUid}`,
     };
 
-    return await this.createLedgerEntry(uid, entry, `admin:${adminUid}`);
+    return await MockWalletLedgerService.createLedgerEntry(
+      uid,
+      entry,
+      `admin:${adminUid}`,
+    );
   }
 
   static async getReversedEntries(uid: string) {
@@ -434,9 +445,9 @@ async function runPhase3Tests() {
       throw new Error("No purchase entry found for reversal test");
     }
 
-    const currentBalance = (await MockWalletLedgerService.getWalletBalance(
-      TEST_USER_ID,
-    ))!.paidBalance;
+    const currentBalance = (
+      await MockWalletLedgerService.getWalletBalance(TEST_USER_ID)
+    )?.paidBalance;
     const result = await MockWalletLedgerService.createReversalEntry(
       TEST_USER_ID,
       purchaseEntry.id,

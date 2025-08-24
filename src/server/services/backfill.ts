@@ -39,7 +39,7 @@ export class BackfillService {
     errors: number;
     total: number;
   }> {
-    const db = await this.getDb();
+    const db = await BackfillService.getDb();
     const migrationId = `webhook_replay_${Date.now()}`;
 
     // Create migration record
@@ -65,7 +65,7 @@ export class BackfillService {
       // Get webhook events in date range
       const startTimestamp = Timestamp.fromDate(new Date(options.startDate));
       const endTimestamp = Timestamp.fromDate(
-        new Date(options.endDate + "T23:59:59"),
+        new Date(`${options.endDate}T23:59:59`),
       );
 
       const eventsSnapshot = await db
@@ -103,7 +103,7 @@ export class BackfillService {
             processed++;
           } else {
             // Process the webhook event
-            await this.processWebhookEvent(eventData, eventDoc.id);
+            await BackfillService.processWebhookEvent(eventData, eventDoc.id);
             processed++;
           }
 
@@ -171,7 +171,7 @@ export class BackfillService {
     eventData: any,
     eventId: string,
   ): Promise<void> {
-    const db = await this.getDb();
+    const db = await BackfillService.getDb();
 
     // Check if already processed
     if (eventData.processedAt) {
@@ -182,13 +182,13 @@ export class BackfillService {
     switch (eventData.eventType) {
       case "ON_ORDER_COMPLETED":
       case "ON_DELIVERY_ITEM_ADDED":
-        await this.processPurchaseEvent(eventData, eventId);
+        await BackfillService.processPurchaseEvent(eventData, eventId);
         break;
       case "ON_REFUND":
-        await this.processRefundEvent(eventData, eventId);
+        await BackfillService.processRefundEvent(eventData, eventId);
         break;
       case "ON_CHARGEBACK":
-        await this.processChargebackEvent(eventData, eventId);
+        await BackfillService.processChargebackEvent(eventData, eventId);
         break;
       default:
         console.warn("[backfill] Unknown event type", {
@@ -262,7 +262,7 @@ export class BackfillService {
     eventData: any,
     eventId: string,
   ): Promise<void> {
-    await this.processReversalEvent(eventData, eventId, "refund");
+    await BackfillService.processReversalEvent(eventData, eventId, "refund");
   }
 
   /**
@@ -272,7 +272,11 @@ export class BackfillService {
     eventData: any,
     eventId: string,
   ): Promise<void> {
-    await this.processReversalEvent(eventData, eventId, "chargeback");
+    await BackfillService.processReversalEvent(
+      eventData,
+      eventId,
+      "chargeback",
+    );
   }
 
   /**
@@ -290,7 +294,10 @@ export class BackfillService {
     }
 
     // Find the original purchase ledger entry
-    const originalEntry = await this.findOriginalPurchaseEntry(uid, orderId);
+    const originalEntry = await BackfillService.findOriginalPurchaseEntry(
+      uid,
+      orderId,
+    );
     if (!originalEntry) {
       throw new Error(
         `Original purchase entry not found for order: ${orderId}`,
@@ -323,7 +330,7 @@ export class BackfillService {
     uid: string,
     orderId: string,
   ): Promise<any> {
-    const db = await this.getDb();
+    const db = await BackfillService.getDb();
 
     const snapshot = await db
       .collection("users")
@@ -357,7 +364,7 @@ export class BackfillService {
     errors: number;
     total: number;
   }> {
-    const db = await this.getDb();
+    const db = await BackfillService.getDb();
     const migrationId = `reversal_backfill_${Date.now()}`;
 
     // Create migration record
@@ -383,7 +390,7 @@ export class BackfillService {
       // Get refund/chargeback events in date range
       const startTimestamp = Timestamp.fromDate(new Date(options.startDate));
       const endTimestamp = Timestamp.fromDate(
-        new Date(options.endDate + "T23:59:59"),
+        new Date(`${options.endDate}T23:59:59`),
       );
 
       const eventsSnapshot = await db
@@ -424,7 +431,11 @@ export class BackfillService {
             // Process the reversal event
             const kind =
               eventData.eventType === "ON_REFUND" ? "refund" : "chargeback";
-            await this.processReversalEvent(eventData, eventDoc.id, kind);
+            await BackfillService.processReversalEvent(
+              eventData,
+              eventDoc.id,
+              kind,
+            );
             processed++;
           }
 
@@ -492,7 +503,7 @@ export class BackfillService {
     type?: string,
     limit = 50,
   ): Promise<DataMigration[]> {
-    const db = await this.getDb();
+    const db = await BackfillService.getDb();
 
     let query = db
       .collection("dataMigrations")

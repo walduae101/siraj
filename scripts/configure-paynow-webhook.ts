@@ -7,17 +7,17 @@ async function configurePayNowWebhook() {
 
   try {
     const config = await getConfig();
-    
+
     const webhookUrl = "https://siraj.life/api/paynow/webhook";
     const events = [
       "ON_ORDER_COMPLETED",
-      "ON_DELIVERY_ITEM_ADDED", 
+      "ON_DELIVERY_ITEM_ADDED",
       "ON_SUBSCRIPTION_ACTIVATED",
       "ON_SUBSCRIPTION_RENEWED",
       "ON_SUBSCRIPTION_CANCELED",
       "ON_SUBSCRIPTION_EXPIRED",
       "ON_REFUND",
-      "ON_CHARGEBACK"
+      "ON_CHARGEBACK",
     ];
 
     console.log(`📡 Webhook URL: ${webhookUrl}`);
@@ -28,7 +28,7 @@ async function configurePayNowWebhook() {
       url: webhookUrl,
       events: events,
       secret: config.paynow.webhookSecret,
-      active: true
+      active: true,
     };
 
     console.log("\n📝 Webhook Configuration:");
@@ -58,8 +58,8 @@ async function configurePayNowWebhook() {
         body: JSON.stringify({
           id: "test-webhook",
           event_type: "test",
-          data: { test: true }
-        })
+          data: { test: true },
+        }),
       });
 
       if (response.ok) {
@@ -70,7 +70,6 @@ async function configurePayNowWebhook() {
     } catch (error) {
       console.log("❌ Webhook endpoint test failed:", error);
     }
-
   } catch (error) {
     console.error("❌ Error configuring webhook:", error);
     process.exit(1);

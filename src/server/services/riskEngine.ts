@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import { getConfig } from "~/server/config";
 import { getDb } from "~/server/firebase/admin-lazy";
 import { botDefenseService } from "./botDefense";
@@ -183,7 +183,7 @@ export class RiskEngine {
     botDefenseResult: any,
   ): Promise<RiskSignal[]> {
     const signals: RiskSignal[] = [];
-    
+
     // Load config if not loaded
     if (!this.config) {
       this.config = await getConfig();
@@ -362,12 +362,12 @@ export class RiskEngine {
       metadata: decision.metadata,
       createdAt: decision.createdAt,
     };
-    
+
     // Only include expiresAt if it's defined
     if (decision.expiresAt) {
       data.expiresAt = decision.expiresAt;
     }
-    
+
     await db.collection("riskDecisions").doc(decision.id).set(data);
 
     return decision;

@@ -213,7 +213,7 @@ export const pointsService = {
     const db = await getDb();
     const walletRef = await WALLETS(uid);
     const ledgerCol = await LEDGER(uid);
-    
+
     return await db.runTransaction(async (tx) => {
       const ref = walletRef;
       const snap = await tx.get(ref);
@@ -322,7 +322,7 @@ export const pointsService = {
     const db = await getDb();
     const walletRef = await WALLETS(uid);
     const ledgerCol = await LEDGER(uid);
-    
+
     return await db.runTransaction(async (tx) => {
       const ref = walletRef;
       const snap = await tx.get(ref);

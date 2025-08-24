@@ -122,7 +122,9 @@ export class BotDefenseService {
       const publicKeys = this.config.fraud.appCheckPublicKeys;
       if (publicKeys.length > 0) {
         // This is a simplified check - in reality you'd verify the JWT
-        return publicKeys.some((key: string) => token.includes(key.substring(0, 10)));
+        return publicKeys.some((key: string) =>
+          token.includes(key.substring(0, 10)),
+        );
       }
 
       // If no public keys configured, assume valid for development

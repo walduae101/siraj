@@ -1,7 +1,7 @@
 // Centralized configuration loader for Google Secret Manager
 import fs from "node:fs";
-import { z } from "zod";
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
+import { z } from "zod";
 
 // Validate no secrets in environment variables
 function validateNoSecretsInEnv() {
@@ -95,6 +95,35 @@ const ConfigSchema = z.object({
   // Fraud detection configuration
   fraud: z
     .object({
+      // Phase 5: Fraud Mode and Thresholds
+      FRAUD_MODE: z.enum(["off", "shadow", "enforce"]).default("shadow"),
+      FRAUD_SCORE_THRESHOLD_PURCHASE: z.number().min(0).max(100).default(65),
+      FRAUD_SCORE_THRESHOLD_SUBSCRIPTION: z
+        .number()
+        .min(0)
+        .max(100)
+        .default(60),
+      FRAUD_BLOCK_COUNTRIES: z.array(z.string().length(2)).default([]),
+      FRAUD_ALLOW_TEST_USERS: z.boolean().default(true),
+
+      // Rate limiting configuration
+      RATE_LIMITS: z
+        .object({
+          perIpPerMin: z.number().default(60),
+          perUidPerMin: z.number().default(30),
+          perUidPerHour: z.number().default(200),
+        })
+        .default({ perIpPerMin: 60, perUidPerMin: 30, perUidPerHour: 200 }),
+
+      // Bot defense configuration
+      BOTDEFENSE: z
+        .object({
+          appCheckRequired: z.boolean().default(true),
+          recaptchaEnterpriseSiteKey: z.string().optional(),
+          minScore: z.number().min(0).max(1).default(0.6),
+        })
+        .default({ appCheckRequired: true, minScore: 0.6 }),
+
       // Rate limiting caps per UID and per IP
       checkoutCaps: z
         .object({
@@ -134,6 +163,13 @@ const ConfigSchema = z.object({
       appCheckPublicKeys: z.array(z.string()).default([]),
     })
     .default({
+      FRAUD_MODE: "shadow",
+      FRAUD_SCORE_THRESHOLD_PURCHASE: 65,
+      FRAUD_SCORE_THRESHOLD_SUBSCRIPTION: 60,
+      FRAUD_BLOCK_COUNTRIES: [],
+      FRAUD_ALLOW_TEST_USERS: true,
+      RATE_LIMITS: { perIpPerMin: 60, perUidPerMin: 30, perUidPerHour: 200 },
+      BOTDEFENSE: { appCheckRequired: true, minScore: 0.6 },
       checkoutCaps: {
         uid: { perMinute: 5, perHour: 20, perDay: 100 },
         ip: { perMinute: 10, perHour: 50, perDay: 200 },
@@ -236,18 +272,21 @@ async function getSecretManagerClient(): Promise<SecretManagerServiceClient> {
 async function getSecret(secretName: string): Promise<string> {
   try {
     const client = await getSecretManagerClient();
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
+    const projectId =
+      process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID;
     if (!projectId) {
-      throw new Error("GOOGLE_CLOUD_PROJECT or FIREBASE_PROJECT_ID environment variable is required");
+      throw new Error(
+        "GOOGLE_CLOUD_PROJECT or FIREBASE_PROJECT_ID environment variable is required",
+      );
     }
-    
+
     const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
     const [version] = await client.accessSecretVersion({ name });
-    
+
     if (!version.payload?.data) {
       throw new Error(`Secret ${secretName} not found or empty`);
     }
-    
+
     return version.payload.data.toString();
   } catch (error) {
     console.error(`Failed to fetch secret ${secretName}:`, error);
@@ -262,26 +301,34 @@ export async function getConfig(): Promise<Config> {
   try {
     // Check if config is available as environment variable first (Cloud Run mounted secret)
     if (process.env.SIRAJ_CONFIG) {
-      console.log("[config] Loading configuration from SIRAJ_CONFIG environment variable");
+      console.log(
+        "[config] Loading configuration from SIRAJ_CONFIG environment variable",
+      );
       const parsed = ConfigSchema.parse(JSON.parse(process.env.SIRAJ_CONFIG));
       cached = parsed;
       expiresAt = now + TTL_MS;
       return parsed;
     }
-    
+
     // Try to load from Google Secret Manager API
-    if (process.env.NODE_ENV === "production" || process.env.USE_SECRET_MANAGER === "true") {
-      console.log("[config] Loading configuration from Google Secret Manager API");
-      
+    if (
+      process.env.NODE_ENV === "production" ||
+      process.env.USE_SECRET_MANAGER === "true"
+    ) {
+      console.log(
+        "[config] Loading configuration from Google Secret Manager API",
+      );
+
       const configSecret = await getSecret("siraj-config");
       const parsed = ConfigSchema.parse(JSON.parse(configSecret));
       cached = parsed;
       expiresAt = now + TTL_MS;
       return parsed;
     }
-    
+
     // Fallback to local config file for development
-    const CONFIG_PATH = process.env.SIRAJ_CONFIG_PATH ?? "/var/secrets/siraj/config.json";
+    const CONFIG_PATH =
+      process.env.SIRAJ_CONFIG_PATH ?? "/var/secrets/siraj/config.json";
     const raw = fs.readFileSync(CONFIG_PATH, "utf8");
     const parsed = ConfigSchema.parse(JSON.parse(raw));
     cached = parsed;
@@ -291,7 +338,7 @@ export async function getConfig(): Promise<Config> {
     // In development, fall back to environment variables
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        `[config] Secret Manager and config file not available, falling back to env vars`,
+        "[config] Secret Manager and config file not available, falling back to env vars",
       );
       return getConfigFromEnv();
     }
@@ -302,9 +349,11 @@ export async function getConfig(): Promise<Config> {
 // Synchronous version for backward compatibility
 export function getConfigSync(): Config {
   if (cached) return cached;
-  
+
   // For synchronous access, use environment variables
-  console.warn("[config] Using synchronous config access - consider using async getConfig()");
+  console.warn(
+    "[config] Using synchronous config access - consider using async getConfig()",
+  );
   return getConfigFromEnv();
 }
 
@@ -360,6 +409,36 @@ function getConfigFromEnv(): Config {
       APP_RATE_LIMIT_ENABLED: process.env.APP_RATE_LIMIT_ENABLED === "1",
     },
     fraud: {
+      // Phase 5: Fraud Mode and Thresholds
+      FRAUD_MODE:
+        (process.env.FRAUD_MODE as "off" | "shadow" | "enforce") ?? "shadow",
+      FRAUD_SCORE_THRESHOLD_PURCHASE:
+        Number(process.env.FRAUD_SCORE_THRESHOLD_PURCHASE) || 65,
+      FRAUD_SCORE_THRESHOLD_SUBSCRIPTION:
+        Number(process.env.FRAUD_SCORE_THRESHOLD_SUBSCRIPTION) || 60,
+      FRAUD_BLOCK_COUNTRIES: (process.env.FRAUD_BLOCK_COUNTRIES ?? "")
+        .split(",")
+        .filter(Boolean),
+      FRAUD_ALLOW_TEST_USERS: process.env.FRAUD_ALLOW_TEST_USERS !== "0",
+
+      // Rate limiting configuration
+      RATE_LIMITS: {
+        perIpPerMin: Number(process.env.FRAUD_RATE_LIMITS_PER_IP_PER_MIN) || 60,
+        perUidPerMin:
+          Number(process.env.FRAUD_RATE_LIMITS_PER_UID_PER_MIN) || 30,
+        perUidPerHour:
+          Number(process.env.FRAUD_RATE_LIMITS_PER_UID_PER_HOUR) || 200,
+      },
+
+      // Bot defense configuration
+      BOTDEFENSE: {
+        appCheckRequired:
+          process.env.FRAUD_BOTDEFENSE_APP_CHECK_REQUIRED !== "0",
+        recaptchaEnterpriseSiteKey:
+          process.env.FRAUD_BOTDEFENSE_RECAPTCHA_ENTERPRISE_SITE_KEY,
+        minScore: Number(process.env.FRAUD_BOTDEFENSE_MIN_SCORE) || 0.6,
+      },
+
       checkoutCaps: {
         uid: {
           perMinute: Number(process.env.FRAUD_CHECKOUT_CAPS_UID_RPM) || 5,
@@ -436,4 +515,27 @@ export async function getSubscriptionPlan(productId: string) {
 
   const [sku] = skuEntry;
   return cfg.subscriptions.plans[sku] ?? null;
+}
+
+/**
+ * Get fraud configuration with structured logging support
+ */
+export async function getFraudConfig() {
+  const config = await getConfig();
+  return {
+    mode: config.fraud.FRAUD_MODE,
+    scoreThresholdPurchase: config.fraud.FRAUD_SCORE_THRESHOLD_PURCHASE,
+    scoreThresholdSubscription: config.fraud.FRAUD_SCORE_THRESHOLD_SUBSCRIPTION,
+    blockCountries: config.fraud.FRAUD_BLOCK_COUNTRIES,
+    allowTestUsers: config.fraud.FRAUD_ALLOW_TEST_USERS,
+    rateLimits: config.fraud.RATE_LIMITS,
+    botDefense: config.fraud.BOTDEFENSE,
+    // Legacy fields for backward compatibility
+    checkoutCaps: config.fraud.checkoutCaps,
+    minAccountAgeMinutes: config.fraud.minAccountAgeMinutes,
+    riskThresholds: config.fraud.riskThresholds,
+    recaptchaSiteKey: config.fraud.recaptchaSiteKey,
+    recaptchaProject: config.fraud.recaptchaProject,
+    appCheckPublicKeys: config.fraud.appCheckPublicKeys,
+  };
 }

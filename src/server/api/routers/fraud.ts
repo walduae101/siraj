@@ -79,52 +79,51 @@ export const fraudRouter = createTRPCRouter({
             shadow: true,
             message: `Shadow mode: ${decision.action} (score: ${decision.score})`,
           };
-        } else {
-          // Enforce mode: block based on decision
-          switch (decision.action) {
-            case "allow":
-              return {
-                decision,
-                proceed: true,
-                shadow: false,
-                message: "Checkout allowed",
-              };
+        }
+        // Enforce mode: block based on decision
+        switch (decision.action) {
+          case "allow":
+            return {
+              decision,
+              proceed: true,
+              shadow: false,
+              message: "Checkout allowed",
+            };
 
-            case "challenge":
-              return {
-                decision,
-                proceed: false,
-                shadow: false,
-                message: "reCAPTCHA challenge required",
-                requiresRecaptcha: true,
-              };
+          case "challenge":
+            return {
+              decision,
+              proceed: false,
+              shadow: false,
+              message: "reCAPTCHA challenge required",
+              requiresRecaptcha: true,
+            };
 
-            case "deny":
-              return {
-                decision,
-                proceed: false,
-                shadow: false,
-                message: "Checkout denied due to risk",
-              };
+          case "deny":
+            return {
+              decision,
+              proceed: false,
+              shadow: false,
+              message: "Checkout denied due to risk",
+            };
 
-            case "queue_review":
-              // Create manual review entry
-              await createManualReview(decision, uid, input);
-              return {
-                decision,
-                proceed: false,
-                shadow: false,
-                message: "Checkout queued for manual review",
-              };
+          case "queue_review":
+            // Create manual review entry
+            await createManualReview(decision, uid, input);
+            return {
+              decision,
+              proceed: false,
+              shadow: false,
+              message: "Checkout queued for manual review",
+            };
 
-            default:
-              return {
-                decision,
-                proceed: false,
-                shadow: false,
-                message: "Unknown decision action",
-              };
-          }
+          default:
+            return {
+              decision,
+              proceed: false,
+              shadow: false,
+              message: "Unknown decision action",
+            };
         }
       }),
   }),
@@ -145,9 +144,8 @@ export const fraudRouter = createTRPCRouter({
         .query(async ({ input }) => {
           if (input.list === "denylist") {
             return await listsService.listDenylist(input.type);
-          } else {
-            return await listsService.listAllowlist(input.type);
           }
+          return await listsService.listAllowlist(input.type);
         }),
 
       // Add to denylist
@@ -368,27 +366,26 @@ export const fraudRouter = createTRPCRouter({
         .query(async ({ input }) => {
           if (input.uid) {
             return await riskEngine.getRecentDecisions(input.uid, input.limit);
-          } else {
-            const db = await getDb();
-            const snapshot = await db
-              .collection("riskDecisions")
-              .orderBy("createdAt", "desc")
-              .limit(input.limit)
-              .get();
-
-            return snapshot.docs
-              .map((doc: any) => {
-                const data = doc.data();
-                if (!data) return null;
-                return {
-                  id: doc.id,
-                  ...data,
-                  createdAt: data.createdAt?.toDate(),
-                  expiresAt: data.expiresAt?.toDate(),
-                };
-              })
-              .filter(Boolean);
           }
+          const db = await getDb();
+          const snapshot = await db
+            .collection("riskDecisions")
+            .orderBy("createdAt", "desc")
+            .limit(input.limit)
+            .get();
+
+          return snapshot.docs
+            .map((doc: any) => {
+              const data = doc.data();
+              if (!data) return null;
+              return {
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt?.toDate(),
+                expiresAt: data.expiresAt?.toDate(),
+              };
+            })
+            .filter(Boolean);
         }),
     }),
   }),

@@ -4,15 +4,13 @@ import { getConfig } from "../config";
 let cachedApp: import("firebase-admin/app").App | null = null;
 
 export async function getAdminApp() {
-  const { getApps, initializeApp, cert } = await import(
-    "firebase-admin/app"
-  );
+  const { getApps, initializeApp, cert } = await import("firebase-admin/app");
   if (!cachedApp) {
     if (getApps().length > 0) {
       cachedApp = getApps()[0]!;
     } else {
       const config = await getConfig();
-      
+
       // If we have a service account JSON, use it
       if (config.firebase.serviceAccountJson) {
         const serviceAccount = JSON.parse(config.firebase.serviceAccountJson);

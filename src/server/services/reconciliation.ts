@@ -37,7 +37,7 @@ export class ReconciliationService {
     ledgerCount: number;
     delta: number;
   }> {
-    const db = await this.getDb();
+    const db = await ReconciliationService.getDb();
 
     // Get current wallet balance
     const walletDoc = await db
@@ -86,12 +86,12 @@ export class ReconciliationService {
     uid: string,
     date: string,
   ): Promise<ReconciliationReport> {
-    const db = await this.getDb();
+    const db = await ReconciliationService.getDb();
     const reportId = `${date}_${uid}`;
 
     try {
       // Compute invariant
-      const invariant = await this.computeWalletInvariant(uid);
+      const invariant = await ReconciliationService.computeWalletInvariant(uid);
       const { walletBalance, ledgerSum, ledgerCount, delta } = invariant;
 
       // Determine status
@@ -99,7 +99,11 @@ export class ReconciliationService {
 
       // If there's a significant delta, create adjustment
       if (Math.abs(delta) >= 0.01) {
-        await this.createReconciliationAdjustment(uid, -delta, reportId);
+        await ReconciliationService.createReconciliationAdjustment(
+          uid,
+          -delta,
+          reportId,
+        );
       }
 
       // Create reconciliation report
@@ -113,7 +117,7 @@ export class ReconciliationService {
         ledgerCount,
         status,
         createdAt: Timestamp.now(),
-        checksum: this.computeChecksum(invariant),
+        checksum: ReconciliationService.computeChecksum(invariant),
       };
 
       const reportRef = db
@@ -178,7 +182,7 @@ export class ReconciliationService {
     delta: number,
     reportId: string,
   ): Promise<void> {
-    const db = await this.getDb();
+    const db = await ReconciliationService.getDb();
 
     await db.runTransaction(async (transaction) => {
       // Get current wallet
@@ -246,7 +250,7 @@ export class ReconciliationService {
     errors: number;
     totalDelta: number;
   }> {
-    const db = await this.getDb();
+    const db = await ReconciliationService.getDb();
 
     // Get all users with wallets
     const walletSnapshot = await db
@@ -267,7 +271,7 @@ export class ReconciliationService {
       if (!uid) continue;
 
       results.total++;
-      const report = await this.reconcileUser(uid, date);
+      const report = await ReconciliationService.reconcileUser(uid, date);
 
       switch (report.status) {
         case "clean":
@@ -304,7 +308,7 @@ export class ReconciliationService {
     startDate: string,
     endDate: string,
   ): Promise<ReconciliationReport[]> {
-    const db = await this.getDb();
+    const db = await ReconciliationService.getDb();
     const reports: ReconciliationReport[] = [];
 
     // Iterate through date range

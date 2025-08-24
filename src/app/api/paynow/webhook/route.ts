@@ -6,6 +6,7 @@ import { withRateLimit } from "~/middleware/ratelimit";
 import { getConfig } from "~/server/config";
 // import { db } from "~/server/firebase/admin"; - Using getDb() instead
 import { getDb } from "~/server/firebase/admin-lazy";
+import { fraudService } from "~/server/services/fraud";
 import { pointsService } from "~/server/services/points";
 import { ProductCatalogService } from "~/server/services/productCatalog";
 import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
@@ -172,7 +173,7 @@ async function resolveUser(customer: PayNowCustomer): Promise<string | null> {
   }
 
   const db = await getDb();
-  
+
   // Secondary: look up by PayNow customer ID
   if (customer?.id) {
     const customerMapping = await db
@@ -323,6 +324,41 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
 
   await ensureUserDocument(uid);
 
+  // Phase 5: Fraud evaluation
+  const fraudContext = {
+    uid,
+    subjectType: "order" as const,
+    subjectId: order.id,
+    ipHash: "unknown", // PayNow doesn't provide IP in webhook
+    deviceHash: "unknown", // PayNow doesn't provide device info in webhook
+    paynowCustomerId: order.customer?.id,
+    // Additional context can be enriched from user profile if available
+  };
+
+  const fraudResult = await fraudService.evaluateFraud(fraudContext);
+
+  // Log fraud evaluation result
+  console.log("[webhook] Fraud evaluation", {
+    event_id: order.id,
+    user_id: uid,
+    fraud_allowed: fraudResult.allowed,
+    fraud_score: fraudResult.decision.score,
+    fraud_verdict: fraudResult.decision.verdict,
+    fraud_mode: fraudResult.decision.mode,
+    fraud_processing_ms: fraudResult.processingMs,
+  });
+
+  // If fraud check fails and we're in enforce mode, don't credit
+  if (!fraudResult.allowed) {
+    return {
+      credited: 0,
+      reason: "fraud_denied",
+      fraud_decision_id: fraudResult.decision.decisionId,
+      fraud_score: fraudResult.decision.score,
+      fraud_verdict: fraudResult.decision.verdict,
+    };
+  }
+
   const cfg = await getConfig();
   let totalCredited = 0;
   const results = [];
@@ -348,7 +384,8 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
         firestoreProductId = product.id;
       } else {
         // Fallback to GSM
-        const gsmProduct = await ProductCatalogService.getProductFromGSM(productId);
+        const gsmProduct =
+          await ProductCatalogService.getProductFromGSM(productId);
         if (gsmProduct) {
           productPoints = gsmProduct.points;
           productSource = "gsm_fallback";
@@ -356,7 +393,8 @@ async function handleOrderCompleted(data: PayNowWebhookData) {
       }
     } else {
       // Use GSM directly
-      const gsmProduct = await ProductCatalogService.getProductFromGSM(productId);
+      const gsmProduct =
+        await ProductCatalogService.getProductFromGSM(productId);
       if (gsmProduct) {
         productPoints = gsmProduct.points;
         productSource = "gsm";
@@ -462,7 +500,8 @@ async function handleDeliveryItemAdded(data: PayNowWebhookData) {
       firestoreProductId = product.id;
     } else {
       // Fallback to GSM
-      const gsmProduct = await ProductCatalogService.getProductFromGSM(productId);
+      const gsmProduct =
+        await ProductCatalogService.getProductFromGSM(productId);
       if (gsmProduct) {
         productPoints = gsmProduct.points;
         productSource = "gsm_fallback";
@@ -535,6 +574,39 @@ async function handleSubscriptionActivated(data: PayNowWebhookData) {
   if (!uid) return { reason: "no_user_mapping" };
 
   await ensureUserDocument(uid);
+
+  // Phase 5: Fraud evaluation for subscription
+  const fraudContext = {
+    uid,
+    subjectType: "subscription" as const,
+    subjectId: subscription.id,
+    ipHash: "unknown", // PayNow doesn't provide IP in webhook
+    deviceHash: "unknown", // PayNow doesn't provide device info in webhook
+    paynowCustomerId: subscription.customer?.id,
+  };
+
+  const fraudResult = await fraudService.evaluateFraud(fraudContext);
+
+  // Log fraud evaluation result
+  console.log("[webhook] Subscription fraud evaluation", {
+    subscription_id: subscription.id,
+    user_id: uid,
+    fraud_allowed: fraudResult.allowed,
+    fraud_score: fraudResult.decision.score,
+    fraud_verdict: fraudResult.decision.verdict,
+    fraud_mode: fraudResult.decision.mode,
+    fraud_processing_ms: fraudResult.processingMs,
+  });
+
+  // If fraud check fails and we're in enforce mode, don't activate
+  if (!fraudResult.allowed) {
+    return {
+      reason: "fraud_denied",
+      fraud_decision_id: fraudResult.decision.decisionId,
+      fraud_score: fraudResult.decision.score,
+      fraud_verdict: fraudResult.decision.verdict,
+    };
+  }
 
   // Record subscription purchase (this also credits first cycle)
   const result = await subscriptions.recordPurchase(

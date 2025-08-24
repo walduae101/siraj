@@ -15,16 +15,30 @@ export const env = createEnv({
    * `NEXT_PUBLIC_`.
    */
   client: {
-    NEXT_PUBLIC_BACKGROUND_IMAGE_URL: z.string().default("https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80"),
+    NEXT_PUBLIC_BACKGROUND_IMAGE_URL: z
+      .string()
+      .default(
+        "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80",
+      ),
     NEXT_PUBLIC_PAYNOW_STORE_ID: z.string().default("321641745957789696"),
-    NEXT_PUBLIC_DISCORD_INVITE_URL: z.string().default("https://discord.gg/siraj"),
-    NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: z.string().default("Connecting to Siraj Game Server..."),
+    NEXT_PUBLIC_DISCORD_INVITE_URL: z
+      .string()
+      .default("https://discord.gg/siraj"),
+    NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: z
+      .string()
+      .default("Connecting to Siraj Game Server..."),
     NEXT_PUBLIC_WEBSITE_URL: z.string().default("https://siraj.life"),
 
     // Firebase Web SDK
-    NEXT_PUBLIC_FIREBASE_API_KEY: z.string().default("AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4"),
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string().default("walduae-project-20250809071906.firebaseapp.com"),
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string().default("walduae-project-20250809071906"),
+    NEXT_PUBLIC_FIREBASE_API_KEY: z
+      .string()
+      .default("AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4"),
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z
+      .string()
+      .default("walduae-project-20250809071906.firebaseapp.com"),
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: z
+      .string()
+      .default("walduae-project-20250809071906"),
     NEXT_PUBLIC_FIREBASE_APP_ID: z.string().optional(),
 
     // PayNow Points Mapping
@@ -41,17 +55,26 @@ export const env = createEnv({
    */
   runtimeEnv: {
     NEXT_PUBLIC_BACKGROUND_IMAGE_URL:
-      process.env.NEXT_PUBLIC_BACKGROUND_IMAGE_URL || "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80",
-    NEXT_PUBLIC_PAYNOW_STORE_ID: process.env.NEXT_PUBLIC_PAYNOW_STORE_ID || "321641745957789696",
-    NEXT_PUBLIC_DISCORD_INVITE_URL: process.env.NEXT_PUBLIC_DISCORD_INVITE_URL || "https://discord.gg/siraj",
+      process.env.NEXT_PUBLIC_BACKGROUND_IMAGE_URL ||
+      "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80",
+    NEXT_PUBLIC_PAYNOW_STORE_ID:
+      process.env.NEXT_PUBLIC_PAYNOW_STORE_ID || "321641745957789696",
+    NEXT_PUBLIC_DISCORD_INVITE_URL:
+      process.env.NEXT_PUBLIC_DISCORD_INVITE_URL || "https://discord.gg/siraj",
     NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE:
-      process.env.NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE || "Connecting to Siraj Game Server...",
-    NEXT_PUBLIC_WEBSITE_URL: process.env.NEXT_PUBLIC_WEBSITE_URL || "https://siraj.life",
-    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
+      process.env.NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE ||
+      "Connecting to Siraj Game Server...",
+    NEXT_PUBLIC_WEBSITE_URL:
+      process.env.NEXT_PUBLIC_WEBSITE_URL || "https://siraj.life",
+    NEXT_PUBLIC_FIREBASE_API_KEY:
+      process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
+      "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
-      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "walduae-project-20250809071906.firebaseapp.com",
+      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
+      "walduae-project-20250809071906.firebaseapp.com",
     NEXT_PUBLIC_FIREBASE_PROJECT_ID:
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "walduae-project-20250809071906",
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+      "walduae-project-20250809071906",
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON:
       process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON,

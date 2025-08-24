@@ -79,9 +79,9 @@ export class PromoGuardService {
       createdBy: string;
     },
   ): Promise<string> {
-    const db = await this.getDb();
-    const salt = this.generateSalt();
-    const codeHash = this.hashCode(code, salt);
+    const db = await PromoGuardService.getDb();
+    const salt = PromoGuardService.generateSalt();
+    const codeHash = PromoGuardService.hashCode(code, salt);
 
     const promoCode: Omit<PromoCode, "id"> = {
       codeHash,
@@ -122,7 +122,7 @@ export class PromoGuardService {
   static async redeemPromoCode(
     request: PromoRedeemRequest,
   ): Promise<PromoRedeemResult> {
-    const db = await this.getDb();
+    const db = await PromoGuardService.getDb();
     const config = getConfig();
 
     try {
@@ -138,7 +138,10 @@ export class PromoGuardService {
       // Check each promo code (in production, use a more efficient lookup)
       for (const doc of promoSnapshot.docs) {
         const data = doc.data() as PromoCode;
-        const codeHash = this.hashCode(request.promoCode, data.salt);
+        const codeHash = PromoGuardService.hashCode(
+          request.promoCode,
+          data.salt,
+        );
 
         if (codeHash === data.codeHash) {
           promoCode = data;
@@ -180,7 +183,7 @@ export class PromoGuardService {
 
       // Check account age requirement
       if (promoCode.minAccountAgeMinutes > 0) {
-        const accountAge = await this.getAccountAge(request.uid);
+        const accountAge = await PromoGuardService.getAccountAge(request.uid);
         if (accountAge < promoCode.minAccountAgeMinutes) {
           return {
             success: false,
@@ -190,7 +193,10 @@ export class PromoGuardService {
       }
 
       // Check per-user limit
-      const userPromoCount = await this.getUserPromoCount(request.uid, promoId);
+      const userPromoCount = await PromoGuardService.getUserPromoCount(
+        request.uid,
+        promoId,
+      );
       if (userPromoCount >= promoCode.maxPerUser) {
         return {
           success: false,
@@ -199,7 +205,10 @@ export class PromoGuardService {
       }
 
       // Check per-IP limit
-      const ipPromoCount = await this.getIpPromoCount(request.ip, promoId);
+      const ipPromoCount = await PromoGuardService.getIpPromoCount(
+        request.ip,
+        promoId,
+      );
       if (ipPromoCount >= promoCode.maxPerIpPerDay) {
         return {
           success: false,
@@ -285,7 +294,7 @@ export class PromoGuardService {
    * Get account age in minutes
    */
   private static async getAccountAge(uid: string): Promise<number> {
-    const db = await this.getDb();
+    const db = await PromoGuardService.getDb();
 
     const userDoc = await db.collection("users").doc(uid).get();
     if (!userDoc.exists) {
@@ -310,7 +319,7 @@ export class PromoGuardService {
     uid: string,
     promoId: string,
   ): Promise<number> {
-    const db = await this.getDb();
+    const db = await PromoGuardService.getDb();
 
     const snapshot = await db
       .collection("promoUsages")
@@ -328,7 +337,7 @@ export class PromoGuardService {
     ip: string,
     promoId: string,
   ): Promise<number> {
-    const db = await this.getDb();
+    const db = await PromoGuardService.getDb();
     const oneDayAgo = Timestamp.fromMillis(Date.now() - 24 * 60 * 60 * 1000);
 
     const snapshot = await db
@@ -350,7 +359,7 @@ export class PromoGuardService {
     totalRedemptions: number;
     topUsedCodes: Array<{ promoId: string; usageCount: number }>;
   }> {
-    const db = await this.getDb();
+    const db = await PromoGuardService.getDb();
 
     // Get total codes
     const totalCodesSnapshot = await db.collection("promoCodes").get();
@@ -389,7 +398,7 @@ export class PromoGuardService {
     promoId: string,
     deactivatedBy: string,
   ): Promise<void> {
-    const db = await this.getDb();
+    const db = await PromoGuardService.getDb();
 
     await db.collection("promoCodes").doc(promoId).update({
       active: false,
@@ -408,7 +417,7 @@ export class PromoGuardService {
    * Get promo code usage history
    */
   static async getPromoUsageHistory(promoId: string): Promise<PromoUsage[]> {
-    const db = await this.getDb();
+    const db = await PromoGuardService.getDb();
 
     const snapshot = await db
       .collection("promoUsages")

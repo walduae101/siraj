@@ -180,6 +180,112 @@ export class VelocityService {
     };
   }
 
+  /**
+   * Increment and check rate limits using sharded counters
+   * Returns true if within limits, false if exceeded
+   */
+  async incrementAndCheck(
+    scope: "ip" | "uid",
+    key: string,
+    limit: number,
+    period: "1m" | "1h" | "1d",
+  ): Promise<{ allowed: boolean; current: number; limit: number }> {
+    const db = await getDb();
+    const now = new Date();
+    const windowStart = this.getWindowStart(now, period);
+    const shardCount = 10; // Fixed small shard count to avoid hot-spots
+
+    // Use consistent sharding to avoid hot-spots
+    const shardId = Math.abs(this.hashString(key)) % shardCount;
+    const counterId = `${scope}:${key}:${period}:${shardId}`;
+
+    const result = await db.runTransaction(async (transaction) => {
+      const counterRef = db.collection("rlCounters").doc(counterId);
+      const counterDoc = await transaction.get(counterRef);
+
+      let currentCount = 0;
+      let shouldUpdate = false;
+
+      if (counterDoc.exists) {
+        const data = counterDoc.data()!;
+        // Check if we're in the same window
+        if (
+          data.windowStart &&
+          data.windowStart.toMillis() === windowStart.getTime()
+        ) {
+          currentCount = data.count || 0;
+        } else {
+          // New window, reset counter
+          shouldUpdate = true;
+        }
+      } else {
+        shouldUpdate = true;
+      }
+
+      // Check if we're at the limit
+      if (currentCount >= limit) {
+        return { allowed: false, current: currentCount, limit };
+      }
+
+      // Increment counter
+      const newCount = currentCount + 1;
+
+      if (shouldUpdate || newCount > currentCount) {
+        transaction.set(
+          counterRef,
+          {
+            count: newCount,
+            windowStart: windowStart,
+            updatedAt: now,
+            scope,
+            key,
+            period,
+            shardId,
+          },
+          { merge: true },
+        );
+      }
+
+      return { allowed: true, current: newCount, limit };
+    });
+
+    return result;
+  }
+
+  /**
+   * Get window start time for a period
+   */
+  private getWindowStart(now: Date, period: "1m" | "1h" | "1d"): Date {
+    const windowStart = new Date(now);
+
+    switch (period) {
+      case "1m":
+        windowStart.setSeconds(0, 0);
+        break;
+      case "1h":
+        windowStart.setMinutes(0, 0, 0);
+        break;
+      case "1d":
+        windowStart.setHours(0, 0, 0, 0);
+        break;
+    }
+
+    return windowStart;
+  }
+
+  /**
+   * Simple hash function for consistent sharding
+   */
+  private hashString(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash;
+  }
+
   private getDateKey(date: Date): string {
     return date.toISOString().split("T")[0]?.replace(/-/g, "") || "";
   }

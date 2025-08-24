@@ -55,7 +55,7 @@ export class WalletLedgerService {
     entry: Omit<LedgerEntry, "id" | "balanceAfter" | "createdAt" | "createdBy">,
     createdBy: string,
   ): Promise<{ ledgerId: string; newBalance: number }> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
 
     return await db.runTransaction(async (transaction) => {
       // Get current wallet balance
@@ -126,7 +126,7 @@ export class WalletLedgerService {
     ledgerId: string,
     newStatus: "posted" | "hold" | "reversed",
   ): Promise<void> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
 
     return await db.runTransaction(async (transaction) => {
       // Get the ledger entry
@@ -215,7 +215,7 @@ export class WalletLedgerService {
       startAfter?: string;
     } = {},
   ): Promise<{ entries: LedgerEntry[]; hasMore: boolean }> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
     const { limit = 50, startAfter } = options;
 
     let query = db
@@ -262,7 +262,7 @@ export class WalletLedgerService {
     uid: string,
     ledgerId: string,
   ): Promise<LedgerEntry | null> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
 
     const doc = await db
       .collection("users")
@@ -285,7 +285,7 @@ export class WalletLedgerService {
    * Get wallet balance
    */
   static async getWalletBalance(uid: string): Promise<WalletBalance | null> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
 
     const doc = await db
       .collection("users")
@@ -313,10 +313,13 @@ export class WalletLedgerService {
     createdBy: string,
     reason?: string,
   ): Promise<{ ledgerId: string; newBalance: number }> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
 
     // Get the original entry
-    const originalEntry = await this.getLedgerEntry(uid, originalLedgerId);
+    const originalEntry = await WalletLedgerService.getLedgerEntry(
+      uid,
+      originalLedgerId,
+    );
     if (!originalEntry) {
       throw new Error(`Original ledger entry not found: ${originalLedgerId}`);
     }
@@ -337,7 +340,11 @@ export class WalletLedgerService {
       },
     };
 
-    return await this.createLedgerEntry(uid, reversalEntry, createdBy);
+    return await WalletLedgerService.createLedgerEntry(
+      uid,
+      reversalEntry,
+      createdBy,
+    );
   }
 
   /**
@@ -362,14 +369,18 @@ export class WalletLedgerService {
       },
     };
 
-    return await this.createLedgerEntry(uid, entry, `admin:${adminUid}`);
+    return await WalletLedgerService.createLedgerEntry(
+      uid,
+      entry,
+      `admin:${adminUid}`,
+    );
   }
 
   /**
    * Get entries that have been reversed
    */
   static async getReversedEntries(uid: string): Promise<LedgerEntry[]> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
 
     const snapshot = await db
       .collection("users")
@@ -395,7 +406,7 @@ export class WalletLedgerService {
     uid: string,
     originalLedgerId: string,
   ): Promise<LedgerEntry[]> {
-    const db = await this.getDb();
+    const db = await WalletLedgerService.getDb();
 
     const snapshot = await db
       .collection("users")

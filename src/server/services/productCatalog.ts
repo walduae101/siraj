@@ -47,7 +47,7 @@ export class ProductCatalogService {
   static async getProductByPayNowId(
     paynowProductId: string,
   ): Promise<Product | null> {
-    const db = await this.getDb();
+    const db = await ProductCatalogService.getDb();
 
     const snapshot = await db
       .collection("products")
@@ -75,7 +75,7 @@ export class ProductCatalogService {
    * Get product by internal ID
    */
   static async getProductById(productId: string): Promise<Product | null> {
-    const db = await this.getDb();
+    const db = await ProductCatalogService.getDb();
 
     const doc = await db.collection("products").doc(productId).get();
 
@@ -93,7 +93,7 @@ export class ProductCatalogService {
    * Get all active products
    */
   static async getActiveProducts(): Promise<Product[]> {
-    const db = await this.getDb();
+    const db = await ProductCatalogService.getDb();
 
     const snapshot = await db
       .collection("products")
@@ -120,12 +120,14 @@ export class ProductCatalogService {
     > & { id?: string },
     userId: string,
   ): Promise<Product> {
-    const db = await this.getDb();
+    const db = await ProductCatalogService.getDb();
     const now = Timestamp.now();
 
     // If updating existing product, increment version
     if (productData.id) {
-      const existing = await this.getProductById(productData.id);
+      const existing = await ProductCatalogService.getProductById(
+        productData.id,
+      );
       if (existing) {
         productData.version = existing.version + 1;
       }
@@ -152,7 +154,7 @@ export class ProductCatalogService {
    * Get promotion by code
    */
   static async getPromotionByCode(code: string): Promise<Promotion | null> {
-    const db = await this.getDb();
+    const db = await ProductCatalogService.getDb();
 
     const snapshot = await db
       .collection("promotions")
@@ -179,7 +181,7 @@ export class ProductCatalogService {
    * Get all active promotions
    */
   static async getActivePromotions(): Promise<Promotion[]> {
-    const db = await this.getDb();
+    const db = await ProductCatalogService.getDb();
 
     const snapshot = await db
       .collection("promotions")
@@ -203,7 +205,7 @@ export class ProductCatalogService {
     promotionData: Omit<Promotion, "id" | "createdAt" | "updatedAt">,
     userId: string,
   ): Promise<Promotion> {
-    const db = await this.getDb();
+    const db = await ProductCatalogService.getDb();
     const now = Timestamp.now();
 
     const promotionDoc = {
