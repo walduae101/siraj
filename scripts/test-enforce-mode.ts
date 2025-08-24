@@ -57,6 +57,7 @@ async function testEnforceMode() {
           value: scenario.context.uid,
           reason: "Test denylist for enforce mode verification",
           notes: "Temporary test entry",
+          addedBy: "test-enforce-mode-script",
         });
         console.log(`   ✅ Added ${scenario.context.uid} to denylist`);
       }
