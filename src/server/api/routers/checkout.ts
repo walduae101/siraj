@@ -17,6 +17,7 @@ import {
 } from "~/server/services/paynowMgmt";
 import type { PayNowSku } from "~/server/services/paynowProducts";
 import { pointsService } from "~/server/services/points";
+import { ProductCatalogService } from "~/server/services/productCatalog";
 import { riskEngine } from "~/server/services/riskEngine";
 
 const productPoints = JSON.parse(
@@ -56,12 +57,29 @@ export const checkoutRouter = createTRPCRouter({
       }
 
       let totalCredited = 0;
+      const config = await getConfig();
+      
       for (const line of order.lines ?? []) {
         const pid = String(line.product_id);
         const qty = Number(line.quantity ?? 1);
-        const pts = productPoints[pid];
-        if (pts && qty > 0) {
-          const delta = pts * qty;
+        
+        // Find the product points - first check if it's in Firestore
+        let points: number | null = null;
+        
+        // Try to get from ProductCatalogService
+        const product = await ProductCatalogService.getProductByPayNowId(pid);
+        if (product) {
+          points = product.points;
+        } else {
+          // Fallback to config mapping
+          const gsmProduct = await ProductCatalogService.getProductFromGSM(pid);
+          if (gsmProduct) {
+            points = gsmProduct.points;
+          }
+        }
+        
+        if (points && qty > 0) {
+          const delta = points * qty;
           await pointsService.credit({
             uid,
             kind: "paid", // never expires

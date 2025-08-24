@@ -15,14 +15,34 @@ function SuccessContent() {
   const [currentBalance, setCurrentBalance] = useState<number | null>(null);
   const [credited, setCredited] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [manualCompleting, setManualCompleting] = useState(false);
+  
+  // Manual complete mutation
+  const completeMutation = api.checkout.complete.useMutation({
+    onSuccess: (data) => {
+      console.log("[checkout/success] Manual complete success:", data);
+      setCredited(true);
+      // Force refresh the page to update wallet
+      setTimeout(() => window.location.reload(), 1000);
+    },
+    onError: (error) => {
+      console.error("[checkout/success] Manual complete error:", error);
+      alert(`Error: ${error.message}`);
+    },
+  });
 
   // Get current user
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUserId(user?.uid || null);
-    });
-    return () => unsubscribe();
+    try {
+      const auth = getFirebaseAuth();
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUserId(user?.uid || null);
+      });
+      return () => unsubscribe();
+    } catch (error) {
+      console.error("[checkout/success] Firebase auth error:", error);
+      // Firebase might not be initialized properly, but we can still try to complete the order
+    }
   }, []);
 
   // Watch wallet balance
@@ -75,6 +95,23 @@ function SuccessContent() {
         <p className="text-gray-500 text-sm">
           Your points will appear shortly. Order: {orderId || checkoutId}
         </p>
+        
+        {/* Manual complete button if webhook is delayed */}
+        <div className="mt-8 p-4 border border-gray-200 rounded">
+          <p className="text-sm text-gray-600 mb-2">
+            Points not showing up? Click below to manually complete the order:
+          </p>
+          <button
+            onClick={() => {
+              setManualCompleting(true);
+              completeMutation.mutate({ orderId: orderId || checkoutId });
+            }}
+            disabled={manualCompleting || completeMutation.isPending}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          >
+            {manualCompleting ? "Processing..." : "Complete Order Manually"}
+          </button>
+        </div>
       </main>
     );
   }
