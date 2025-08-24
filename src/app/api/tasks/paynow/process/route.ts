@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
       event_type: eventType,
       message_id: message.messageId,
       attributes,
+      pipeline: "queue",
+      ordering_key: attributes.ordering_key,
+      delivery_attempt: attributes.delivery_attempt || "1",
     });
 
     // Process the event
@@ -215,6 +218,9 @@ async function processPaynowEvent(
         event_type: eventType,
         idempotent: true,
         processing_ms: processingMs,
+        pipeline: "queue",
+        ordering_key: attributes.ordering_key,
+        delivery_attempt: attributes.delivery_attempt || "1",
       });
     } else {
       structuredLog("INFO", "Worker processed event successfully", {
@@ -223,6 +229,9 @@ async function processPaynowEvent(
         uid: attributes.uid,
         points: result.result?.pointsCredited,
         processing_ms: processingMs,
+        pipeline: "queue",
+        ordering_key: attributes.ordering_key,
+        delivery_attempt: attributes.delivery_attempt || "1",
       });
     }
 

@@ -69,46 +69,59 @@ async function testFraudTuning() {
   console.log("Validating reduced false positive rates...\n");
 
   let passedTests = 0;
-  let totalTests = TEST_SCENARIOS.length;
+  const totalTests = TEST_SCENARIOS.length;
 
   for (const scenario of TEST_SCENARIOS) {
     try {
       console.log(`📋 Testing: ${scenario.name}`);
-      
+
       const result = await fraudService.evaluateFraud(scenario.context);
-      
+
       const score = result.decision.score;
       const verdict = result.decision.verdict;
       const allowed = result.allowed;
-      
+
       // Check if the result is reasonable
-      const isReasonable = 
+      const isReasonable =
         (verdict === "allow" && allowed) ||
         (verdict === "review" && score >= 60 && score < 72) ||
         (verdict === "deny" && score >= 72);
-      
+
       if (isReasonable) {
-        console.log(`   ✅ PASSED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}`);
+        console.log(
+          `   ✅ PASSED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}`,
+        );
         passedTests++;
       } else {
-        console.log(`   ❌ FAILED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}`);
-        console.log(`   Expected: ${scenario.expectedScore} score, ${scenario.expectedVerdict} verdict`);
+        console.log(
+          `   ❌ FAILED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}`,
+        );
+        console.log(
+          `   Expected: ${scenario.expectedScore} score, ${scenario.expectedVerdict} verdict`,
+        );
       }
-      
+
       console.log(`   Processing time: ${result.processingMs}ms`);
-      console.log(`   Reasons: ${result.decision.reasons.join(", ") || "none"}\n`);
-      
+      console.log(
+        `   Reasons: ${result.decision.reasons.join(", ") || "none"}\n`,
+      );
     } catch (error) {
-      console.log(`   ❌ ERROR: ${error instanceof Error ? error.message : String(error)}\n`);
+      console.log(
+        `   ❌ ERROR: ${error instanceof Error ? error.message : String(error)}\n`,
+      );
     }
   }
 
   console.log("=".repeat(50));
   console.log(`📊 Results: ${passedTests}/${totalTests} tests passed`);
-  console.log(`Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
-  
+  console.log(
+    `Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`,
+  );
+
   if (passedTests === totalTests) {
-    console.log("\n🎉 All tuning tests passed! Fraud system should have reduced false positives.");
+    console.log(
+      "\n🎉 All tuning tests passed! Fraud system should have reduced false positives.",
+    );
     console.log("Next: Monitor real metrics for 24h to confirm deny rate ≤ 1%");
   } else {
     console.log("\n⚠️  Some tests failed. Review tuning parameters.");

@@ -76,15 +76,16 @@ export class FraudService {
   /**
    * Evaluate fraud risk for a transaction
    */
-  async evaluateFraud(
-    context: FraudContext,
-  ): Promise<FraudEvaluationResult> {
+  async evaluateFraud(context: FraudContext): Promise<FraudEvaluationResult> {
     const startTime = Date.now();
     const config = await this.getConfig();
 
     try {
       // 1% Shadow Canary - Route 1% of evaluations to shadow mode for comparison
-      const canaryHash = this.generateCanaryHash(context.uid, context.subjectId);
+      const canaryHash = this.generateCanaryHash(
+        context.uid,
+        context.subjectId,
+      );
       const isCanary = canaryHash % 100 < 1; // 1% canary rate
       const effectiveMode = isCanary ? "shadow" : config.fraud.FRAUD_MODE;
 
@@ -184,14 +185,19 @@ export class FraudService {
         canary: isCanary,
         processingMs: Date.now() - startTime,
         threshold,
-        linkedSignalIds: signals.map(s => s.signalId),
+        linkedSignalIds: signals.map((s) => s.signalId),
       });
 
       // Determine if transaction should be allowed
       const allowed = effectiveMode === "shadow" || verdict === "allow";
 
       // Log fraud evaluation
-      await this.logFraudEvaluation(context, decision, allowed, Date.now() - startTime);
+      await this.logFraudEvaluation(
+        context,
+        decision,
+        allowed,
+        Date.now() - startTime,
+      );
 
       return {
         allowed,
@@ -201,7 +207,7 @@ export class FraudService {
       };
     } catch (error) {
       console.error("Fraud evaluation error:", error);
-      
+
       // On error, create a decision with error information
       const decision = await this.createRiskDecision({
         uid: context.uid,
@@ -398,8 +404,8 @@ export class FraudService {
     for (const signal of signals) {
       // Velocity scoring - TUNED: Reduced weights to reduce false positives
       if (signal.velocityMinute > 15) score += 15; // Was 20, now 15
-      if (signal.velocityHour > 75) score += 10;   // Was 50/15, now 75/10
-      if (signal.velocityDay > 300) score += 5;    // Was 200/10, now 300/5
+      if (signal.velocityHour > 75) score += 10; // Was 50/15, now 75/10
+      if (signal.velocityDay > 300) score += 5; // Was 200/10, now 300/5
 
       // Chargeback history - TUNED: Reduced multiplier
       if (signal.chargebacks90d > 0) score += signal.chargebacks90d * 5; // Was 10, now 5
@@ -640,7 +646,8 @@ export class FraudService {
     for (const doc of reviews.docs) {
       const data = doc.data();
       const createdAt = data.createdAt.toDate();
-      const ageInDays = (now.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000);
+      const ageInDays =
+        (now.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000);
 
       let ageBucket: "0-1" | "2-3" | "4-7" | ">7";
       if (ageInDays <= 1) ageBucket = "0-1";
@@ -663,7 +670,7 @@ export class FraudService {
     const str = uid + subjectId;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);

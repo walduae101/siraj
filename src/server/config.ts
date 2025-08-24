@@ -45,8 +45,8 @@ const ConfigSchema = z.object({
         name: z.string(),
         cycle: z.enum(["month", "year"]),
         pointsPerCycle: z.number().int().nonnegative(),
-        paynowProductId: z.string(),
-        price: z.number().int().nonnegative(),
+        paynowProductId: z.string().optional(),
+        price: z.number().int().nonnegative().optional(),
       }),
     ),
     pointsKind: z.enum(["paid", "promo"]).default("promo"),
@@ -77,6 +77,8 @@ const ConfigSchema = z.object({
     PAYNOW_LIVE: z.boolean().default(true),
     STUB_CHECKOUT: z.boolean().default(false),
     webhookMode: z.enum(["sync", "queue"]).default("sync"),
+    // PHASE 6A: Queue Mode Canary
+    webhookQueueCanaryRatio: z.number().min(0).max(1).default(0),
     PRODUCT_SOT: z.enum(["firestore", "gsm"]).default("firestore"),
     ALLOW_NEGATIVE_BALANCE: z.boolean().default(true),
     // PHASE 4: Revenue Assurance
@@ -393,6 +395,9 @@ function getConfigFromEnv(): Config {
       PAYNOW_LIVE: process.env.PAYNOW_LIVE === "1",
       STUB_CHECKOUT: process.env.STUB_CHECKOUT === "1",
       webhookMode: (process.env.WEBHOOK_MODE as "sync" | "queue") ?? "sync",
+      webhookQueueCanaryRatio: Number.parseFloat(
+        process.env.WEBHOOK_QUEUE_CANARY_RATIO ?? "0",
+      ),
       PRODUCT_SOT:
         (process.env.PRODUCT_SOT as "firestore" | "gsm") ?? "firestore",
       ALLOW_NEGATIVE_BALANCE: process.env.ALLOW_NEGATIVE_BALANCE === "1",

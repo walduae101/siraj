@@ -43,13 +43,13 @@ async function testEnforceMode() {
   console.log("Verifying fraud detection now blocks transactions...\n");
 
   let passedTests = 0;
-  let totalTests = TEST_SCENARIOS.length;
+  const totalTests = TEST_SCENARIOS.length;
 
   for (const scenario of TEST_SCENARIOS) {
     try {
       console.log(`📋 Testing: ${scenario.name}`);
       console.log(`   Description: ${scenario.description}`);
-      
+
       // Setup denylist if needed
       if (scenario.setupDenylist) {
         await listsService.addToDenylist({
@@ -61,45 +61,56 @@ async function testEnforceMode() {
         });
         console.log(`   ✅ Added ${scenario.context.uid} to denylist`);
       }
-      
+
       const result = await fraudService.evaluateFraud(scenario.context);
-      
+
       const score = result.decision.score;
       const verdict = result.decision.verdict;
       const allowed = result.allowed;
       const mode = result.decision.mode;
-      
+
       // Verify the result matches expectations
       const verdictCorrect = verdict === scenario.expectedVerdict;
       const allowedCorrect = allowed === scenario.expectedAllowed;
       const modeCorrect = mode === "enforce";
-      
+
       if (verdictCorrect && allowedCorrect && modeCorrect) {
-        console.log(`   ✅ PASSED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}, Mode ${mode}`);
+        console.log(
+          `   ✅ PASSED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}, Mode ${mode}`,
+        );
         passedTests++;
       } else {
-        console.log(`   ❌ FAILED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}, Mode ${mode}`);
-        console.log(`   Expected: Verdict ${scenario.expectedVerdict}, Allowed ${scenario.expectedAllowed}, Mode enforce`);
+        console.log(
+          `   ❌ FAILED: Score ${score}, Verdict ${verdict}, Allowed ${allowed}, Mode ${mode}`,
+        );
+        console.log(
+          `   Expected: Verdict ${scenario.expectedVerdict}, Allowed ${scenario.expectedAllowed}, Mode enforce`,
+        );
       }
-      
+
       console.log(`   Processing time: ${result.processingMs}ms`);
-      console.log(`   Reasons: ${result.decision.reasons.join(", ") || "none"}\n`);
-      
+      console.log(
+        `   Reasons: ${result.decision.reasons.join(", ") || "none"}\n`,
+      );
+
       // Cleanup denylist if we added it
       if (scenario.setupDenylist) {
         await listsService.removeFromDenylist("uid", scenario.context.uid);
         console.log(`   ✅ Removed ${scenario.context.uid} from denylist`);
       }
-      
     } catch (error) {
-      console.log(`   ❌ ERROR: ${error instanceof Error ? error.message : String(error)}\n`);
+      console.log(
+        `   ❌ ERROR: ${error instanceof Error ? error.message : String(error)}\n`,
+      );
     }
   }
 
   console.log("=".repeat(50));
   console.log(`📊 Results: ${passedTests}/${totalTests} tests passed`);
-  console.log(`Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`);
-  
+  console.log(
+    `Success Rate: ${((passedTests / totalTests) * 100).toFixed(1)}%`,
+  );
+
   if (passedTests === totalTests) {
     console.log("\n🎉 Enforce mode verification successful!");
     console.log("   - Benign users are allowed");

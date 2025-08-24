@@ -13,6 +13,28 @@ import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
 import { subscriptions } from "~/server/services/subscriptions";
 import { WalletLedgerService } from "~/server/services/walletLedger";
 
+// Helper function for stable hashing (for canary routing)
+function getStableHash(input: string): number {
+  const hash = crypto.createHash("sha256").update(input).digest("hex");
+  return Number.parseInt(hash.substring(0, 8), 16) / 0xffffffff; // Returns 0-1
+}
+
+// Helper function for canary routing
+function shouldRouteToQueue(
+  uid: string | null,
+  paynowCustomerId: string | null,
+  canaryRatio: number,
+): boolean {
+  if (canaryRatio <= 0) return false;
+  if (canaryRatio >= 1) return true;
+
+  // Use stable hash for consistent routing per user
+  const routingKey = uid || paynowCustomerId || "unknown";
+  const hash = getStableHash(routingKey);
+
+  return hash < canaryRatio;
+}
+
 // PayNow webhook types
 interface PayNowCustomer {
   id?: string;
@@ -874,10 +896,24 @@ async function handleWebhook(req: NextRequest) {
       return new NextResponse("Missing event type", { status: 400 });
     }
 
-    // Check webhook mode from config
+    // Check webhook mode and canary routing
     const webhookMode = cfg.features.webhookMode;
+    const canaryRatio = cfg.features.webhookQueueCanaryRatio;
 
-    if (webhookMode === "queue") {
+    // Extract user ID for routing decision
+    const order = evt?.data?.order;
+    const subscription = evt?.data?.subscription;
+    const customer = order?.customer || subscription?.customer;
+    const uid = await resolveUser(customer);
+    const paynowCustomerId = customer?.id;
+
+    // Determine routing: queue mode OR canary routing
+    const shouldUseQueue =
+      webhookMode === "queue" ||
+      (webhookMode === "sync" &&
+        shouldRouteToQueue(uid, paynowCustomerId, canaryRatio));
+
+    if (shouldUseQueue) {
       // Queue mode: Write to webhookEvents and publish to Pub/Sub
       const publishStartTime = Date.now();
 
@@ -906,18 +942,12 @@ async function handleWebhook(req: NextRequest) {
             attempts: 0,
           });
 
-        // Extract user ID for ordering key
-        const order = evt?.data?.order;
-        const subscription = evt?.data?.subscription;
-        const customer = order?.customer || subscription?.customer;
-        const uid = await resolveUser(customer);
-
         // Publish to Pub/Sub
         const messageId = await publishPaynowEvent({
           eventId,
           eventType,
           orderId: order?.pretty_id || order?.id || subscription?.id,
-          paynowCustomerId: customer?.id,
+          paynowCustomerId: paynowCustomerId,
           uid: uid || undefined,
           data: evt.data,
         });
@@ -925,11 +955,19 @@ async function handleWebhook(req: NextRequest) {
         const publishMs = Date.now() - publishStartTime;
         const totalMs = Date.now() - startTime;
 
+        // Determine if this was canary routing
+        const isCanary =
+          webhookMode === "sync" &&
+          shouldRouteToQueue(uid, paynowCustomerId, canaryRatio);
+
         console.log("[webhook] Event queued successfully", {
           event_id: eventId,
           event_type: eventType,
           message_id: messageId,
           status: "queued",
+          queue_canary: isCanary,
+          webhook_mode: webhookMode,
+          canary_ratio: canaryRatio,
           publish_ms: publishMs,
           processing_ms: totalMs,
         });

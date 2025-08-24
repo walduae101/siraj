@@ -1,13 +1,13 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { api } from "~/trpc/react";
 
 export function ManualReviewStats() {
   const { data: stats, isLoading } = api.fraud.admin.reviews.stats.useQuery(
     {},
-    { refetchInterval: 30000 }
+    { refetchInterval: 30000 },
   );
 
   if (isLoading) {
@@ -18,9 +18,9 @@ export function ManualReviewStats() {
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            <div className="h-4 w-3/4 rounded bg-gray-200" />
+            <div className="h-4 w-1/2 rounded bg-gray-200" />
+            <div className="h-4 w-2/3 rounded bg-gray-200" />
           </div>
         </CardContent>
       </Card>
@@ -74,7 +74,7 @@ export function ManualReviewStats() {
                 <Badge className={getStatusColor(status)}>
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </Badge>
-                <span className="text-sm text-gray-500">
+                <span className="text-gray-500 text-sm">
                   Total: {Object.values(ageBuckets).reduce((a, b) => a + b, 0)}
                 </span>
               </div>
@@ -92,12 +92,22 @@ export function ManualReviewStats() {
           ))}
         </div>
 
-        <div className="mt-6 pt-4 border-t">
-          <div className="text-xs text-gray-500 space-y-1">
-            <div>• <span className="text-green-600">0-1 days</span>: Normal processing time</div>
-            <div>• <span className="text-yellow-600">2-3 days</span>: Requires attention</div>
-            <div>• <span className="text-orange-600">4-7 days</span>: High priority</div>
-            <div>• <span className="text-red-600">&gt;7 days</span>: Auto-escalated</div>
+        <div className="mt-6 border-t pt-4">
+          <div className="space-y-1 text-gray-500 text-xs">
+            <div>
+              • <span className="text-green-600">0-1 days</span>: Normal
+              processing time
+            </div>
+            <div>
+              • <span className="text-yellow-600">2-3 days</span>: Requires
+              attention
+            </div>
+            <div>
+              • <span className="text-orange-600">4-7 days</span>: High priority
+            </div>
+            <div>
+              • <span className="text-red-600">&gt;7 days</span>: Auto-escalated
+            </div>
           </div>
         </div>
       </CardContent>
