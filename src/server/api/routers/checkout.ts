@@ -106,12 +106,50 @@ export const checkoutRouter = createTRPCRouter({
       }
 
       // Get product details for risk evaluation
-      const productDoc = await db.collection("products").doc(productId).get();
-      if (!productDoc.exists) {
-        throw new Error("Product not found");
+      // First try to get product from Firestore by PayNow ID
+      let productData: any = null;
+      let price = 0;
+      
+      // Check if we have a product in Firestore with this PayNow ID
+      const productSnapshot = await db
+        .collection("products")
+        .where("paynowProductId", "==", productId)
+        .where("active", "==", true)
+        .limit(1)
+        .get();
+      
+      if (!productSnapshot.empty) {
+        const productDoc = productSnapshot.docs[0];
+        if (productDoc) {
+          productData = productDoc.data();
+          price = productData?.priceUSD || 0;
+        }
+      } else {
+        // Fallback: Get price from PayNow products config
+        // The price mapping is not in our config, so we'll use a default based on points
+        const cfg = await getConfig();
+        const sku = Object.entries(cfg.paynow.products).find(([_, id]) => id === productId)?.[0];
+        
+        if (sku) {
+          // Extract points from SKU name (e.g., "points_20" -> 20)
+          const pointsMatch = sku.match(/points_(\d+)/);
+          if (pointsMatch && pointsMatch[1]) {
+            const points = parseInt(pointsMatch[1], 10);
+            // Use the price structure from the paywall page
+            const priceMap: Record<number, number> = {
+              20: 2.00,
+              50: 5.00,
+              150: 12.00,
+              500: 25.00
+            };
+            price = priceMap[points] || 0;
+          }
+        }
+        
+        if (!price) {
+          throw new Error("Product not found");
+        }
       }
-      const productData = productDoc.data()!;
-      const price = productData.price || 0;
 
       // Get user data for risk evaluation
       const userDoc = await db.collection("users").doc(uid).get();
