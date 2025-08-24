@@ -108,6 +108,7 @@ export class FraudService {
         return {
           allowed: false,
           decision,
+          signals: [],
           processingMs: Date.now() - startTime,
         };
       }
@@ -132,6 +133,7 @@ export class FraudService {
         return {
           allowed: false,
           decision,
+          signals: [],
           processingMs: Date.now() - startTime,
         };
       }
@@ -154,6 +156,7 @@ export class FraudService {
         return {
           allowed: true,
           decision,
+          signals: [],
           processingMs: Date.now() - startTime,
         };
       }
@@ -193,6 +196,7 @@ export class FraudService {
       return {
         allowed,
         decision,
+        signals,
         processingMs: Date.now() - startTime,
       };
     } catch (error) {
@@ -216,6 +220,7 @@ export class FraudService {
       return {
         allowed: true, // Default to allow on error
         decision,
+        signals: [],
         processingMs: Date.now() - startTime,
       };
     }
