@@ -7,7 +7,7 @@ interface QueueTestResult {
   success: boolean;
   duration: number;
   error?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 async function testQueueMode() {
@@ -229,7 +229,7 @@ async function testQueueMode() {
   const passedTests = results.filter((r) => r.success).length;
   const totalTests = results.length;
 
-  results.forEach((result) => {
+  for (const result of results) {
     const status = result.success ? "✅" : "❌";
     const duration = result.duration > 0 ? ` (${result.duration}ms)` : "";
     console.log(`${status} ${result.testName}${duration}`);
@@ -241,7 +241,7 @@ async function testQueueMode() {
     if (result.error) {
       console.log(`   Error: ${result.error}`);
     }
-  });
+  }
 
   console.log(`\n${"=".repeat(50)}`);
   console.log(`📊 Results: ${passedTests}/${totalTests} tests passed`);
