@@ -312,7 +312,7 @@ export class FraudService {
       .map((r) => ({ type: r.check.type, value: r.check.value }));
 
     if (denied.length > 0) {
-      const firstDenied = denied[0];
+      const firstDenied = denied[0]!;
       return {
         allowed: [],
         denied: denied,
@@ -322,7 +322,7 @@ export class FraudService {
     }
 
     if (allowed.length > 0) {
-      const firstAllowed = allowed[0];
+      const firstAllowed = allowed[0]!;
       return {
         allowed: allowed,
         denied: [],
