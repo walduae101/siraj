@@ -78,6 +78,9 @@ export async function POST(req: NextRequest) {
     const eventType = messageData.eventType;
     const attributes = message.attributes || {};
 
+    const deliveryAttempt = parseInt(attributes.delivery_attempt || "1", 10);
+    const nextRetryMs = deliveryAttempt < 5 ? Math.pow(2, deliveryAttempt) * 1000 : 0;
+    
     structuredLog("INFO", "Worker received message", {
       event_id: eventId,
       event_type: eventType,
@@ -85,7 +88,9 @@ export async function POST(req: NextRequest) {
       attributes,
       pipeline: "queue",
       ordering_key: attributes.ordering_key,
-      delivery_attempt: attributes.delivery_attempt || "1",
+      delivery_attempt: deliveryAttempt.toString(),
+      next_retry_ms: nextRetryMs,
+      max_attempts: "5",
     });
 
     // Process the event
@@ -110,6 +115,17 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Terminal failure", { status: 200 });
     }
     // Return 5xx for transient failures (retry)
+    const deliveryAttempt = parseInt(attributes.delivery_attempt || "1", 10);
+    const nextRetryMs = deliveryAttempt < 5 ? Math.pow(2, deliveryAttempt) * 1000 : 0;
+    
+    structuredLog("WARNING", "Transient failure - will retry", {
+      event_id: eventId,
+      reason: result.reason,
+      delivery_attempt: deliveryAttempt.toString(),
+      next_retry_ms: nextRetryMs,
+      max_attempts: "5",
+    });
+    
     return new NextResponse(result.reason || "Processing failed", {
       status: 500,
     });

@@ -258,7 +258,7 @@ async function processWebhookEvent(
   // Mark as received
   const now = Timestamp.now();
   const expiresAt = Timestamp.fromMillis(
-    now.toMillis() + 30 * 24 * 60 * 60 * 1000, // 30 days TTL
+    now.toMillis() + 90 * 24 * 60 * 60 * 1000, // 90 days TTL
   );
 
   await webhookRef.set({

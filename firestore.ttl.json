@@ -1,0 +1,9 @@
+{
+  "ttlConfigs": [
+    {
+      "collection": "webhookEvents",
+      "ttlField": "expiresAt",
+      "ttlValue": "90d"
+    }
+  ]
+}

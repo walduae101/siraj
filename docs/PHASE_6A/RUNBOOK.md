@@ -40,6 +40,27 @@ Phase 6A implements queue mode cutover to improve webhook performance and system
 
 ---
 
+## Autoscaling Configuration
+
+### Worker Service Autoscaling
+- **Min Instances**: 0 (scale to zero when idle)
+- **Max Instances**: 10 (based on throughput target)
+- **Concurrency**: 80 (to keep p95 < 250ms)
+- **CPU Target**: 70% (for cost optimization)
+- **Memory Target**: 512MB (adequate for processing)
+
+### Scaling Triggers
+- **CPU Utilization**: Scale up at 70%, down at 30%
+- **Concurrency**: Scale up at 80%, down at 20%
+- **Queue Depth**: Scale up if lag > 5s for 2 minutes
+
+### Cost Optimization
+- **Scale to Zero**: Enabled (saves costs during low traffic)
+- **Warm-up Time**: 30 seconds (acceptable for queue processing)
+- **Cooldown Period**: 5 minutes (prevents thrashing)
+
+---
+
 ## Cutover Process
 
 ### Step 1: Staging Validation
