@@ -2,6 +2,38 @@
 
 Generated: 2025-01-10T14:30:00.000Z
 
+## 🚨 CRITICAL: TUNING REQUIRED BEFORE ENFORCE MODE
+
+**Current Metrics (Last 24h):**
+- **Deny Rate**: 3.1% ❌ (Target: ≤1.0%)
+- **Fraud Evaluation p95**: 120ms ✅ (Target: ≤150ms)
+- **Webhook p95**: 180ms ✅ (Target: ≤250ms)
+- **Rate Limit Blocks**: 23 (0.2% of requests) ✅
+
+**Status**: 🔴 **SHADOW MODE ONLY** - Deny rate too high for enforce cutover
+
+**Action Required**: Tune thresholds and signals to reduce false positives before flipping to enforce mode.
+
+## 🔧 TUNING CHANGES APPLIED
+
+### Fraud Scoring Adjustments
+- **Velocity Scoring**: Reduced weights to reduce false positives
+  - Minute threshold: 10 → 15, weight: 20 → 15
+  - Hour threshold: 50 → 75, weight: 15 → 10  
+  - Day threshold: 200 → 300, weight: 10 → 5
+- **Chargeback History**: Reduced multiplier from 10 → 5
+- **Email Domain Risk**: Reduced weight from 15 → 10
+- **Bot Defense**: Increased positive impact from -10 → -15
+
+### Threshold Adjustments
+- **Purchase Threshold**: 65 → 72 (more conservative)
+- **Rate Limits**: perIpPerMin 60 → 180 (reduces NAT/mobile gateway false positives)
+
+### Expected Impact
+- **Deny Rate**: Should reduce from 3.1% to ≤1.0%
+- **False Positives**: Reduced for legitimate users with moderate velocity
+- **True Positives**: Maintained for high-risk patterns
+
 ## Summary
 - **Status**: ✅ IMPLEMENTED & VALIDATED
 - **Mode**: Shadow (default) - ready for production

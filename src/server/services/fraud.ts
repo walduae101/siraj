@@ -362,33 +362,33 @@ export class FraudService {
     let score = 0;
 
     for (const signal of signals) {
-      // Velocity scoring
-      if (signal.velocityMinute > 10) score += 20;
-      if (signal.velocityHour > 50) score += 15;
-      if (signal.velocityDay > 200) score += 10;
+      // Velocity scoring - TUNED: Reduced weights to reduce false positives
+      if (signal.velocityMinute > 15) score += 15; // Was 20, now 15
+      if (signal.velocityHour > 75) score += 10;   // Was 50/15, now 75/10
+      if (signal.velocityDay > 300) score += 5;    // Was 200/10, now 300/5
 
-      // Chargeback history
-      if (signal.chargebacks90d > 0) score += signal.chargebacks90d * 10;
+      // Chargeback history - TUNED: Reduced multiplier
+      if (signal.chargebacks90d > 0) score += signal.chargebacks90d * 5; // Was 10, now 5
 
       // Country risk
       if (config.blockCountries.includes(context.country || "")) {
         score += 30;
       }
 
-      // Email domain risk (simple heuristic)
+      // Email domain risk - TUNED: Reduced weight
       if (
         signal.emailDomain &&
         this.isHighRiskEmailDomain(signal.emailDomain)
       ) {
-        score += 15;
+        score += 10; // Was 15, now 10
       }
     }
 
-    // Bot defense check
+    // Bot defense check - TUNED: Increased positive impact
     if (context.recaptchaToken || context.appCheckToken) {
       // TODO: Integrate with botDefenseService
       // For now, reduce score if tokens are present
-      score = Math.max(0, score - 10);
+      score = Math.max(0, score - 15); // Was -10, now -15
     }
 
     return Math.min(100, score);

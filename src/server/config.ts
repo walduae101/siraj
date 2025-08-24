@@ -97,7 +97,7 @@ const ConfigSchema = z.object({
     .object({
       // Phase 5: Fraud Mode and Thresholds
       FRAUD_MODE: z.enum(["off", "shadow", "enforce"]).default("shadow"),
-      FRAUD_SCORE_THRESHOLD_PURCHASE: z.number().min(0).max(100).default(65),
+      FRAUD_SCORE_THRESHOLD_PURCHASE: z.number().min(0).max(100).default(72), // TUNED: Increased from 65 to 72
       FRAUD_SCORE_THRESHOLD_SUBSCRIPTION: z
         .number()
         .min(0)
@@ -113,7 +113,7 @@ const ConfigSchema = z.object({
           perUidPerMin: z.number().default(30),
           perUidPerHour: z.number().default(200),
         })
-        .default({ perIpPerMin: 60, perUidPerMin: 30, perUidPerHour: 200 }),
+        .default({ perIpPerMin: 180, perUidPerMin: 30, perUidPerHour: 200 }), // TUNED: Increased perIpPerMin from 60 to 180
 
       // Bot defense configuration
       BOTDEFENSE: z
@@ -164,11 +164,11 @@ const ConfigSchema = z.object({
     })
     .default({
       FRAUD_MODE: "shadow",
-      FRAUD_SCORE_THRESHOLD_PURCHASE: 65,
+      FRAUD_SCORE_THRESHOLD_PURCHASE: 72, // TUNED: Increased from 65 to 72
       FRAUD_SCORE_THRESHOLD_SUBSCRIPTION: 60,
       FRAUD_BLOCK_COUNTRIES: [],
       FRAUD_ALLOW_TEST_USERS: true,
-      RATE_LIMITS: { perIpPerMin: 60, perUidPerMin: 30, perUidPerHour: 200 },
+      RATE_LIMITS: { perIpPerMin: 180, perUidPerMin: 30, perUidPerHour: 200 }, // TUNED: Increased perIpPerMin from 60 to 180
       BOTDEFENSE: { appCheckRequired: true, minScore: 0.6 },
       checkoutCaps: {
         uid: { perMinute: 5, perHour: 20, perDay: 100 },
