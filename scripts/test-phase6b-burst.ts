@@ -201,6 +201,7 @@ class Phase6BBurstTest {
 
     console.log("📊 Phase Results:");
     phaseResults.forEach((result) => {
+      if (!result) return;
       console.log(`   ${result.phase}:`);
       console.log(`     Webhook ACK p95: ${result.avgWebhookAck}ms`);
       console.log(`     Worker p95: ${result.avgWorkerP95}ms`);
