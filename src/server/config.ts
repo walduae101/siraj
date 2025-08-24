@@ -59,6 +59,11 @@ const ConfigSchema = z.object({
   firebase: z.object({
     projectId: z.string(),
     serviceAccountJson: z.string().optional(),
+    apiKey: z.string().optional(),
+    authDomain: z.string().optional(),
+    appId: z.string().optional(),
+    storageBucket: z.string().optional(),
+    messagingSenderId: z.string().optional(),
   }),
   openai: z.object({
     apiKey: z.string(),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
-import { getConfig } from "~/server/config/loader";
+import { getConfig } from "~/server/config";
 
 export async function GET(req: NextRequest) {
   try {
