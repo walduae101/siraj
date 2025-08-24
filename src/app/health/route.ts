@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json(health, { status: 200 });
   } catch (error) {
     console.error("[health] Health check failed:", error);
-    
+
     const unhealthy = {
       status: "unhealthy",
       timestamp: new Date().toISOString(),

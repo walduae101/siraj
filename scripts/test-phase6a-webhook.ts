@@ -12,27 +12,30 @@ async function testPhase6AWebhook() {
     console.log("📋 Test 1: Configuration");
     const config = await getConfig();
     console.log(`   webhookMode: ${config.features.webhookMode}`);
-    console.log(`   webhookQueueCanaryRatio: ${config.features.webhookQueueCanaryRatio}`);
+    console.log(
+      `   webhookQueueCanaryRatio: ${config.features.webhookQueueCanaryRatio}`,
+    );
     console.log("   ✅ Configuration loaded successfully");
 
     // Test 2: Webhook Endpoint Health
     console.log("\n📋 Test 2: Webhook Endpoint Health");
-    const webhookUrl = "https://siraj-207501673877.us-central1.run.app/api/paynow/webhook";
-    
+    const webhookUrl =
+      "https://siraj-207501673877.us-central1.run.app/api/paynow/webhook";
+
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-PayNow-Signature": "test-signature"
+        "X-PayNow-Signature": "test-signature",
       },
       body: JSON.stringify({
         event_id: "test_phase6a_001",
         event_type: "test.purchase",
         data: {
           test: true,
-          phase: "6a"
-        }
-      })
+          phase: "6a",
+        },
+      }),
     });
 
     console.log(`   Status: ${response.status}`);
@@ -40,15 +43,17 @@ async function testPhase6AWebhook() {
 
     // Test 3: Pub/Sub Publishing
     console.log("\n📋 Test 3: Pub/Sub Publishing");
-    const { publishPaynowEvent } = await import("../src/server/services/pubsubPublisher.js");
-    
+    const { publishPaynowEvent } = await import(
+      "../src/server/services/pubsubPublisher.js"
+    );
+
     const testMessage = {
       eventId: `phase6a_test_${Date.now()}`,
       eventType: "test.purchase",
       orderId: "test_order_001",
       paynowCustomerId: "test_customer_001",
       uid: "test_user_001",
-      data: { test: true, phase: "6a" }
+      data: { test: true, phase: "6a" },
     };
 
     const startTime = Date.now();
@@ -61,26 +66,29 @@ async function testPhase6AWebhook() {
 
     // Test 4: Worker Endpoint
     console.log("\n📋 Test 4: Worker Endpoint");
-    const workerUrl = "https://siraj-207501673877.us-central1.run.app/api/tasks/paynow/process";
-    
+    const workerUrl =
+      "https://siraj-207501673877.us-central1.run.app/api/tasks/paynow/process";
+
     const workerResponse = await fetch(workerUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer test-token"
+        Authorization: "Bearer test-token",
       },
       body: JSON.stringify({
         message: {
-          data: Buffer.from(JSON.stringify({
-            eventId: "test_worker_health",
-            eventType: "test.worker.health",
-            data: {}
-          })).toString("base64"),
+          data: Buffer.from(
+            JSON.stringify({
+              eventId: "test_worker_health",
+              eventType: "test.worker.health",
+              data: {},
+            }),
+          ).toString("base64"),
           messageId: "test_message_id",
           publishTime: new Date().toISOString(),
-          attributes: {}
-        }
-      })
+          attributes: {},
+        },
+      }),
     });
 
     console.log(`   Worker Status: ${workerResponse.status}`);
@@ -91,7 +99,6 @@ async function testPhase6AWebhook() {
     console.log("   - Webhook endpoint: ✅");
     console.log("   - Pub/Sub publishing: ✅");
     console.log("   - Worker endpoint: ✅");
-
   } catch (error) {
     console.error("❌ Test failed:", error);
     process.exit(1);

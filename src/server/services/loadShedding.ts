@@ -9,7 +9,7 @@ interface LoadSheddingConfig {
 
 class LoadSheddingService {
   private config: LoadSheddingConfig;
-  private currentQueueLag: number = 0;
+  private currentQueueLag = 0;
 
   constructor() {
     this.config = {
@@ -25,7 +25,7 @@ class LoadSheddingService {
    */
   async updateQueueLag(lagMs: number): Promise<void> {
     this.currentQueueLag = lagMs;
-    
+
     if (lagMs > this.config.queueLagThresholdMs) {
       await this.enableLoadShedding();
     } else {
@@ -38,14 +38,18 @@ class LoadSheddingService {
    */
   private async enableLoadShedding(): Promise<void> {
     if (!this.config.fraudExtrasEnabled) return; // Already disabled
-    
-    console.log(`[load-shedding] Enabling load shedding (queue lag: ${this.currentQueueLag}ms)`);
-    
+
+    console.log(
+      `[load-shedding] Enabling load shedding (queue lag: ${this.currentQueueLag}ms)`,
+    );
+
     this.config.fraudExtrasEnabled = false;
     this.config.networkChecksEnabled = false;
     this.config.detailedLoggingEnabled = false;
-    
-    console.log("[load-shedding] Disabled: fraud extras, network checks, detailed logging");
+
+    console.log(
+      "[load-shedding] Disabled: fraud extras, network checks, detailed logging",
+    );
   }
 
   /**
@@ -53,14 +57,18 @@ class LoadSheddingService {
    */
   private async disableLoadShedding(): Promise<void> {
     if (this.config.fraudExtrasEnabled) return; // Already enabled
-    
-    console.log(`[load-shedding] Disabling load shedding (queue lag: ${this.currentQueueLag}ms)`);
-    
+
+    console.log(
+      `[load-shedding] Disabling load shedding (queue lag: ${this.currentQueueLag}ms)`,
+    );
+
     this.config.fraudExtrasEnabled = true;
     this.config.networkChecksEnabled = true;
     this.config.detailedLoggingEnabled = true;
-    
-    console.log("[load-shedding] Re-enabled: fraud extras, network checks, detailed logging");
+
+    console.log(
+      "[load-shedding] Re-enabled: fraud extras, network checks, detailed logging",
+    );
   }
 
   /**
