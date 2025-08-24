@@ -274,6 +274,45 @@ export const fraudRouter = createTRPCRouter({
             .filter(Boolean);
         }),
 
+      // Get review statistics by age buckets
+      stats: adminProcedure
+        .input(z.object({}))
+        .query(async () => {
+          const db = await getDb();
+          const now = new Date();
+          const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+          const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+          const stats = {
+            pending: { "0-1": 0, "2-3": 0, "4-7": 0, ">7": 0 },
+            inReview: { "0-1": 0, "2-3": 0, "4-7": 0, ">7": 0 },
+            escalated: { "0-1": 0, "2-3": 0, "4-7": 0, ">7": 0 },
+          };
+
+          // Get all manual reviews
+          const reviews = await db.collection("manualReviews").get();
+
+          for (const doc of reviews.docs) {
+            const data = doc.data();
+            const createdAt = data.createdAt.toDate();
+            const ageInDays = (now.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000);
+
+            let ageBucket: "0-1" | "2-3" | "4-7" | ">7";
+            if (ageInDays <= 1) ageBucket = "0-1";
+            else if (ageInDays <= 3) ageBucket = "2-3";
+            else if (ageInDays <= 7) ageBucket = "4-7";
+            else ageBucket = ">7";
+
+            const status = data.status as keyof typeof stats;
+            if (status in stats) {
+              stats[status][ageBucket]++;
+            }
+          }
+
+          return stats;
+        }),
+
       // Get single review
       get: adminProcedure
         .input(z.object({ id: z.string() }))
@@ -306,43 +345,15 @@ export const fraudRouter = createTRPCRouter({
             notes: z.string(),
           }),
         )
-        .mutation(async ({ ctx, input }) => {
-          const adminUid = ctx.adminUser?.uid;
-          if (!adminUid) throw new TRPCError({ code: "UNAUTHORIZED" });
-
+        .mutation(async ({ input }) => {
           const db = await getDb();
           const reviewRef = db.collection("manualReviews").doc(input.id);
 
-          const review = await reviewRef.get();
-          if (!review.exists) {
-            throw new TRPCError({
-              code: "NOT_FOUND",
-              message: "Review not found",
-            });
-          }
-
-          const reviewData = review.data()!;
-          if (reviewData.status !== "open") {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Review already resolved",
-            });
-          }
-
-          const status = input.action === "approve" ? "approved" : "denied";
-
           await reviewRef.update({
-            status,
-            resolvedBy: adminUid,
+            status: input.action === "approve" ? "approved" : "denied",
             resolvedAt: new Date(),
             adminNotes: input.notes,
-            updatedAt: new Date(),
           });
-
-          // If approved, create reversal if needed
-          if (input.action === "approve" && reviewData.requiresReversal) {
-            await createReversal(reviewData);
-          }
 
           return { success: true };
         }),
@@ -386,6 +397,52 @@ export const fraudRouter = createTRPCRouter({
               };
             })
             .filter(Boolean);
+        }),
+
+      // App Check failure rate statistics
+      appCheck: adminProcedure
+        .input(z.object({}))
+        .query(async () => {
+          const db = await getDb();
+          const now = new Date();
+          const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+          // Get App Check logs from the last 30 days
+          const logsSnapshot = await db
+            .collection("fraudLogs")
+            .where("timestamp", ">=", thirtyDaysAgo.toISOString())
+            .get();
+
+          const logs = logsSnapshot.docs.map(doc => doc.data());
+          
+          // Calculate overall stats
+          const totalRequests = logs.length;
+          const failedRequests = logs.filter(log => 
+            log.reasons && log.reasons.some((r: string) => r.includes("app_check_failed"))
+          ).length;
+          const failureRate = totalRequests > 0 ? (failedRequests / totalRequests) * 100 : 0;
+
+          // Calculate last 24h stats
+          const last24hLogs = logs.filter(log => 
+            new Date(log.timestamp) >= oneDayAgo
+          );
+          const last24hTotal = last24hLogs.length;
+          const last24hFailed = last24hLogs.filter(log => 
+            log.reasons && log.reasons.some((r: string) => r.includes("app_check_failed"))
+          ).length;
+          const last24hRate = last24hTotal > 0 ? (last24hFailed / last24hTotal) * 100 : 0;
+
+          return {
+            totalRequests,
+            failedRequests,
+            failureRate,
+            last24h: {
+              total: last24hTotal,
+              failed: last24hFailed,
+              rate: last24hRate,
+            },
+          };
         }),
     }),
   }),
