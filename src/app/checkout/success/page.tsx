@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect } from "react";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { getFirebaseAuth, getFirestore } from "~/lib/firebase/client";
-import { api } from "~/trpc/react";
+
 
 function SuccessContent() {
   const params = useSearchParams();
@@ -15,21 +15,7 @@ function SuccessContent() {
   const [currentBalance, setCurrentBalance] = useState<number | null>(null);
   const [credited, setCredited] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [manualCompleting, setManualCompleting] = useState(false);
-  
-  // Manual complete mutation
-  const completeMutation = api.checkout.complete.useMutation({
-    onSuccess: (data) => {
-      console.log("[checkout/success] Manual complete success:", data);
-      setCredited(true);
-      // Force refresh the page to update wallet
-      setTimeout(() => window.location.reload(), 1000);
-    },
-    onError: (error) => {
-      console.error("[checkout/success] Manual complete error:", error);
-      alert(`Error: ${error.message}`);
-    },
-  });
+
 
   // Load Firebase config and get current user
   useEffect(() => {
@@ -164,66 +150,15 @@ function SuccessContent() {
           Your points will appear shortly. Order: {orderId || checkoutId}
         </p>
         
-        {/* Manual complete button if webhook is delayed */}
+        {/* Automatic processing indicator */}
         <div className="mt-8 p-4 border border-gray-200 rounded">
           <p className="text-sm text-gray-600 mb-2">
-            Points not showing up? Click below to manually complete the order:
+            Processing your order automatically...
           </p>
-          <button
-            onClick={() => {
-              setManualCompleting(true);
-              completeMutation.mutate({ orderId: orderId || checkoutId });
-            }}
-            disabled={manualCompleting || completeMutation.isPending}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 mr-2"
-          >
-            {manualCompleting ? "Processing..." : "Complete Order Manually"}
-          </button>
-          
-          {/* Process Order button - works without Firebase auth */}
-          <button
-            onClick={async () => {
-              setManualCompleting(true);
-              try {
-                // Get user ID from URL or prompt
-                const urlParams = new URLSearchParams(window.location.search);
-                const uid = urlParams.get('uid') || prompt('Enter your user ID:');
-                
-                if (!uid) {
-                  alert('User ID required');
-                  setManualCompleting(false);
-                  return;
-                }
-                
-                const response = await fetch('/api/paynow/process-order', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    orderId: orderId || checkoutId,
-                    userId: uid
-                  })
-                });
-                
-                const result = await response.json();
-                
-                if (response.ok) {
-                  alert(`Success! Credited ${result.credited} points.`);
-                  setCredited(true);
-                  setTimeout(() => window.location.reload(), 1000);
-                } else {
-                  alert(`Error: ${result.error}`);
-                }
-              } catch (error) {
-                alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              } finally {
-                setManualCompleting(false);
-              }
-            }}
-            disabled={manualCompleting}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
-          >
-            Process Order
-          </button>
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+            <span className="text-sm text-gray-600">Please wait while we credit your points...</span>
+          </div>
         </div>
       </main>
     );

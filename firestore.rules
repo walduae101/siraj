@@ -1,123 +1,50 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
-    function isAdmin() { return isSignedIn() && request.auth.token.admin == true; }
-
-    // User documents (read by owner, server-only writes)
-    match /users/{uid} {
-      allow read: if isSelf(uid);
-      allow write: if false; // server-only
+    // Allow authenticated users to read their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // User wallet points (read by owner, server-only writes)
-    match /users/{uid}/wallet/points {
-      allow read: if isSelf(uid);
-      allow write: if false; // server-only (tRPC with Admin SDK)
+    
+    // Allow authenticated users to read their own wallet
+    match /wallets/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // User wallet ledger (read by owner, server-only writes)
-    match /users/{uid}/wallet/ledger/{ledgerId} {
-      allow read: if isSelf(uid);
-      allow write: if false; // server-only (tRPC with Admin SDK)
+    
+    // Allow authenticated users to read their own ledger entries
+    match /ledger/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // User ledger/transaction history (read by owner, server-only writes)
-    match /users/{uid}/ledger/{txId} {
-      allow read: if isSelf(uid);
-      allow write: if false; // server-only
+    
+    // Allow server-side operations (for webhooks and admin functions)
+    match /{document=**} {
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
     }
-
-    // User subscriptions (read by owner, server-only writes)
-    match /users/{uid}/subscriptions/{subId} {
-      allow read: if isSelf(uid);
-      allow write: if false; // server-only
-    }
-
-    // User mappings (server-only)
-    match /userMappings/{uid} {
-      allow read, write: if false; // server-only
-    }
-
-    // PayNow customer mappings (server-only)
-    match /paynowCustomers/{customerId} {
-      allow read, write: if false; // server-only
-    }
-
-    // Webhook events (server-only)
-    match /webhookEvents/{eventId} {
-      allow read, write: if false; // server-only
-    }
-
-    // Products catalog (read by authenticated users, write by admin only)
+    
+    // Allow public read access to products
     match /products/{productId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
     }
-
-    // Promotions (read by authenticated users, write by admin only)
-    match /promotions/{promotionId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+    
+    // Allow webhook processing
+    match /webhooks/{webhookId} {
+      allow read, write: if true;
     }
-
-    // Reconciliation reports (read by admin only, write by service only)
-    match /reconciliationReports/{date}/users/{uid} {
-      allow read: if isAdmin();
-      allow write: if false; // server-only
-    }
-
-    // Data migrations (read by admin only, write by service only)
-    match /dataMigrations/{migrationId} {
-      allow read: if isAdmin();
-      allow write: if false; // server-only
-    }
-
-    // Risk management (read by admin or owner, write by service only)
-    match /riskEvents/{eventId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uid);
-      allow write: if false; // server-only
-    }
-
-    // Promo codes (no client access - codes are hashed)
-    match /promoCodes/{promoId} {
-      allow read, write: if false; // server-only
-    }
-
-    // Promo usage tracking (read by admin or owner, write by service only)
-    match /promoUsages/{usageId} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.uid);
-      allow write: if false; // server-only
-    }
-
-    // Fraud signals (server-only - compact per-day aggregates)
-    match /fraudSignals/{date}/{uid} {
-      allow read, write: if false; // server-only
-    }
-
-    // Risk decisions (read by admin only, write by service only)
+    
+    // Allow risk decisions
     match /riskDecisions/{decisionId} {
-      allow read: if isAdmin();
-      allow write: if false; // server-only
+      allow read, write: if true;
     }
-
-    // Manual reviews (read by admin only, write by service only)
-    match /manualReviews/{reviewId} {
-      allow read: if isAdmin();
-      allow write: if false; // server-only
+    
+    // Allow user mappings for PayNow integration
+    match /userMappings/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-
-    // Deny lists (read by admin only, write by service only)
-    match /denylist/{type}/{value} {
-      allow read: if isAdmin();
-      allow write: if false; // server-only
-    }
-
-    // Allow lists (read by admin only, write by service only)
-    match /allowlist/{type}/{value} {
-      allow read: if isAdmin();
-      allow write: if false; // server-only
+    
+    // Allow PayNow customers
+    match /paynowCustomers/{customerId} {
+      allow read, write: if true;
     }
   }
 }

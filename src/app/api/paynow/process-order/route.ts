@@ -19,22 +19,87 @@ export async function POST(req: NextRequest) {
 
     // Get PayNow order details
     const config = await getConfig();
-    const paynowResponse = await fetch(`https://api.paynow.gg/v1/orders/${orderId}`, {
-      headers: {
-        "Authorization": `Bearer ${config.paynow.apiKey}`,
-        "Content-Type": "application/json",
-      },
-    });
+    
+    // Try different PayNow API endpoints
+    let order = null;
+    let paynowResponse = null;
+    
+    // First try with the order ID as-is
+    try {
+      paynowResponse = await fetch(`https://api.paynow.gg/v1/orders/${orderId}`, {
+        headers: {
+          "Authorization": `Bearer ${config.paynow.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (paynowResponse.ok) {
+        order = await paynowResponse.json();
+        console.log(`[process-order] Found order with ID ${orderId}`);
+      }
+    } catch (error) {
+      console.log(`[process-order] Failed to fetch order with ID ${orderId}:`, error);
+    }
+    
+    // If not found, try with store prefix
+    if (!order && !orderId.startsWith(config.paynow.storeId)) {
+      try {
+        const storeOrderId = `${config.paynow.storeId}-${orderId}`;
+        paynowResponse = await fetch(`https://api.paynow.gg/v1/orders/${storeOrderId}`, {
+          headers: {
+            "Authorization": `Bearer ${config.paynow.apiKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+        
+        if (paynowResponse.ok) {
+          order = await paynowResponse.json();
+          console.log(`[process-order] Found order with store prefix: ${storeOrderId}`);
+        }
+      } catch (error) {
+        console.log(`[process-order] Failed to fetch order with store prefix:`, error);
+      }
+    }
+    
+    // If still not found, try listing orders to find it
+    if (!order) {
+      try {
+        console.log(`[process-order] Order not found, trying to list orders...`);
+        paynowResponse = await fetch(`https://api.paynow.gg/v1/stores/${config.paynow.storeId}/orders?limit=10`, {
+          headers: {
+            "Authorization": `Bearer ${config.paynow.apiKey}`,
+            "Content-Type": "application/json",
+          },
+        });
+        
+        if (paynowResponse.ok) {
+          const ordersList = await paynowResponse.json();
+          console.log(`[process-order] Found ${ordersList.length} recent orders`);
+          
+          // Look for order with matching ID or customer
+          order = ordersList.find((o: any) => 
+            o.id === orderId || 
+            o.pretty_id === orderId ||
+            o.customer?.metadata?.uid === userId
+          );
+          
+          if (order) {
+            console.log(`[process-order] Found matching order: ${order.id}`);
+          }
+        }
+      } catch (error) {
+        console.log(`[process-order] Failed to list orders:`, error);
+      }
+    }
 
-    if (!paynowResponse.ok) {
-      console.error(`[process-order] PayNow API error: ${paynowResponse.status}`);
+    if (!order) {
+      console.error(`[process-order] Order not found after all attempts`);
       return NextResponse.json(
-        { error: "Failed to fetch order from PayNow" },
-        { status: 500 }
+        { error: "Order not found in PayNow" },
+        { status: 404 }
       );
     }
 
-    const order = await paynowResponse.json();
     console.log(`[process-order] Order status: ${order.status}, payment_state: ${order.payment_state}`);
 
     // Check if order is paid
