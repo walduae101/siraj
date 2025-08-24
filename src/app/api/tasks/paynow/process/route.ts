@@ -77,6 +77,27 @@ export async function POST(req: NextRequest) {
     const eventId = messageData.eventId;
     const eventType = messageData.eventType;
     const attributes = message.attributes || {};
+    
+    // PHASE 7: Schema compatibility check
+    const { getConfig } = await import("~/server/config.js");
+    const config = await getConfig();
+    
+    const messageVersion = messageData.version || 1;
+    const minCompatible = config.features.eventSchema.minCompatible;
+    
+    if (messageVersion < minCompatible) {
+      structuredLog("WARNING", "Incompatible schema version - dropping message", {
+        event_id: eventId,
+        message_version: messageVersion.toString(),
+        min_compatible: minCompatible.toString(),
+        verdict: "drop_incompatible",
+        pipeline: "queue",
+        region: process.env.REGION || "us-central1",
+      });
+      
+      // Return 2xx to acknowledge and prevent retries
+      return new NextResponse("Incompatible schema version", { status: 200 });
+    }
 
     const deliveryAttempt = parseInt(attributes.delivery_attempt || "1", 10);
     const nextRetryMs = deliveryAttempt < 5 ? Math.pow(2, deliveryAttempt) * 1000 : 0;
@@ -91,7 +112,28 @@ export async function POST(req: NextRequest) {
       delivery_attempt: deliveryAttempt.toString(),
       next_retry_ms: nextRetryMs,
       max_attempts: "5",
+      region: process.env.REGION || "us-central1",
+      message_version: messageVersion.toString(),
+      schema_compatible: (messageVersion >= minCompatible).toString(),
     });
+
+    // PHASE 7: Check idempotency before processing
+    const db = await getDb();
+    const webhookRef = db.collection("webhookEvents").doc(eventId);
+    const existing = await webhookRef.get();
+    
+    if (existing.exists) {
+      structuredLog("INFO", "Event already processed - skipping", {
+        event_id: eventId,
+        pipeline: "queue",
+        duplicate: "true",
+        region: process.env.REGION || "us-central1",
+        delivery_attempt: deliveryAttempt.toString(),
+      });
+      
+      // Return 2xx to acknowledge and prevent retries
+      return new NextResponse("Event already processed", { status: 200 });
+    }
 
     // Process the event
     const result = await processPaynowEvent(
@@ -115,14 +157,14 @@ export async function POST(req: NextRequest) {
       return new NextResponse("Terminal failure", { status: 200 });
     }
     // Return 5xx for transient failures (retry)
-    const deliveryAttempt = parseInt(attributes.delivery_attempt || "1", 10);
-    const nextRetryMs = deliveryAttempt < 5 ? Math.pow(2, deliveryAttempt) * 1000 : 0;
+    const retryDeliveryAttempt = parseInt(attributes.delivery_attempt || "1", 10);
+    const retryNextRetryMs = retryDeliveryAttempt < 5 ? Math.pow(2, retryDeliveryAttempt) * 1000 : 0;
     
     structuredLog("WARNING", "Transient failure - will retry", {
       event_id: eventId,
       reason: result.reason,
-      delivery_attempt: deliveryAttempt.toString(),
-      next_retry_ms: nextRetryMs,
+      delivery_attempt: retryDeliveryAttempt.toString(),
+      next_retry_ms: retryNextRetryMs,
       max_attempts: "5",
     });
     

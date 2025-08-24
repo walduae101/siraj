@@ -272,6 +272,8 @@ async function processWebhookEvent(
       .update(JSON.stringify(eventData))
       .digest("hex"),
     expiresAt, // TTL field - configure this in Firebase Console
+    // PHASE 7: Add region field for forensics
+    region: process.env.REGION || "us-central1",
   });
 
   let result = { ok: true, status: "processed", details: {} };
@@ -940,6 +942,8 @@ async function handleWebhook(req: NextRequest) {
               .digest("hex"),
             expiresAt,
             attempts: 0,
+            // PHASE 7: Add region field for forensics
+            region: process.env.REGION || "us-central1",
           });
 
         // Publish to Pub/Sub

@@ -41,6 +41,12 @@
 - [**Runbook**](./PHASE_5/RUNBOOK.md) - Operational procedures and incident response
 - [**Observability**](./PHASE_5/OBSERVABILITY.md) - Monitoring, metrics, alerts, and dashboards
 
+### 🌍 **Phase 7: Multi-Region Readiness**
+- [**Design**](./PHASE_7/DESIGN.md) - Multi-region architecture and implementation
+- [**Runbook**](./PHASE_7/RUNBOOK.md) - Operational procedures and incident response
+- [**Validation**](./PHASE_7/VALIDATION.md) - Testing scenarios and validation results
+- [**DR Plan**](./PHASE_7/DR_PLAN.md) - Disaster recovery procedures and GameDay drills
+
 ### 🛡️ **Security**
 - [**Wallet Contract**](./SECURITY/WALLET_CONTRACT.md) - Canonical paths and restrictions
 - [**TTL Configuration**](./SECURITY/WEBHOOK_TTL_CONFIGURATION.md) - Firestore cleanup setup
@@ -66,6 +72,8 @@
 | Production cutover | [Cutover Checklist](./PHASE_4/CUTOVER_CHECKLIST.md) |
 | Fraud management | [Phase 5 Runbook](./PHASE_5/RUNBOOK.md) |
 | Fraud configuration | [Phase 5 Config](./PHASE_5/CONFIG.md) |
+| Multi-region operations | [Phase 7 Runbook](./PHASE_7/RUNBOOK.md) |
+| Disaster recovery | [Phase 7 DR Plan](./PHASE_7/DR_PLAN.md) |
 | Respond to alerts | [Webhook Runbook](./RUNBOOKS/WEBHOOK_RUNBOOK.md) |
 | Security review | [Wallet Contract](./SECURITY/WALLET_CONTRACT.md) |
 
@@ -103,6 +111,15 @@ PayNow → Webhook → Fraud Evaluation → Rate Limits → Bot Defense → Fire
          Structured Logs → Metrics → Dashboard + Alerts
                 ↓
          Manual Review Queue → Admin Interface
+```
+
+### Future (Phase 7)
+```
+PayNow → Global LB → us-central1 + europe-west1 (Webhook) → Firestore
+                ↓
+         Global LB → us-central1 + europe-west1 (Worker)
+                ↓
+         Structured Logs → Multi-Region Metrics → Dashboard + Alerts
 ```
 
 ---

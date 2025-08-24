@@ -92,6 +92,25 @@ const ConfigSchema = z.object({
     FRAUD_SHADOW_MODE: z.boolean().default(true),
     EDGE_RATE_LIMIT_ENABLED: z.boolean().default(true),
     APP_RATE_LIMIT_ENABLED: z.boolean().default(true),
+    // PHASE 7: Multi-Region Readiness
+    multiRegion: z.object({
+      enabled: z.boolean().default(false),
+      primaryRegion: z.string().default("us-central1"),
+      secondaryRegion: z.string().default("europe-west1"),
+      failoverEnabled: z.boolean().default(true),
+    }).default({
+      enabled: false,
+      primaryRegion: "us-central1",
+      secondaryRegion: "europe-west1",
+      failoverEnabled: true,
+    }),
+    eventSchema: z.object({
+      version: z.number().default(3),
+      minCompatible: z.number().default(2),
+    }).default({
+      version: 3,
+      minCompatible: 2,
+    }),
   }),
 
   // Fraud detection configuration
@@ -412,6 +431,17 @@ function getConfigFromEnv(): Config {
       FRAUD_SHADOW_MODE: process.env.FRAUD_SHADOW_MODE === "1",
       EDGE_RATE_LIMIT_ENABLED: process.env.EDGE_RATE_LIMIT_ENABLED === "1",
       APP_RATE_LIMIT_ENABLED: process.env.APP_RATE_LIMIT_ENABLED === "1",
+      // PHASE 7: Multi-Region Readiness
+      multiRegion: {
+        enabled: process.env.MULTI_REGION_ENABLED === "1",
+        primaryRegion: process.env.PRIMARY_REGION ?? "us-central1",
+        secondaryRegion: process.env.SECONDARY_REGION ?? "europe-west1",
+        failoverEnabled: process.env.FAILOVER_ENABLED !== "0",
+      },
+      eventSchema: {
+        version: Number.parseInt(process.env.EVENT_SCHEMA_VERSION ?? "3", 10),
+        minCompatible: Number.parseInt(process.env.EVENT_SCHEMA_MIN_COMPATIBLE ?? "2", 10),
+      },
     },
     fraud: {
       // Phase 5: Fraud Mode and Thresholds

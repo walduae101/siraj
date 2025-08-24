@@ -29,11 +29,18 @@ export async function publishPaynowEvent(
   // Determine ordering key - prefer uid, fallback to customer ID
   const orderingKey = uid || paynowCustomerId || "unknown";
 
-  // Create message with minimal PII
+  // Get config for schema versioning
+  const { getConfig } = await import("../config.js");
+  const config = await getConfig();
+  
+  // Create message with schema versioning
   const message = {
+    version: config.features.eventSchema.version,
+    minCompatible: config.features.eventSchema.minCompatible,
     eventId,
     eventType,
     timestamp: new Date().toISOString(),
+    region: process.env.REGION || "us-central1",
     data: {
       order: data.order
         ? {
