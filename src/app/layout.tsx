@@ -4,7 +4,6 @@ export const runtime = "nodejs";
 
 import { Cairo } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
-import Snowflake from "~/components/snowflake";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
@@ -19,8 +18,6 @@ export default async function RootLayout({
     <html lang="ar" dir="rtl" className={`${cairo.variable}`}>
       <body className="min-h-screen font-[family-name:var(--font-cairo)]">
         <NextTopLoader color="var(--primary)" />
-
-        {/* <Snowflake /> */}
 
         <Toaster position="top-center" />
 
