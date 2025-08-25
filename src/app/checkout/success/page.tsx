@@ -19,24 +19,12 @@ function SuccessContent() {
   useEffect(() => {
     const loadFirebaseConfig = async () => {
       try {
-        // Load Firebase config from runtime endpoint
-        const response = await fetch("/api/config/firebase");
-        if (response.ok) {
-          const config = await response.json();
-          console.log("[checkout/success] Loaded Firebase config:", config);
-
-          // Set the Firebase config
-          const { setFirebaseConfig } = await import("~/lib/firebase/client");
-          setFirebaseConfig(config);
-
-          // Now try to get auth
-          const auth = getFirebaseAuth();
-          const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUserId(user?.uid || null);
-          });
-          return () => unsubscribe();
-        }
-        console.error("[checkout/success] Failed to load Firebase config");
+        // Get Firebase auth directly
+        const auth = getFirebaseAuth();
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          setUserId(user?.uid || null);
+        });
+        return () => unsubscribe();
       } catch (error) {
         console.error("[checkout/success] Firebase auth error:", error);
         // Firebase might not be initialized properly, but we can still try to complete the order
