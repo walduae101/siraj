@@ -34,7 +34,7 @@ let app: FirebaseApp | undefined;
 export function getFirebaseApp(): FirebaseApp {
   if (!app) {
     const apps = getApps();
-    if (apps.length > 0) {
+    if (apps.length > 0 && apps[0]) {
       console.log("[Firebase] Using existing app:", apps[0].name);
       app = apps[0];
     } else {
