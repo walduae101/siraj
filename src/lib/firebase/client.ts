@@ -4,20 +4,14 @@ import {
   type Firestore,
   getFirestore as getFirestoreSDK,
 } from "firebase/firestore";
+import { firebaseConfig } from "./config";
 
 // Firebase config - we'll use a hybrid approach
-// Use runtime config if available, otherwise fall back to env vars
+// Use runtime config if available, otherwise fall back to our config
 let runtimeConfig: any = null;
 
-// Build-time config from env vars (fallback)
-const envConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-};
+// Build-time config from our config file (fallback)
+const envConfig = firebaseConfig;
 
 // Allow setting runtime config (will be called by FirebaseProvider)
 export function setFirebaseConfig(config: any) {
