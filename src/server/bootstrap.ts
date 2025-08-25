@@ -3,10 +3,7 @@ import http from 'node:http';
 import https from 'node:https';
 
 // Enable HTTP keep-alive for outbound calls to improve performance
-http.globalAgent.keepAlive = true;
-https.globalAgent.keepAlive = true;
-
-// Set reasonable timeouts
+// Note: keepAlive is enabled by default in Node.js 20, but we can configure timeouts
 http.globalAgent.keepAliveMsecs = 30000; // 30 seconds
 https.globalAgent.keepAliveMsecs = 30000; // 30 seconds
 
@@ -14,4 +11,4 @@ https.globalAgent.keepAliveMsecs = 30000; // 30 seconds
 http.globalAgent.maxSockets = 50;
 https.globalAgent.maxSockets = 50;
 
-console.log('[bootstrap] HTTP keep-alive enabled for outbound connections');
+console.log('[bootstrap] HTTP keep-alive configured for outbound connections');
