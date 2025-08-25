@@ -35,6 +35,7 @@ export function getFirebaseApp(): FirebaseApp {
   if (!app) {
     const apps = getApps();
     if (apps.length > 0) {
+      console.log("[Firebase] Using existing app:", apps[0].name);
       app = apps[0];
     } else {
       // Use runtime config if available, otherwise env config
@@ -45,7 +46,20 @@ export function getFirebaseApp(): FirebaseApp {
         projectId: cfg.projectId,
         appId: cfg.appId 
       });
-      app = initializeApp(cfg);
+      try {
+        app = initializeApp(cfg);
+        console.log("[Firebase] Successfully initialized app:", app.name);
+      } catch (error) {
+        console.error("[Firebase] Error initializing app:", error);
+        // If initialization fails, try to get the default app
+        const defaultApps = getApps();
+        if (defaultApps.length > 0) {
+          app = defaultApps[0];
+          console.log("[Firebase] Using default app after error:", app.name);
+        } else {
+          throw error;
+        }
+      }
     }
   }
   return app as FirebaseApp;
