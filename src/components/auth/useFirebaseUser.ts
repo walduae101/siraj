@@ -9,6 +9,7 @@ export function useFirebaseUser() {
 
   useEffect(() => {
     const auth = getFirebaseAuth();
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);

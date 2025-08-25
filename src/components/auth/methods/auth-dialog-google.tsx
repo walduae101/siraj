@@ -56,6 +56,7 @@ export default function AuthDialogGoogle({
       const provider = new GoogleAuthProvider();
 
       // Use redirect-based auth to avoid COOP issues
+      if (!auth) return;
       await signInWithRedirect(auth, provider);
       // The page will redirect and come back, so we don't need to handle the result here
     } catch (e) {
@@ -69,6 +70,7 @@ export default function AuthDialogGoogle({
     const handleRedirectResult = async () => {
       try {
         const auth = getFirebaseAuth();
+        if (!auth) return;
         const result = await getRedirectResult(auth);
 
         if (result?.user) {

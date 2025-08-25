@@ -17,7 +17,9 @@ export default function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
+    const auth = getFirebaseAuth();
+    if (!auth) return;
+    const unsub = onAuthStateChanged(auth, (user) => {
       if (user) router.replace("/dashboard");
     });
     return () => unsub();
@@ -28,6 +30,7 @@ export default function Page() {
     const handleRedirectResult = async () => {
       try {
         const auth = getFirebaseAuth();
+        if (!auth) return;
         const result = await getRedirectResult(auth);
 
         if (result?.user) {
@@ -50,6 +53,7 @@ export default function Page() {
     const provider = new GoogleAuthProvider();
     try {
       // Use redirect-based auth to avoid COOP issues
+      if (!auth) return;
       await signInWithRedirect(auth, provider);
       // The page will redirect and come back, so we don't need to handle the result here
     } catch (e: unknown) {

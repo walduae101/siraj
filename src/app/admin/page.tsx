@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useAuthState } from "react-firebase-hooks/auth";
+import { useEffect, useState } from "react";
+import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
 import { getFirebaseApp } from "~/lib/firebase/client";
-import { getAuth } from "firebase/auth";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -21,7 +20,22 @@ import { api } from "~/trpc/react";
 
 export default function AdminPage() {
   const firebaseApp = getFirebaseApp();
-  const [user, loading] = useAuthState(firebaseApp ? getAuth(firebaseApp) : null);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!firebaseApp) {
+      // Firebase not available (guarded init) – treat as signed out.
+      setLoading(false);
+      return;
+    }
+    const auth = getAuth(firebaseApp);
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, [firebaseApp]);
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<{
     uid: string;

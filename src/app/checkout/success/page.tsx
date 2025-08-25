@@ -21,6 +21,7 @@ function SuccessContent() {
       try {
         // Get Firebase auth directly
         const auth = getFirebaseAuth();
+        if (!auth) return;
         const unsubscribe = onAuthStateChanged(auth, (user) => {
           setUserId(user?.uid || null);
         });

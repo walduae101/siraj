@@ -15,6 +15,7 @@ export default function TestAuthPage() {
   useEffect(() => {
     const auth = getFirebaseAuth();
 
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
@@ -65,6 +66,7 @@ export default function TestAuthPage() {
   const testTrpcCall = async () => {
     try {
       const auth = getFirebaseAuth();
+      if (!auth) return;
       const user = auth.currentUser;
       if (!user) {
         alert("No user logged in");

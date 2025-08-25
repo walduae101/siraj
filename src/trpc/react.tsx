@@ -49,10 +49,12 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
             // Add Firebase auth token if user is authenticated
             try {
               const auth = getFirebaseAuth();
-              const user = auth.currentUser;
-              if (user) {
-                const token = await user.getIdToken();
-                headers.set("authorization", `Bearer ${token}`);
+              if (auth) {
+                const user = auth.currentUser;
+                if (user) {
+                  const token = await user.getIdToken();
+                  headers.set("authorization", `Bearer ${token}`);
+                }
               }
             } catch (error) {
               console.warn("Failed to get Firebase auth token:", error);
