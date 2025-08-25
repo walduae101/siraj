@@ -58,7 +58,8 @@ async function testWebhook(url: string, event: PayNowWebhookEvent, secret: strin
     return { success: response.ok, processingTime, status: response.status };
   } catch (error) {
     console.error(`❌ Error testing webhook at ${url}:`, error);
-    return { success: false, processingTime: Date.now() - startTime, error: error.message };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { success: false, processingTime: Date.now() - startTime, error: errorMessage };
   }
 }
 
