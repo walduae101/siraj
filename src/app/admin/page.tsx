@@ -1,8 +1,9 @@
 "use client";
 
-import { getAuth } from "firebase/auth";
 import { useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { getFirebaseApp } from "~/lib/firebase/client";
+import { getAuth } from "firebase/auth";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -19,7 +20,7 @@ import { Separator } from "~/components/ui/separator";
 import { api } from "~/trpc/react";
 
 export default function AdminPage() {
-  const [user, loading] = useAuthState(getAuth());
+  const [user, loading] = useAuthState(getAuth(getFirebaseApp()));
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<{
     uid: string;

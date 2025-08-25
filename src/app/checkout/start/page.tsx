@@ -1,11 +1,11 @@
 "use client";
-import { getAuth } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { Suspense } from "react";
 import { features } from "~/config/features";
 import { api } from "~/trpc/react";
-import "~/lib/firebase/client";
+import { getFirebaseApp } from "~/lib/firebase/client";
+import { getAuth } from "firebase/auth";
 
 export default function CheckoutStartPage() {
   return (
@@ -27,7 +27,7 @@ function CheckoutStartContent() {
 
   React.useEffect(() => {
     try {
-      const auth = getAuth();
+      const auth = getAuth(getFirebaseApp());
       setUid(auth.currentUser?.uid ?? "");
     } catch {
       // ignore; stays empty if not signed in
