@@ -7,6 +7,9 @@ import { pointsService } from "~/server/services/points";
 import { skuMap } from "~/server/services/skuMap";
 import { subscriptions } from "~/server/services/subscriptions";
 
+// Import bootstrap for HTTP keep-alive
+import "~/server/bootstrap";
+
 // Structured logging helper
 function structuredLog(
   severity: "INFO" | "WARNING" | "ERROR",

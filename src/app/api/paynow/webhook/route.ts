@@ -13,6 +13,9 @@ import { publishPaynowEvent } from "~/server/services/pubsubPublisher";
 import { subscriptions } from "~/server/services/subscriptions";
 import { WalletLedgerService } from "~/server/services/walletLedger";
 
+// Import bootstrap for HTTP keep-alive
+import "~/server/bootstrap";
+
 // Helper function for stable hashing (for canary routing)
 function getStableHash(input: string): number {
   const hash = crypto.createHash("sha256").update(input).digest("hex");

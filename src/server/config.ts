@@ -285,7 +285,7 @@ let secretManagerClient: SecretManagerServiceClient | null = null;
 // Simple TTL cache so we can pick up rotations without hurting latency
 let cached: Config | null = null;
 let expiresAt = 0;
-const TTL_MS = 60_000; // re-read at most once per minute
+const TTL_MS = 10 * 60_000; // re-read at most once per 10 minutes
 
 async function getSecretManagerClient(): Promise<SecretManagerServiceClient> {
   if (!secretManagerClient) {
