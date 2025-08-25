@@ -15,6 +15,12 @@ const envConfig = firebaseConfig;
 
 // Allow setting runtime config (will be called by FirebaseProvider)
 export function setFirebaseConfig(config: any) {
+  console.log("[Firebase] setFirebaseConfig called with:", { 
+    apiKey: config.apiKey?.substring(0, 10) + "...", 
+    authDomain: config.authDomain,
+    projectId: config.projectId,
+    appId: config.appId 
+  });
   runtimeConfig = config;
   // If Firebase is already initialized with env config, we need to reinitialize
   if (app && !getApps().length) {
@@ -33,6 +39,12 @@ export function getFirebaseApp(): FirebaseApp {
     } else {
       // Use runtime config if available, otherwise env config
       const cfg = runtimeConfig || envConfig;
+      console.log("[Firebase] Initializing with config:", { 
+        apiKey: cfg.apiKey?.substring(0, 10) + "...", 
+        authDomain: cfg.authDomain,
+        projectId: cfg.projectId,
+        appId: cfg.appId 
+      });
       app = initializeApp(cfg);
     }
   }
