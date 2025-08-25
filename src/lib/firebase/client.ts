@@ -16,7 +16,7 @@ export function getFirebaseApp(): FirebaseApp {
       app = initializeApp(firebaseConfig);
     }
   }
-  return app;
+  return app!;
 }
 
 let _auth: Auth | undefined;
