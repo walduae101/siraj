@@ -20,7 +20,8 @@ import { Separator } from "~/components/ui/separator";
 import { api } from "~/trpc/react";
 
 export default function AdminPage() {
-  const [user, loading] = useAuthState(getAuth(getFirebaseApp()));
+  const firebaseApp = getFirebaseApp();
+  const [user, loading] = useAuthState(firebaseApp ? getAuth(firebaseApp) : null);
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<{
     uid: string;

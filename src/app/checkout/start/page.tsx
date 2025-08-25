@@ -27,8 +27,11 @@ function CheckoutStartContent() {
 
   React.useEffect(() => {
     try {
-      const auth = getAuth(getFirebaseApp());
-      setUid(auth.currentUser?.uid ?? "");
+      const firebaseApp = getFirebaseApp();
+      if (firebaseApp) {
+        const auth = getAuth(firebaseApp);
+        setUid(auth.currentUser?.uid ?? "");
+      }
     } catch {
       // ignore; stays empty if not signed in
     }
