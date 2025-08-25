@@ -53,7 +53,7 @@ export function getFirebaseApp(): FirebaseApp {
         console.error("[Firebase] Error initializing app:", error);
         // If initialization fails, try to get the default app
         const defaultApps = getApps();
-        if (defaultApps.length > 0) {
+        if (defaultApps.length > 0 && defaultApps[0]) {
           app = defaultApps[0];
           console.log("[Firebase] Using default app after error:", app.name);
         } else {
