@@ -72,10 +72,10 @@ USER nonroot
 
 WORKDIR /app
 
-# Copy standalone server and static assets
+# REQUIRED: static chunks + public assets
+COPY --from=build --chown=nonroot:nonroot /app/public ./public
 COPY --from=build --chown=nonroot:nonroot /app/.next/standalone ./
 COPY --from=build --chown=nonroot:nonroot /app/.next/static ./.next/static
-COPY --from=build --chown=nonroot:nonroot /app/public ./public
 
 # Environment setup
 ENV NODE_ENV=production
