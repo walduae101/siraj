@@ -54,6 +54,23 @@ RUN mkdir -p .next && chown -R nodejs:nodejs /app
 # Switch to non-root user for build
 USER nodejs
 
+# Firebase configuration build arguments
+ARG NEXT_PUBLIC_FIREBASE_API_KEY
+ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ARG NEXT_PUBLIC_FIREBASE_APP_ID
+ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+ARG NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+
+ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY
+ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID
+ENV NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
+ENV NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+ENV NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+ENV NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+
 # Environment variables will be provided at runtime via Cloud Run
 ENV SKIP_ENV_VALIDATION=true
 RUN npm run build
@@ -72,22 +89,14 @@ USER nonroot
 
 WORKDIR /app
 
-# REQUIRED: static chunks + public assets
-COPY --from=build --chown=nonroot:nonroot /app/public ./public
-COPY --from=build --chown=nonroot:nonroot /app/.next/standalone ./
-COPY --from=build --chown=nonroot:nonroot /app/.next/static ./.next/static
+ENV NODE_ENV=production \
+    PORT=8080 \
+    HOSTNAME=0.0.0.0
 
-# Environment setup
-ENV NODE_ENV=production
-ENV PORT=8080
-ENV HOSTNAME=0.0.0.0
-ENV SKIP_ENV_VALIDATION=true
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD ["/nodejs/bin/node", "-e", "require('http').get('http://localhost:8080/api/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"]
+# Static assets and server
+COPY --chown=nonroot:nonroot --from=build /app/public ./public
+COPY --chown=nonroot:nonroot --from=build /app/.next/standalone ./
+COPY --chown=nonroot:nonroot --from=build /app/.next/static ./.next/static
 
 EXPOSE 8080
-
-# Use the standalone server
 CMD ["server.js"]

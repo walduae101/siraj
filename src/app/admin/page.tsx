@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getApps, initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
-import { getFirebaseApp } from "~/lib/firebase/client";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -18,24 +18,42 @@ import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { api } from "~/trpc/react";
 
+// guarded init for client
+function getClientAuthSafely() {
+  const cfg = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  };
+  if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId) return null;
+  const app = getApps()[0] ?? initializeApp(cfg);
+  return getAuth(app);
+}
+
 export default function AdminPage() {
-  const firebaseApp = getFirebaseApp();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const auth = getClientAuthSafely();
 
   useEffect(() => {
-    if (!firebaseApp) {
-      // Firebase not available (guarded init) – treat as signed out.
-      setLoading(false);
-      return;
+    if (!auth) { 
+      setLoading(false); 
+      return; 
     }
-    const auth = getAuth(firebaseApp);
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+      setUser(u ?? null);
       setLoading(false);
     });
     return () => unsub();
-  }, [firebaseApp]);
+  }, [auth]);
+
+  if (!auth) return <div>Firebase client config missing or invalid.</div>;
+  if (loading) return <div>Loading…</div>;
+  if (!user) return <div>Please sign in.</div>;
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<{
     uid: string;
