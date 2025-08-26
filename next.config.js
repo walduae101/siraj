@@ -10,7 +10,7 @@ const config = {
   output: "standalone",
   generateBuildId: async () => {
     // Force unique build ID to bust caches
-    return `siraj-env-fixed-${Date.now()}`;
+    return `siraj-static-fix-${Date.now()}`;
   },
 
   async headers() {
