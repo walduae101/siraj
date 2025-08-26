@@ -72,15 +72,15 @@ USER nonroot
 
 WORKDIR /app
 
-# Copy only necessary files with proper ownership
-COPY --from=build --chown=nonroot:nonroot /app/.next ./.next
+# Copy standalone server and static assets
+COPY --from=build --chown=nonroot:nonroot /app/.next/standalone ./
+COPY --from=build --chown=nonroot:nonroot /app/.next/static ./.next/static
 COPY --from=build --chown=nonroot:nonroot /app/public ./public
-COPY --from=build --chown=nonroot:nonroot /app/package.json ./
-COPY --from=production-deps --chown=nonroot:nonroot /app/node_modules ./node_modules
 
 # Environment setup
 ENV NODE_ENV=production
 ENV PORT=8080
+ENV HOSTNAME=0.0.0.0
 ENV SKIP_ENV_VALIDATION=true
 
 # Health check
@@ -89,6 +89,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 
 EXPOSE 8080
 
-# Use array form to avoid shell injection
-ENTRYPOINT ["/nodejs/bin/node"]
-CMD ["node_modules/.bin/next", "start", "--port", "8080"]
+# Use the standalone server
+CMD ["server.js"]
