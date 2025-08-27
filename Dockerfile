@@ -91,12 +91,15 @@ WORKDIR /app
 
 ENV NODE_ENV=production \
     PORT=8080 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    NEXT_TELEMETRY_DISABLED=1
 
 # Static assets and server
 COPY --chown=nonroot:nonroot --from=build /app/public ./public
 COPY --chown=nonroot:nonroot --from=build /app/.next/standalone ./
 COPY --chown=nonroot:nonroot --from=build /app/.next/static ./.next/static
+
+
 
 EXPOSE 8080
 CMD ["server.js"]
