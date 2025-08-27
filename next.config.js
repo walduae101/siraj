@@ -13,6 +13,13 @@ const config = {
   //   return `siraj-static-fix-${Date.now()}`;
   // },
 
+  async rewrites() {
+    return [
+      // never rewrite Next's internal assets
+      { source: '/_next/:path*', destination: '/_next/:path*' },
+    ];
+  },
+
   async headers() {
     return [
       {

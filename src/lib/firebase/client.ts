@@ -4,31 +4,31 @@ import {
   type Firestore,
   getFirestore as getFirestoreSDK,
 } from "firebase/firestore";
-import { env } from "~/env";
 
 let app: FirebaseApp | null = null;
 
 export function getFirebaseApp(): FirebaseApp | null {
+  if (typeof window === 'undefined') return null; // never init on server
   if (app) return app;
 
   const cfg = {
-    apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: `${env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebasestorage.app`,
-    messagingSenderId: "207501673877",
-    appId: env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:207501673877:web:8c8265c153623cf14ae29c",
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   };
 
   // Minimal required fields
   if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId) {
-    // Don't throw — log and let UI render without auth features
-    console.error("[firebase] Missing/invalid public config. Check NEXT_PUBLIC_FIREBASE_* at build time.");
+    console.error('Missing NEXT_PUBLIC_FIREBASE_* envs in client bundle');
     return null;
   }
 
   try {
-    app = getApps()[0] ?? initializeApp(cfg);
+    app = getApps().length ? getApps()[0] : initializeApp(cfg);
     return app;
   } catch (e) {
     console.error("[firebase] init failed:", e);
