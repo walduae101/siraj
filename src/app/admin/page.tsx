@@ -37,6 +37,16 @@ function getClientAuthSafely() {
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchEmail, setSearchEmail] = useState("");
+  const [selectedUser, setSelectedUser] = useState<{
+    uid: string;
+    email: string;
+    displayName?: string;
+    createdAt: string;
+  } | null>(null);
+  const [adjustmentAmount, setAdjustmentAmount] = useState("");
+  const [adjustmentReason, setAdjustmentReason] = useState("");
+
   const auth = getClientAuthSafely();
 
   useEffect(() => {
@@ -50,19 +60,6 @@ export default function AdminPage() {
     });
     return () => unsub();
   }, [auth]);
-
-  if (!auth) return <div>Firebase client config missing or invalid.</div>;
-  if (loading) return <div>Loading…</div>;
-  if (!user) return <div>Please sign in.</div>;
-  const [searchEmail, setSearchEmail] = useState("");
-  const [selectedUser, setSelectedUser] = useState<{
-    uid: string;
-    email: string;
-    displayName?: string;
-    createdAt: string;
-  } | null>(null);
-  const [adjustmentAmount, setAdjustmentAmount] = useState("");
-  const [adjustmentReason, setAdjustmentReason] = useState("");
 
   // Search user
   const searchUser = api.admin.searchUser.useQuery(
@@ -92,6 +89,19 @@ export default function AdminPage() {
   // Products and promotions
   const products = api.admin.getProducts.useQuery();
   const promotions = api.admin.getPromotions.useQuery();
+
+  // Early returns after all hooks
+  if (!auth) {
+    return <div className="container mx-auto p-6">Firebase client config missing or invalid.</div>;
+  }
+  
+  if (loading) {
+    return <div className="container mx-auto p-6">Loading...</div>;
+  }
+  
+  if (!user) {
+    return <div className="container mx-auto p-6">Please sign in to access admin panel.</div>;
+  }
 
   const handleSearch = () => {
     if (searchEmail) {
@@ -171,18 +181,6 @@ export default function AdminPage() {
       alert("Failed to export ledger");
     }
   };
-
-  if (loading) {
-    return <div className="container mx-auto p-6">Loading...</div>;
-  }
-
-  if (!user) {
-    return (
-      <div className="container mx-auto p-6">
-        Please sign in to access admin panel.
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto space-y-6 p-6">
