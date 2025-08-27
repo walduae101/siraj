@@ -8,10 +8,10 @@
 /** @type {import("next").NextConfig} */
 const config = {
   output: "standalone",
-  generateBuildId: async () => {
-    // Force unique build ID to bust caches
-    return `siraj-static-fix-${Date.now()}`;
-  },
+  // Remove custom build ID to use default Next.js behavior
+  // generateBuildId: async () => {
+  //   return `siraj-static-fix-${Date.now()}`;
+  // },
 
   async headers() {
     return [
