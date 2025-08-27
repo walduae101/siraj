@@ -28,7 +28,7 @@ export function getFirebaseApp(): FirebaseApp | null {
   }
 
   try {
-    app = getApps().length ? getApps()[0] : initializeApp(cfg);
+    app = getApps().length ? getApps()[0]! : initializeApp(cfg);
     return app;
   } catch (e) {
     console.error("[firebase] init failed:", e);
