@@ -32,18 +32,15 @@ ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
 
 RUN npm run build
 
-# ---------- runner ----------
-FROM node:20-slim AS runner
+# --- run ---
+FROM gcr.io/distroless/nodejs20-debian12
 WORKDIR /app
-ENV NODE_ENV=production \
-    PORT=8080 \
-    HOSTNAME=0.0.0.0
-# copy Next build + public + prod node_modules
+# copy production node_modules in case you run node code at runtime
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
-COPY --from=deps  /app/node_modules ./node_modules
-COPY package.json ./
-
+COPY --from=build /app/package.json ./package.json
+ENV NODE_ENV=production
+ENV PORT=8080
 EXPOSE 8080
-# Use Next's own production server
-CMD ["npx","next","start","-p","8080"]
+CMD ["node", ".next/standalone/server.js"]

@@ -9,18 +9,27 @@
 const config = {
   reactStrictMode: true,
   output: "standalone",
+  experimental: { forceSwcTransforms: true }, // harmless perf hint
+
+  // NO wildcard rewrites to '/' and NO catch-all rewrites
   async rewrites() {
-    // pass-through clarity; NOT required, but OK to keep
-    return [{ source: '/_next/:path*', destination: '/_next/:path*' }];
+    return [
+      // explicit pass-through not required, but harmless for clarity
+      { source: '/_next/:path*', destination: '/_next/:path*' },
+    ];
   },
+
   async headers() {
     return [
-      // strong caching for Next assets
       {
         source: '/_next/static/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
+      },
+      {
+        source: '/:path*',
+        headers: [{ key: 'X-Frame-Options', value: 'SAMEORIGIN' }],
       },
     ];
   },
