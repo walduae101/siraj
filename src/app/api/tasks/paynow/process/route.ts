@@ -109,8 +109,7 @@ export async function POST(req: NextRequest) {
       attributes.delivery_attempt || "1",
       10,
     );
-    const nextRetryMs =
-      deliveryAttempt < 5 ? Math.pow(2, deliveryAttempt) * 1000 : 0;
+    const nextRetryMs = deliveryAttempt < 5 ? 2 ** deliveryAttempt * 1000 : 0;
 
     structuredLog("INFO", "Worker received message", {
       event_id: eventId,
@@ -172,7 +171,7 @@ export async function POST(req: NextRequest) {
       10,
     );
     const retryNextRetryMs =
-      retryDeliveryAttempt < 5 ? Math.pow(2, retryDeliveryAttempt) * 1000 : 0;
+      retryDeliveryAttempt < 5 ? 2 ** retryDeliveryAttempt * 1000 : 0;
 
     structuredLog("WARNING", "Transient failure - will retry", {
       event_id: eventId,

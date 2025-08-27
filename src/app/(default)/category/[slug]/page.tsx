@@ -2,8 +2,8 @@
 
 export const runtime = "nodejs";
 
-import { use, useMemo, useState } from "react";
 import { notFound } from "next/navigation";
+import { use, useMemo, useState } from "react";
 import ProductCard from "~/components/product/product-card";
 import ProductCheckoutDetailsDialog, {
   type ProductCheckoutDetails,
@@ -12,7 +12,15 @@ import type Product from "~/server/api/types/paynow/product";
 import { useCartSidebar } from "~/stores/useCartSidebar";
 import { api } from "~/trpc/react";
 
-const RESERVED = ['/_next', '/api', '/assets', '/static', '/favicon.ico', '/robots.txt', '/sitemap.xml'];
+const RESERVED = [
+  "/_next",
+  "/api",
+  "/assets",
+  "/static",
+  "/favicon.ico",
+  "/robots.txt",
+  "/sitemap.xml",
+];
 
 export default function CategoryPage({
   params,
@@ -20,9 +28,9 @@ export default function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  
+
   // cheap guard for safety; likely never triggered but future-proof
-  if (RESERVED.some(p => slug?.startsWith(p))) notFound();
+  if (RESERVED.some((p) => slug?.startsWith(p))) notFound();
 
   const cartSidebar = useCartSidebar();
 

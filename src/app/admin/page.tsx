@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { getApps, initializeApp } from "firebase/app";
-import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
+import { type User, getAuth, onAuthStateChanged } from "firebase/auth";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -29,7 +29,8 @@ function getClientAuthSafely() {
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
   };
-  if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId) return null;
+  if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId)
+    return null;
   const app = getApps()[0] ?? initializeApp(cfg);
   return getAuth(app);
 }
@@ -50,9 +51,9 @@ export default function AdminPage() {
   const auth = getClientAuthSafely();
 
   useEffect(() => {
-    if (!auth) { 
-      setLoading(false); 
-      return; 
+    if (!auth) {
+      setLoading(false);
+      return;
     }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u ?? null);
@@ -92,15 +93,23 @@ export default function AdminPage() {
 
   // Early returns after all hooks
   if (!auth) {
-    return <div className="container mx-auto p-6">Firebase client config missing or invalid.</div>;
+    return (
+      <div className="container mx-auto p-6">
+        Firebase client config missing or invalid.
+      </div>
+    );
   }
-  
+
   if (loading) {
     return <div className="container mx-auto p-6">Loading...</div>;
   }
-  
+
   if (!user) {
-    return <div className="container mx-auto p-6">Please sign in to access admin panel.</div>;
+    return (
+      <div className="container mx-auto p-6">
+        Please sign in to access admin panel.
+      </div>
+    );
   }
 
   const handleSearch = () => {

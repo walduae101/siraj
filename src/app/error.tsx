@@ -19,19 +19,21 @@ export default function Error({
     <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-4 text-center">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-red-600">Something went wrong</h1>
+          <h1 className="font-bold text-2xl text-red-600">
+            Something went wrong
+          </h1>
           <p className="text-muted-foreground">
             We encountered an unexpected error. Please try refreshing the page.
           </p>
         </div>
-        
+
         <div className="space-y-2">
           <Button onClick={reset} className="w-full">
             Try again
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => window.location.href = "/"}
+          <Button
+            variant="outline"
+            onClick={() => (window.location.href = "/")}
             className="w-full"
           >
             Go to homepage
@@ -40,7 +42,7 @@ export default function Error({
 
         {process.env.NODE_ENV === "development" && (
           <details className="mt-4 text-left">
-            <summary className="cursor-pointer text-sm text-muted-foreground">
+            <summary className="cursor-pointer text-muted-foreground text-sm">
               Error details (development only)
             </summary>
             <pre className="mt-2 rounded bg-muted p-2 text-xs">

@@ -68,7 +68,9 @@ class DLQTriageJob {
 
     // For now, return empty array since DLQ subscription may not exist
     // TODO: Implement proper DLQ message retrieval when subscription is created
-    console.log("⚠️  DLQ message retrieval not implemented - subscription may not exist");
+    console.log(
+      "⚠️  DLQ message retrieval not implemented - subscription may not exist",
+    );
     return [];
   }
 

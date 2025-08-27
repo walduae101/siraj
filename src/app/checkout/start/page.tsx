@@ -1,11 +1,11 @@
 "use client";
+import { getAuth } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { Suspense } from "react";
 import { features } from "~/config/features";
-import { api } from "~/trpc/react";
 import { getFirebaseApp } from "~/lib/firebase/client";
-import { getAuth } from "firebase/auth";
+import { api } from "~/trpc/react";
 
 export default function CheckoutStartPage() {
   return (

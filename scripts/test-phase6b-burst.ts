@@ -27,8 +27,8 @@ class Phase6BBurstTest {
     console.log("🚀 Phase 6B Burst Resilience Test");
     console.log("=".repeat(60));
     console.log(`Start Time: ${this.startTime.toISOString()}`);
-    console.log(`Test Duration: 30 minutes`);
-    console.log(`Ramp Pattern: 1x → 2x → 3x → 4x → 5x normal RPS`);
+    console.log("Test Duration: 30 minutes");
+    console.log("Ramp Pattern: 1x → 2x → 3x → 4x → 5x normal RPS");
     console.log("");
 
     // Check configuration

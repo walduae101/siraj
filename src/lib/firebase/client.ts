@@ -8,7 +8,7 @@ import {
 let app: FirebaseApp | null = null;
 
 export function getFirebaseApp(): FirebaseApp | null {
-  if (typeof window === 'undefined') return null; // never init on server
+  if (typeof window === "undefined") return null; // never init on server
   if (app) return app;
 
   const cfg = {
@@ -23,7 +23,7 @@ export function getFirebaseApp(): FirebaseApp | null {
 
   // Minimal required fields
   if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId) {
-    console.error('Missing NEXT_PUBLIC_FIREBASE_* envs in client bundle');
+    console.error("Missing NEXT_PUBLIC_FIREBASE_* envs in client bundle");
     return null;
   }
 

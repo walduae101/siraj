@@ -8,7 +8,7 @@
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
-  output: 'standalone',             // fine with next start or server.js
+  output: "standalone", // fine with next start or server.js
   // NO rewrites for SPA fallback. Let Next serve assets itself.
   async rewrites() {
     return []; // explicit: nothing
@@ -16,16 +16,22 @@ const config = {
   async headers() {
     return [
       {
-        source: '/_next/static/:path*',
+        source: "/_next/static/:path*",
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
         ],
       },
       {
         // Keep HTML short-lived – avoids stale HTML referencing old chunk hashes
-        source: '/:path*',
-        headers: [{ key: 'Cache-Control', value: 'no-store' }],
+        source: "/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
   },

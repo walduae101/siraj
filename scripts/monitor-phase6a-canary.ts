@@ -26,7 +26,7 @@ class Phase6ACanaryMonitor {
     console.log("🔍 Phase 6A Canary Monitoring Started");
     console.log("=".repeat(60));
     console.log(`Start Time: ${this.startTime.toISOString()}`);
-    console.log(`Observation Period: 2 hours`);
+    console.log("Observation Period: 2 hours");
     console.log("Monitoring metrics every 5 minutes...\n");
 
     // Initial configuration check
