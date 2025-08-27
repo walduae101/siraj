@@ -3,6 +3,7 @@
 export const runtime = "nodejs";
 
 import { use, useMemo, useState } from "react";
+import { notFound } from "next/navigation";
 import ProductCard from "~/components/product/product-card";
 import ProductCheckoutDetailsDialog, {
   type ProductCheckoutDetails,
@@ -11,12 +12,23 @@ import type Product from "~/server/api/types/paynow/product";
 import { useCartSidebar } from "~/stores/useCartSidebar";
 import { api } from "~/trpc/react";
 
+const RESERVED_PREFIXES = [
+  "_next", "api", "assets", "static", "favicon.ico",
+  "robots.txt", "sitemap.xml",
+];
+
 export default function CategoryPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
+  
+  // Guard against reserved paths that should 404
+  const reqPath = "/" + slug.toLowerCase();
+  if (RESERVED_PREFIXES.some(p => reqPath === "/" + p || reqPath.startsWith("/" + p + "/"))) {
+    notFound(); // Ensures 404 instead of 200 HTML
+  }
 
   const cartSidebar = useCartSidebar();
 

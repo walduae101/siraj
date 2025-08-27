@@ -9,12 +9,13 @@
 const config = {
   reactStrictMode: true,
   output: "standalone",
+  // No fallback rewrites to '/'!
   async rewrites() {
     return [
+      // Not strictly required, but clarifies that _next is pass-through
       { source: '/_next/:path*', destination: '/_next/:path*' },
     ];
   },
-  // Ensure defaults (no basePath, no assetPrefix)
 
   async headers() {
     return [
