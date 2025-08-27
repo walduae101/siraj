@@ -7,18 +7,14 @@
 
 /** @type {import("next").NextConfig} */
 const config = {
+  reactStrictMode: true,
   output: "standalone",
-  // Remove custom build ID to use default Next.js behavior
-  // generateBuildId: async () => {
-  //   return `siraj-static-fix-${Date.now()}`;
-  // },
-
   async rewrites() {
     return [
-      // never rewrite Next's internal assets
       { source: '/_next/:path*', destination: '/_next/:path*' },
     ];
   },
+  // Ensure defaults (no basePath, no assetPrefix)
 
   async headers() {
     return [
