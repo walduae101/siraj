@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 
 import { Cairo } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
+import Script from "next/script";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
 
@@ -22,6 +23,15 @@ export default async function RootLayout({
         <Toaster position="top-center" />
 
         <TRPCReactProvider>{children}</TRPCReactProvider>
+        
+        {/* Auto-recover from chunk loading failures */}
+        <Script id="recover-chunk-failure" strategy="afterInteractive">{`
+          window.addEventListener('error', function (e) {
+            if (e && e.message && /Loading chunk .* failed/i.test(e.message)) {
+              location.reload();
+            }
+          }, true);
+        `}</Script>
       </body>
     </html>
   );

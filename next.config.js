@@ -9,28 +9,17 @@
 const config = {
   reactStrictMode: true,
   output: "standalone",
-  // No fallback rewrites to '/'!
   async rewrites() {
-    return [
-      // Not strictly required, but clarifies that _next is pass-through
-      { source: '/_next/:path*', destination: '/_next/:path*' },
-    ];
+    // pass-through clarity; NOT required, but OK to keep
+    return [{ source: '/_next/:path*', destination: '/_next/:path*' }];
   },
-
   async headers() {
     return [
+      // strong caching for Next assets
       {
-        // Apply headers to all routes EXCEPT Next.js static assets and common static files
-        source: "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|assets|public).*)",
+        source: '/_next/static/:path*',
         headers: [
-          {
-            key: "Cross-Origin-Opener-Policy",
-            value: "same-origin-allow-popups",
-          },
-          {
-            key: "Cross-Origin-Embedder-Policy",
-            value: "unsafe-none",
-          },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
     ];

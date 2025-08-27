@@ -12,10 +12,7 @@ import type Product from "~/server/api/types/paynow/product";
 import { useCartSidebar } from "~/stores/useCartSidebar";
 import { api } from "~/trpc/react";
 
-const RESERVED_PREFIXES = [
-  "_next", "api", "assets", "static", "favicon.ico",
-  "robots.txt", "sitemap.xml",
-];
+const RESERVED = ['/_next', '/api', '/assets', '/static', '/favicon.ico', '/robots.txt', '/sitemap.xml'];
 
 export default function CategoryPage({
   params,
@@ -24,11 +21,8 @@ export default function CategoryPage({
 }) {
   const { slug } = use(params);
   
-  // Guard against reserved paths that should 404
-  const reqPath = "/" + slug.toLowerCase();
-  if (RESERVED_PREFIXES.some(p => reqPath === "/" + p || reqPath.startsWith("/" + p + "/"))) {
-    notFound(); // Ensures 404 instead of 200 HTML
-  }
+  // cheap guard for safety; likely never triggered but future-proof
+  if (RESERVED.some(p => slug?.startsWith(p))) notFound();
 
   const cartSidebar = useCartSidebar();
 
