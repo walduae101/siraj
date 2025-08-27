@@ -16,7 +16,8 @@ const config = {
   async headers() {
     return [
       {
-        source: "/(.*)",
+        // Apply headers to all routes EXCEPT Next.js static assets and common static files
+        source: "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|assets|public).*)",
         headers: [
           {
             key: "Cross-Origin-Opener-Policy",
