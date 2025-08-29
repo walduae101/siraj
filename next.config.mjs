@@ -4,7 +4,7 @@ const nextConfig = {
 
   async headers() {
     return [
-      // ---- STATIC (immutable, no security headers)
+      // ---- STATIC (immutable, no security headers) - MUST BE FIRST
       {
         source: "/_next/static/:path*",
         headers: [
@@ -34,7 +34,7 @@ const nextConfig = {
         ],
       },
 
-      // ---- HTML PAGES (all routes except static and API) - force no-store + security headers
+      // ---- HTML PAGES (catch-all for remaining routes) - force no-store + security headers
       {
         source: "/((?!_next/static|_next/image|fonts|api|favicon.ico|robots.txt|sitemap.xml).*)",
         headers: [
