@@ -2,51 +2,57 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// Paths we never want to touch (static & files)
-// We also exclude any URL that ends with a file extension.
-const HARD_SKIP_PREFIXES = [
-  "/_next/",         // includes /_next/static and /_next/image
-  "/assets",
-  "/fonts",
+/**
+ * Absolute do-not-touch list + file detection.
+ * Even if the matcher fires, we still bail here fast.
+ */
+const SKIP_PREFIXES = [
+  "/_next/",          // includes /_next/static and /_next/image
+  "/assets/",
+  "/fonts/",
   "/favicon.ico",
   "/robots.txt",
   "/sitemap.xml",
 ];
-const FILE_EXT_RE = /\.[^/]+$/i; // .../*.js, *.css, *.woff2, etc.
+const HAS_EXT = /\.[^/]+$/i; // any dot extension: .js .css .woff2 .png ...
 
+/**
+ * Keep matcher simple: let it run widely,
+ * but we hard-skip assets & files inside the handler.
+ *
+ * Why? Complex negative lookaheads in matcher can be flaky across versions.
+ */
 export const config = {
-  // Fast pre-filter: exclude _next & any URL containing a dot (an extension).
-  // Also match /api for API headers.
-  matcher: [
-    "/((?!_next/|.*\\..*).*)",
-    "/api/:path*",
-  ],
+  matcher: ["/:path*", "/api/:path*"],
 };
 
 export function middleware(req: NextRequest) {
-  const path = req.nextUrl.pathname;
+  const { pathname } = req.nextUrl;
 
-  // Belt & braces: never run on obvious static or file-like paths.
-  if (HARD_SKIP_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
+  // 1) Belt & braces: never run on static or file-like paths
+  if (SKIP_PREFIXES.some((p) => pathname.startsWith(p)) || HAS_EXT.test(pathname)) {
     return NextResponse.next();
   }
 
-  // Run only for HTML or API
-  const isApi = path.startsWith("/api/");
-  const accept = req.headers.get("accept") ?? "";
-  const isHtml = accept.includes("text/html"); // curl: add -H 'Accept: text/html' when testing
+  // 2) Only stamp for HTML or API
+  const isApi = pathname.startsWith("/api/");
+  const accept = req.headers.get("accept") || "";
+  const wantsHtml =
+    accept.includes("text/html") ||
+    // Next/RSC data requests sometimes send "application/json" or "text/x-component"
+    // If you *only* want browser navigations, keep this strict to text/html.
+    false;
 
-  if (!isApi && !isHtml) return NextResponse.next();
+  if (!isApi && !wantsHtml) {
+    return NextResponse.next();
+  }
 
   const res = NextResponse.next();
 
-  // Debug header to prove middleware executed (remove later)
+  // Debug to prove middleware ran (remove later)
   res.headers.set("x-mw", "1");
 
-  // (Do NOT set Cache-Control here. Your pages are already dynamic/no-store from the app config.
-  // If middleware accidentally hits an asset, we won't blow away immutable caching.)
-
-  // Security headers
+  // Security headers only (no Cache-Control here!)
   res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
   res.headers.set("x-content-type-options", "nosniff");
   res.headers.set("x-frame-options", "DENY");
@@ -71,11 +77,9 @@ export function middleware(req: NextRequest) {
     ].join("; ")
   );
 
-  // Help CDN vary HTML by Accept (useful for some clients)
-  res.headers.set(
-    "Vary",
-    ["Accept", req.headers.get("Vary") || ""].filter(Boolean).join(", ")
-  );
+  // Vary for HTML detection (helps proxies/CDN when Accept differs)
+  const vary = res.headers.get("Vary");
+  res.headers.set("Vary", [vary, "Accept"].filter(Boolean).join(", "));
 
   return res;
 }
