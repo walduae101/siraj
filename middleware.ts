@@ -2,32 +2,27 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// Never touch static files
-const HARD_SKIP_PREFIXES = [
-  "/_next/",         // static, image optimizer, data
-  "/assets",
-  "/fonts",
-  "/favicon.ico",
-  "/robots.txt",
-  "/sitemap.xml",
-];
-const FILE_EXT_RE = /\.(?:js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?)$/i;
-
 export const config = {
-  // Skip static fast, match api + everything else (middleware will re-check)
+  // Only match specific paths that need security headers
   matcher: [
-    "/((?!_next/|assets|fonts|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
+    // HTML pages (root and other page routes)
+    "/",
+    "/dashboard/:path*",
+    "/account/:path*",
+    "/checkout/:path*",
+    "/paywall/:path*",
+    "/success/:path*",
+    "/admin/:path*",
+    "/tools/:path*",
+    "/health/:path*",
+    "/test-auth/:path*",
+    // API routes
     "/api/:path*",
   ],
 };
 
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
-
-  // Belt & braces: never run on obvious static
-  if (HARD_SKIP_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
-    return NextResponse.next();
-  }
 
   const accept = req.headers.get("accept") ?? "";
   const isApi = path.startsWith("/api/");
