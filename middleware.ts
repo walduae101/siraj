@@ -3,36 +3,23 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export const config = {
-  // Only match HTML pages and API routes, exclude all static assets
+  // Only match specific paths that need security headers
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - robots.txt (robots file)
-     * - sitemap.xml (sitemap file)
-     * - assets (static assets)
-     * - files with extensions (.js, .css, .png, etc.)
-     */
-    "/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|assets|.*\\.[a-z0-9]{2,8}$).*)",
+    // Match HTML pages (root and common routes)
+    "/",
+    "/dashboard",
+    "/account",
+    "/login",
+    "/register",
+    "/api/:path*",
   ],
 };
 
 export function middleware(req: NextRequest) {
   const p = req.nextUrl.pathname;
 
-  // Double-check: if this is a static asset, skip middleware entirely
-  if (
-    p.startsWith("/_next/") ||
-    p.startsWith("/fonts/") ||
-    p.startsWith("/assets/") ||
-    p === "/favicon.ico" ||
-    p === "/robots.txt" ||
-    p === "/sitemap.xml" ||
-    /\.[a-z0-9]{2,8}$/i.test(p)
-  ) {
+  // Only apply middleware to HTML pages and API routes
+  if (!p.startsWith("/api/") && p !== "/" && !p.startsWith("/dashboard") && !p.startsWith("/account") && !p.startsWith("/login") && !p.startsWith("/register")) {
     return NextResponse.next();
   }
 
