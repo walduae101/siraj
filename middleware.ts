@@ -53,8 +53,8 @@ export function middleware(req: Request) {
   const vary = res.headers.get("vary");
   res.headers.set("vary", vary ? `${vary}, Accept` : "Accept");
 
-  // Optional: short debug header while validating (remove later)
-  // res.headers.set("x-mw", "1");
+  // Debug header to verify middleware execution
+  res.headers.set("x-mw", "1");
 
   return res;
 }
