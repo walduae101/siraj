@@ -2,46 +2,33 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-/**
- * Absolute do-not-touch list + file detection.
- * Even if the matcher fires, we still bail here fast.
- */
 const SKIP_PREFIXES = [
-  "/_next/",          // includes /_next/static and /_next/image
+  "/_next/",          // static + image optimizer
   "/assets/",
   "/fonts/",
   "/favicon.ico",
   "/robots.txt",
   "/sitemap.xml",
 ];
-const HAS_EXT = /\.[^/]+$/i; // any dot extension: .js .css .woff2 .png ...
+const HAS_EXT = /\.[^/]+$/i; // .js .css .woff2 .png ...
 
-/**
- * Keep matcher simple: let it run widely,
- * but we hard-skip assets & files inside the handler.
- *
- * Why? Complex negative lookaheads in matcher can be flaky across versions.
- */
 export const config = {
+  // Keep this simple; we'll hard-skip inside handler.
   matcher: ["/:path*", "/api/:path*"],
 };
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 1) Belt & braces: never run on static or file-like paths
+  // HARD SKIP: assets and anything that looks like a file
   if (SKIP_PREFIXES.some((p) => pathname.startsWith(p)) || HAS_EXT.test(pathname)) {
     return NextResponse.next();
   }
 
-  // 2) Only stamp for HTML or API
+  // Only stamp for HTML (browser navigations) or API
   const isApi = pathname.startsWith("/api/");
   const accept = req.headers.get("accept") || "";
-  const wantsHtml =
-    accept.includes("text/html") ||
-    // Next/RSC data requests sometimes send "application/json" or "text/x-component"
-    // If you *only* want browser navigations, keep this strict to text/html.
-    false;
+  const wantsHtml = accept.includes("text/html");
 
   if (!isApi && !wantsHtml) {
     return NextResponse.next();
@@ -49,10 +36,12 @@ export function middleware(req: NextRequest) {
 
   const res = NextResponse.next();
 
-  // Debug to prove middleware ran (remove later)
+  // Prove middleware executed (remove later)
   res.headers.set("x-mw", "1");
+  res.headers.set("x-mw-version", "4");
+  res.headers.set("x-mw-path", pathname);
 
-  // Security headers only (no Cache-Control here!)
+  // Security headers only
   res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
   res.headers.set("x-content-type-options", "nosniff");
   res.headers.set("x-frame-options", "DENY");
@@ -77,7 +66,7 @@ export function middleware(req: NextRequest) {
     ].join("; ")
   );
 
-  // Vary for HTML detection (helps proxies/CDN when Accept differs)
+  // Help proxies/CDN segregate HTML vs. non-HTML
   const vary = res.headers.get("Vary");
   res.headers.set("Vary", [vary, "Accept"].filter(Boolean).join(", "));
 
