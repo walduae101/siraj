@@ -2,30 +2,32 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// Absolute skips
-const HARD_SKIP_PREFIXES = [
-  "/_next/",         // covers static + image + data
-  "/assets",
-  "/fonts",
-  "/favicon.ico",
-  "/robots.txt",
-  "/sitemap.xml",
-];
-const FILE_EXT_RE = /\.(?:js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?)$/i;
-
 export const config = {
-  // Fast-path skip for anything under _next/ etc.
+  // Only match HTML pages and API routes - exclude everything else
   matcher: [
-    "/((?!_next/|assets|fonts|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
-    "/api/:path*",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - _next/data (data files)
+     * - favicon.ico (favicon file)
+     * - assets (static assets)
+     * - fonts (font files)
+     * - robots.txt (robots file)
+     * - sitemap.xml (sitemap file)
+     */
+    "/((?!_next/static|_next/image|_next/data|favicon.ico|assets|fonts|robots.txt|sitemap.xml).*)",
   ],
 };
 
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // Belt & braces: early return if it looks like a static file
-  if (HARD_SKIP_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
+  // Double-check: skip if it looks like a static file
+  if (path.startsWith("/_next/") || 
+      path.startsWith("/assets") || 
+      path.startsWith("/fonts") ||
+      path.includes(".") && /\.(js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?)$/i.test(path)) {
     return NextResponse.next();
   }
 
