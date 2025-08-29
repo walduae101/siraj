@@ -2,30 +2,37 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// Paths that must *not* pass through middleware (so we don't touch caching)
-const STATIC_PREFIXES = [
-  "/_next/static",
-  "/_next/image",
-  "/fonts",
-  "/favicon.ico",
-  "/robots.txt",
-  "/sitemap.xml",
-  "/assets",
-];
-
-// Exclude files like *.js, *.css, *.map, *.png, etc.
-const FILE_EXT_RE = /\.[a-z0-9]{2,8}$/i;
-
 export const config = {
-  // Single negative lookahead matcher is faster than large allowlists
-  matcher: ["/((?!_next/static|_next/image|fonts|favicon\\.ico|robots\\.txt|sitemap\\.xml|assets).*)"],
+  // Only match HTML pages and API routes, exclude all static assets
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - robots.txt (robots file)
+     * - sitemap.xml (sitemap file)
+     * - assets (static assets)
+     * - files with extensions (.js, .css, .png, etc.)
+     */
+    "/((?!api|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|assets|.*\\.[a-z0-9]{2,8}$).*)",
+  ],
 };
 
 export function middleware(req: NextRequest) {
   const p = req.nextUrl.pathname;
 
-  // Extra belt-and-braces skip
-  if (STATIC_PREFIXES.some((pref) => p.startsWith(pref)) || FILE_EXT_RE.test(p)) {
+  // Double-check: if this is a static asset, skip middleware entirely
+  if (
+    p.startsWith("/_next/") ||
+    p.startsWith("/fonts/") ||
+    p.startsWith("/assets/") ||
+    p === "/favicon.ico" ||
+    p === "/robots.txt" ||
+    p === "/sitemap.xml" ||
+    /\.[a-z0-9]{2,8}$/i.test(p)
+  ) {
     return NextResponse.next();
   }
 
