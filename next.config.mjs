@@ -34,10 +34,9 @@ const nextConfig = {
         ],
       },
 
-      // ---- HTML (Accept gate; never hits assets) - force no-store + security headers
+      // ---- HTML PAGES (all routes except static and API) - force no-store + security headers
       {
-        source: "/:path*",
-        has: [{ type: "header", key: "accept", value: ".*text/html.*" }],
+        source: "/((?!_next/static|_next/image|fonts|api|favicon.ico|robots.txt|sitemap.xml).*)",
         headers: [
           { key: "Cache-Control", value: "no-store" },
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
