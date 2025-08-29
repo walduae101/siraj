@@ -3,33 +3,26 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export const config = {
-  // Only match HTML pages and API routes - exclude everything else
+  // Only match specific paths that need security headers
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - _next/data (data files)
-     * - favicon.ico (favicon file)
-     * - assets (static assets)
-     * - fonts (font files)
-     * - robots.txt (robots file)
-     * - sitemap.xml (sitemap file)
-     */
-    "/((?!_next/static|_next/image|_next/data|favicon.ico|assets|fonts|robots.txt|sitemap.xml).*)",
+    // HTML pages (root and other page routes)
+    "/",
+    "/dashboard/:path*",
+    "/account/:path*",
+    "/checkout/:path*",
+    "/paywall/:path*",
+    "/success/:path*",
+    "/admin/:path*",
+    "/tools/:path*",
+    "/health/:path*",
+    "/test-auth/:path*",
+    // API routes
+    "/api/:path*",
   ],
 };
 
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
-
-  // Double-check: skip if it looks like a static file
-  if (path.startsWith("/_next/") || 
-      path.startsWith("/assets") || 
-      path.startsWith("/fonts") ||
-      path.includes(".") && /\.(js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?)$/i.test(path)) {
-    return NextResponse.next();
-  }
 
   const accept = req.headers.get("accept") ?? "";
   const isHtml = accept.includes("text/html");
