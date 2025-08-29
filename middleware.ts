@@ -3,21 +3,20 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 export const config = {
-  // Only match specific paths that need security headers
+  // Match HTML pages and API routes, exclude static assets
   matcher: [
-    // HTML pages (root and other page routes)
-    "/",
-    "/dashboard/:path*",
-    "/account/:path*",
-    "/checkout/:path*",
-    "/paywall/:path*",
-    "/success/:path*",
-    "/admin/:path*",
-    "/tools/:path*",
-    "/health/:path*",
-    "/test-auth/:path*",
-    // API routes
-    "/api/:path*",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - _next/data (data files)
+     * - favicon.ico (favicon file)
+     * - assets (static assets)
+     * - fonts (font files)
+     * - robots.txt (robots file)
+     * - sitemap.xml (sitemap file)
+     */
+    "/((?!_next/static|_next/image|_next/data|favicon.ico|assets|fonts|robots.txt|sitemap.xml).*)",
   ],
 };
 
