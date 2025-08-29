@@ -5,21 +5,21 @@ const config = {
   experimental: { turbo: { rules: {} } },
   async headers() {
     return [
-      // immutable assets
+      // Immutable static assets
       {
         source: "/_next/static/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
-      {
+      { // Next image loader responses
         source: "/_next/image",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
-      // APIs never cache
+      // API: never cache
       {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
-      // HTML only (match on Accept header)
+      // HTML: no-store (match only when the client expects HTML)
       {
         source: "/:path*",
         has: [{ type: "header", key: "Accept", value: ".*text/html.*" }],
