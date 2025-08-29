@@ -75,9 +75,12 @@ async function main() {
   console.log("🧪 Phase 7 Multi-Region Webhook Test");
   console.log("=====================================");
 
-  // Get config from environment or use defaults
-  const webhookSecret =
-    process.env.PAYNOW_WEBHOOK_SECRET || "pn-7cade0c6397c40da9b16f79ab5df132c";
+  // Get config from environment
+  const webhookSecret = process.env.PAYNOW_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error("Missing PAYNOW_WEBHOOK_SECRET in environment");
+    process.exit(2);
+  }
 
   // Test URLs
   const testUrls = [
