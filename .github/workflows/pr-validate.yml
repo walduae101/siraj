@@ -1,0 +1,46 @@
+name: PR Validate
+on: [pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate next.config.mjs
+        run: bash ./scripts/validate-config.sh
+
+      - name: Check for middleware.ts
+        run: |
+          if [ -f "middleware.ts" ]; then
+            echo "❌ middleware.ts found - should be removed for header configuration"
+            exit 1
+          else
+            echo "✅ No middleware.ts found - using next.config.mjs for headers"
+          fi
+
+      - name: Verify header configuration
+        run: |
+          # Check that next.config.mjs has the required header groups
+          if ! grep -q 'source: "/_next/static/:path\*"' next.config.mjs; then
+            echo "❌ Missing static assets header rule"
+            exit 1
+          fi
+          
+          if ! grep -q 'source: "/api/:path\*"' next.config.mjs; then
+            echo "❌ Missing API header rule"
+            exit 1
+          fi
+          
+          if ! grep -q 'Cache-Control.*no-store' next.config.mjs; then
+            echo "❌ Missing no-store cache control"
+            exit 1
+          fi
+          
+          if ! grep -q 'Strict-Transport-Security' next.config.mjs; then
+            echo "❌ Missing security headers"
+            exit 1
+          fi
+          
+          echo "✅ Header configuration validation passed"

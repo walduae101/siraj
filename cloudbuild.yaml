@@ -1,114 +1,69 @@
 steps:
-  # Step 1: Install dependencies and run typecheck/lint
-  - name: 'node:20'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        npm ci
-        npm run typecheck
-        npm run check
-
-  # Step 2: Build the Docker image with Firebase build args
+  # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/siraj/web:latest'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=auth.siraj.life'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_PROJECT_ID=walduae-project-20250809071906'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=walduae-project-20250809071906.firebasestorage.app'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=207501673877'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_FIREBASE_APP_ID=1:207501673877:web:8c8265c153623cf14ae29c'
-      - '.'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/siraj:$COMMIT_SHA', '.']
 
-  # Step 3: Push the image to Artifact Registry
+  # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/siraj/web:latest'
+    args: ['push', 'gcr.io/$PROJECT_ID/siraj:$COMMIT_SHA']
 
-  # Step 4: Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/gcloud'
+  # Deploy to Cloud Run (US region)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args:
-      - 'run'
-      - 'deploy'
-      - 'siraj'
-      - '--image'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/siraj/web:latest'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--min-instances'
-      - '2'
-      - '--max-instances'
-      - '10'
-      - '--concurrency'
-      - '80'
-      - '--cpu'
-      - '1'
-      - '--memory'
-      - '512Mi'
-      - '--timeout'
-      - '60s'
-      - '--cpu-boost'
+      - run
+      - deploy
+      - siraj
+      - --image
+      - gcr.io/$PROJECT_ID/siraj:$COMMIT_SHA
+      - --region
+      - us-central1
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --set-env-vars
+      - NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY},NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN},NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID},NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET},NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID},NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID},NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${_NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}
 
-  # Step 5: Wait for deployment to be ready
-  - name: 'gcr.io/cloud-builders/gcloud'
-    entrypoint: 'bash'
+  # 1) Capture the exact image the US service is running
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: Capture image digest from US
+    entrypoint: bash
     args:
-      - '-c'
+      - -lc
       - |
-        echo "Waiting for deployment to be ready..."
-        sleep 30
+        set -euo pipefail
+        IMAGE="$(gcloud run services describe siraj --region=us-central1 \
+          --format='value(spec.template.spec.containers[0].image)')"
+        echo "IMAGE=${IMAGE}" | tee image.env
 
-  # Step 6: Run CDN smoke tests
-  - name: 'curlimages/curl:latest'
-    entrypoint: 'bash'
+  # 2) Roll EU to the exact same image (parity)
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: Deploy EU same image
+    entrypoint: bash
     args:
-      - '-c'
+      - -lc
       - |
-        # Test security headers and performance
-        echo "Running CDN smoke tests..."
-        
-        # Test homepage
-        response=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" https://siraj.life)
-        status_code=$(echo $response | cut -d' ' -f1)
-        response_time=$(echo $response | cut -d' ' -f2)
-        response_time_ms=$(echo "$response_time * 1000" | bc -l)
-        
-        if [ "$status_code" != "200" ]; then
-          echo "❌ Homepage status code: $status_code (expected 200)"
-          exit 1
-        fi
-        
-        if (( $(echo "$response_time_ms > 1200" | bc -l) )); then
-          echo "❌ Homepage response time: ${response_time_ms}ms (max 1200ms)"
-          exit 1
-        fi
-        
-        # Test security headers
-        headers=$(curl -s -I https://siraj.life)
-        required_headers=("Strict-Transport-Security" "X-Content-Type-Options" "X-Frame-Options" "Referrer-Policy")
-        
-        for header in "${required_headers[@]}"; do
-          if ! echo "$headers" | grep -qi "$header:"; then
-            echo "❌ Missing security header: $header"
-            exit 1
-          fi
-        done
-        
-        echo "✅ CDN smoke tests passed"
+        set -euo pipefail
+        source image.env
+        gcloud run services update siraj-eu --region=europe-west1 --image "$IMAGE" --quiet
 
-# Images to be pushed to registry
+  # 3) Invalidate CDN cache
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: Invalidate CDN
+    entrypoint: bash
+    args: [ "-lc", "gcloud compute url-maps invalidate-cdn-cache siraj-web-map --path '/*' --quiet" ]
+
+  # 4) Verify origins & CDN (scripts you added)
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: Verify origins + CDN
+    entrypoint: bash
+    args: [ "-lc", "./scripts/verify-origins.sh && ./scripts/cdn-parity.sh" ]
+
+substitutions:
+  _URL_MAP: siraj-web-map
+  _SERVICE_US: siraj
+  _SERVICE_EU: siraj-eu
+  _REGION_US: us-central1
+  _REGION_EU: europe-west1
+
 images:
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/siraj/web:latest'
+  - 'gcr.io/$PROJECT_ID/siraj:$COMMIT_SHA'
