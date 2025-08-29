@@ -1,34 +1,44 @@
-// middleware.ts (root)
+// middleware.ts
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+// quick path guards
+const STATIC_PREFIXES = [
+  "/_next/static",
+  "/_next/image",
+  "/assets",
+  "/fonts",
+  "/favicon.ico",
+  "/robots.txt",
+  "/sitemap.xml",
+];
+const FILE_EXT_RE = /\.[a-z0-9]{2,8}$/i;
+
 export const config = {
-  // Only match specific paths that need security headers
-  matcher: [
-    // Match HTML pages (root and common routes)
-    "/",
-    "/dashboard",
-    "/account",
-    "/login",
-    "/register",
-    "/api/:path*",
-  ],
+  // exclude static at the matcher (fast path)
+  matcher: ["/((?!_next/static|_next/image|assets|fonts|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)"],
 };
 
 export function middleware(req: NextRequest) {
-  const p = req.nextUrl.pathname;
+  const path = req.nextUrl.pathname;
 
-  // Only apply middleware to HTML pages and API routes
-  if (!p.startsWith("/api/") && p !== "/" && !p.startsWith("/dashboard") && !p.startsWith("/account") && !p.startsWith("/login") && !p.startsWith("/register")) {
+  // extra belt & braces skip
+  if (STATIC_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
     return NextResponse.next();
   }
 
+  // only stamp on HTML or API (skip opaque fetches, images, etc.)
+  const accept = req.headers.get("accept") ?? "";
+  const isHtml = accept.includes("text/html");
+  const isApi = path.startsWith("/api/");
+  if (!isHtml && !isApi) return NextResponse.next();
+
   const res = NextResponse.next();
 
-  // Verification header so we can prove middleware execution
+  // verification header
   res.headers.set("x-mw", "1");
 
-  // SECURITY HEADERS — stamp on HTML/API *only*
+  // SECURITY HEADERS (do NOT touch Cache-Control here)
   res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
   res.headers.set("x-content-type-options", "nosniff");
   res.headers.set("x-frame-options", "DENY");
@@ -37,8 +47,6 @@ export function middleware(req: NextRequest) {
     "permissions-policy",
     "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()"
   );
-
-  // Keep CSP in Report-Only until we tune reports
   res.headers.set(
     "content-security-policy-report-only",
     [
@@ -55,6 +63,5 @@ export function middleware(req: NextRequest) {
     ].join("; ")
   );
 
-  // IMPORTANT: Do NOT set Cache-Control here. Let Next.js headers() handle caching.
   return res;
 }

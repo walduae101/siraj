@@ -1,45 +1,28 @@
-// next.config.mjs (ESM)
-const nextConfig = {
+/** @type {import('next').NextConfig} */
+const config = {
   output: "standalone",
   reactStrictMode: true,
   experimental: { turbo: { rules: {} } },
   async headers() {
     return [
-      // Static assets
+      // immutable assets
       {
         source: "/_next/static/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
       {
-        source: "/fonts/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
+        source: "/_next/image",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
-      {
-        source: "/images/:path*",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      // HTML & API (origin-controlled; CDN will respect)
+      // APIs never cache
       {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
+      // HTML only (match on Accept header)
       {
         source: "/:path*",
+        has: [{ type: "header", key: "Accept", value: ".*text/html.*" }],
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
@@ -58,4 +41,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default config;
