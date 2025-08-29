@@ -38,8 +38,11 @@ export function middleware(req: NextRequest) {
 
   // Prove middleware executed (remove later)
   res.headers.set("x-mw", "1");
-  res.headers.set("x-mw-version", "4");
+  res.headers.set("x-mw-version", "5");
   res.headers.set("x-mw-path", pathname);
+  res.headers.set("x-mw-accept", accept);
+  res.headers.set("x-mw-is-api", isApi.toString());
+  res.headers.set("x-mw-wants-html", wantsHtml.toString());
 
   // Security headers only
   res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
