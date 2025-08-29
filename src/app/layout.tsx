@@ -2,6 +2,11 @@ import "~/styles/globals.css";
 
 export const runtime = "nodejs";
 
+// Make all HTML dynamic by default
+export const dynamic = "force-dynamic";       // Next.js: disable SSG
+export const fetchCache = "force-no-store";   // ensure any fetch is non-cache
+export const revalidate = 0;                  // explicit
+
 import { Cairo } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";

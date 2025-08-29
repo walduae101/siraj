@@ -2,38 +2,51 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+// Never touch static files
+const HARD_SKIP_PREFIXES = [
+  "/_next/",         // static, image optimizer, data
+  "/assets",
+  "/fonts",
+  "/favicon.ico",
+  "/robots.txt",
+  "/sitemap.xml",
+];
+const FILE_EXT_RE = /\.(?:js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?)$/i;
+
 export const config = {
-  // Match HTML pages and API routes, exclude static assets
+  // Skip static fast, match api + everything else (middleware will re-check)
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - _next/data (data files)
-     * - favicon.ico (favicon file)
-     * - assets (static assets)
-     * - fonts (font files)
-     * - robots.txt (robots file)
-     * - sitemap.xml (sitemap file)
-     */
-    "/((?!_next/static|_next/image|_next/data|favicon.ico|assets|fonts|robots.txt|sitemap.xml).*)",
+    "/((?!_next/|assets|fonts|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
+    "/api/:path*",
   ],
 };
 
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
+  // Belt & braces: never run on obvious static
+  if (HARD_SKIP_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
+    return NextResponse.next();
+  }
+
   const accept = req.headers.get("accept") ?? "";
-  const isHtml = accept.includes("text/html");
   const isApi = path.startsWith("/api/");
-  if (!isHtml && !isApi) return NextResponse.next();
+  const isHtml = accept.includes("text/html");
+  if (!isApi && !isHtml) return NextResponse.next();
 
   const res = NextResponse.next();
 
-  // Verification header (remove later)
+  // Prove middleware execution (remove later)
   res.headers.set("x-mw", "1");
 
-  // Security headers ONLY (do not touch Cache-Control here)
+  // Critical: ensure HTML/API are never cached by CDN
+  // (safe because we do not run on static paths)
+  res.headers.set("Cache-Control", "no-store");
+
+  // Help CDN vary HTML by Accept
+  res.headers.set("Vary", ["Accept", req.headers.get("Vary") || ""].filter(Boolean).join(", "));
+
+  // Security headers
   res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
   res.headers.set("x-content-type-options", "nosniff");
   res.headers.set("x-frame-options", "DENY");

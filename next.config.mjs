@@ -5,34 +5,25 @@ const config = {
   experimental: { turbo: { rules: {} } },
   async headers() {
     return [
-      // Immutable assets
+      // Immutable static assets
       {
         source: "/_next/static/:path*",
         headers: [
           { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-          { key: "x-static", value: "1" }, // debug: proves static rule applied
+          { key: "x-static", value: "1" }, // debug flag
         ],
       },
+      // Image optimizer cache (optional)
       {
         source: "/_next/image",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
-
-      // APIs: never cache
+      // APIs: never cache (middleware sets too, but this is fine/harmless)
       {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
-
-      // HTML: only when Accept asks for HTML
-      {
-        source: "/:path*",
-        has: [{ type: "header", key: "accept", value: ".*text/html.*" }],
-        headers: [
-          { key: "Cache-Control", value: "no-store" },
-          { key: "x-html", value: "1" }, // debug
-        ],
-      },
+      // IMPORTANT: **no** generic HTML rule here anymore.
     ];
   },
   // Important: don't set assetPrefix unless you intentionally host assets elsewhere
