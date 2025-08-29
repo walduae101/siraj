@@ -1,83 +1,69 @@
 // middleware.ts
-import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const SKIP_PREFIXES = [
-  "/_next/",          // static + image optimizer
-  "/assets/",
-  "/fonts/",
-  "/favicon.ico",
-  "/robots.txt",
-  "/sitemap.xml",
-];
-const HAS_EXT = /\.[^/]+$/i; // .js .css .woff2 .png ...
-
-export const config = {
-  // Keep this simple; we'll hard-skip inside handler.
-  matcher: ["/:path*", "/api/:path*"],
+const SEC_HEADERS: Record<string, string> = {
+  "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  // keep CSP in report-only while tuning; switch to "content-security-policy" to enforce
+  "content-security-policy-report-only":
+    "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
+  "permissions-policy":
+    "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), publickey-credentials-get=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()",
 };
 
-export function middleware(req: NextRequest) {
-  console.log("🔍 Middleware executing for:", req.nextUrl.pathname);
-  
-  const { pathname } = req.nextUrl;
+export function middleware(req: Request) {
+  const url = new URL(req.url);
+  const path = url.pathname;
 
-  // HARD SKIP: assets and anything that looks like a file
-  if (SKIP_PREFIXES.some((p) => pathname.startsWith(p)) || HAS_EXT.test(pathname)) {
-    console.log("⏭️ Skipping static asset:", pathname);
+  // Never touch static assets (fast-fail)
+  if (
+    path.startsWith("/_next/") ||
+    path.startsWith("/fonts/") ||
+    path.startsWith("/images/") ||
+    path === "/favicon.ico" ||
+    path === "/robots.txt" ||
+    path === "/sitemap.xml" ||
+    /\.[a-z0-9]+$/i.test(path) // any file with an extension
+  ) {
     return NextResponse.next();
   }
 
-  // Only stamp for HTML (browser navigations) or API
-  const isApi = pathname.startsWith("/api/");
-  const accept = req.headers.get("accept") || "";
-  const wantsHtml = accept.includes("text/html");
+  // Only GET/HEAD get headers stamped
+  const method = (req.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") return NextResponse.next();
 
-  if (!isApi && !wantsHtml) {
-    console.log("⏭️ Skipping non-HTML/API request:", pathname);
-    return NextResponse.next();
-  }
+  const accept = String(req.headers.get("accept") || "");
+  const isApi = path.startsWith("/api/");
+  const isHtml =
+    !isApi && (accept.includes("text/html") || !/\.[a-z0-9]+$/i.test(path));
 
-  console.log("✅ Applying middleware to:", pathname, "isApi:", isApi, "wantsHtml:", wantsHtml);
+  if (!(isApi || isHtml)) return NextResponse.next();
 
   const res = NextResponse.next();
 
-  // Prove middleware executed (remove later)
-  res.headers.set("x-mw", "1");
-  res.headers.set("x-mw-version", "6");
-  res.headers.set("x-mw-path", pathname);
-  res.headers.set("x-mw-accept", accept);
-  res.headers.set("x-mw-is-api", isApi.toString());
-  res.headers.set("x-mw-wants-html", wantsHtml.toString());
+  // Security headers
+  for (const [k, v] of Object.entries(SEC_HEADERS)) res.headers.set(k, v);
 
-  // Security headers only
-  res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
-  res.headers.set("x-content-type-options", "nosniff");
-  res.headers.set("x-frame-options", "DENY");
-  res.headers.set("referrer-policy", "strict-origin-when-cross-origin");
-  res.headers.set(
-    "permissions-policy",
-    "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()"
-  );
-  res.headers.set(
-    "content-security-policy-report-only",
-    [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "object-src 'none'",
-      "frame-ancestors 'none'",
-      "img-src 'self' data: https:",
-      "font-src 'self' https: data:",
-      "style-src 'self' 'unsafe-inline' https:",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
-      "connect-src 'self' https:",
-      "report-uri /api/csp-report",
-    ].join("; ")
-  );
+  // API responses should never be cached
+  if (isApi) res.headers.set("cache-control", "no-store");
 
-  // Help proxies/CDN segregate HTML vs. non-HTML
-  const vary = res.headers.get("Vary");
-  res.headers.set("Vary", [vary, "Accept"].filter(Boolean).join(", "));
+  // Vary to keep CDN sane when Accept differs
+  const vary = res.headers.get("vary");
+  res.headers.set("vary", vary ? `${vary}, Accept` : "Accept");
+
+  // Optional: short debug header while validating (remove later)
+  // res.headers.set("x-mw", "1");
 
   return res;
 }
+
+// Match only HTML-ish routes and API; exclude assets at the matcher level too
+export const config = {
+  matcher: [
+    "/api/:path*", // APIs
+    // All routes that aren't files or _next/*
+    "/((?!_next/|fonts/|images/|favicon.ico|robots.txt|sitemap.xml|manifest.webmanifest|.*\\.[a-z0-9]+$).*)",
+  ],
+};

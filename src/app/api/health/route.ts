@@ -1,33 +1,21 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  // Basic health check endpoint for container monitoring
-  try {
-    // You can add additional health checks here if needed
-    // For example: database connectivity, external service checks, etc.
-
-    return NextResponse.json(
-      {
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        service: "siraj",
-        version: process.env.npm_package_version || "unknown",
-      },
-      { status: 200 },
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        status: "unhealthy",
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 503 },
-    );
-  }
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
 }
 
-// Also support HEAD requests for lighter health checks
 export async function HEAD() {
-  return new Response(null, { status: 200 });
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
 }

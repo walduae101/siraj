@@ -1,43 +1,32 @@
 /** @type {import('next').NextConfig} */
-const config = {
-  output: "standalone",
+const nextConfig = {
   reactStrictMode: true,
-  experimental: { turbo: { rules: {} } },
+  experimental: { typedRoutes: true },
+  // Only caching rules; security headers come from middleware
   async headers() {
     return [
-      // Immutable static assets
+      // Immutable chunks
       {
         source: "/_next/static/:path*",
         headers: [
           { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-          { key: "x-static", value: "1" }, // debug flag
+          { key: "x-static", value: "1" },
         ],
       },
-      // Image optimizer cache (optional)
+      // Fonts
       {
-        source: "/_next/image",
-        headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
+        source: "/fonts/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
       },
-      // APIs: never cache (middleware sets too, but this is fine/harmless)
+      // API: belt and suspenders (middleware also sets no-store)
       {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
-      // IMPORTANT: **no** generic HTML rule here anymore.
     ];
-  },
-  // Important: don't set assetPrefix unless you intentionally host assets elsewhere
-  webpack: (cfg, { isServer }) => {
-    if (!isServer) {
-      cfg.resolve = cfg.resolve || {};
-      cfg.resolve.alias = {
-        ...(cfg.resolve.alias || {}),
-        "firebase-admin": false,
-        "@google-cloud/firestore": false,
-      };
-    }
-    return cfg;
   },
 };
 
-export default config;
+export default nextConfig;
