@@ -2,10 +2,10 @@ import "~/styles/globals.css";
 
 export const runtime = "nodejs";
 
-// Make all HTML dynamic by default
-export const dynamic = "force-dynamic";       // Next.js: disable SSG
-export const fetchCache = "force-no-store";   // ensure any fetch is non-cache
-export const revalidate = 0;                  // explicit
+// Make HTML pages dynamic so Next won't stamp s-maxage
+export const dynamic = "force-dynamic";
+export const revalidate = 0;            // explicit, complements dynamic
+export const fetchCache = "force-no-store"; // affects fetch(), not assets
 
 import { Cairo } from "next/font/google";
 import Script from "next/script";

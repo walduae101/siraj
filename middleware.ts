@@ -2,21 +2,23 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+// Paths we never want to touch (static & files)
+// We also exclude any URL that ends with a file extension.
+const HARD_SKIP_PREFIXES = [
+  "/_next/",         // includes /_next/static and /_next/image
+  "/assets",
+  "/fonts",
+  "/favicon.ico",
+  "/robots.txt",
+  "/sitemap.xml",
+];
+const FILE_EXT_RE = /\.[^/]+$/i; // .../*.js, *.css, *.woff2, etc.
+
 export const config = {
-  // Only match specific paths that need security headers
+  // Fast pre-filter: exclude _next & any URL containing a dot (an extension).
+  // Also match /api for API headers.
   matcher: [
-    // HTML pages (root and other page routes)
-    "/",
-    "/dashboard/:path*",
-    "/account/:path*",
-    "/checkout/:path*",
-    "/paywall/:path*",
-    "/success/:path*",
-    "/admin/:path*",
-    "/tools/:path*",
-    "/health/:path*",
-    "/test-auth/:path*",
-    // API routes
+    "/((?!_next/|.*\\..*).*)",
     "/api/:path*",
   ],
 };
@@ -24,22 +26,25 @@ export const config = {
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  const accept = req.headers.get("accept") ?? "";
+  // Belt & braces: never run on obvious static or file-like paths.
+  if (HARD_SKIP_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
+    return NextResponse.next();
+  }
+
+  // Run only for HTML or API
   const isApi = path.startsWith("/api/");
-  const isHtml = accept.includes("text/html");
+  const accept = req.headers.get("accept") ?? "";
+  const isHtml = accept.includes("text/html"); // curl: add -H 'Accept: text/html' when testing
+
   if (!isApi && !isHtml) return NextResponse.next();
 
   const res = NextResponse.next();
 
-  // Prove middleware execution (remove later)
+  // Debug header to prove middleware executed (remove later)
   res.headers.set("x-mw", "1");
 
-  // Critical: ensure HTML/API are never cached by CDN
-  // (safe because we do not run on static paths)
-  res.headers.set("Cache-Control", "no-store");
-
-  // Help CDN vary HTML by Accept
-  res.headers.set("Vary", ["Accept", req.headers.get("Vary") || ""].filter(Boolean).join(", "));
+  // (Do NOT set Cache-Control here. Your pages are already dynamic/no-store from the app config.
+  // If middleware accidentally hits an asset, we won't blow away immutable caching.)
 
   // Security headers
   res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
@@ -64,6 +69,12 @@ export function middleware(req: NextRequest) {
       "connect-src 'self' https:",
       "report-uri /api/csp-report",
     ].join("; ")
+  );
+
+  // Help CDN vary HTML by Accept (useful for some clients)
+  res.headers.set(
+    "Vary",
+    ["Accept", req.headers.get("Vary") || ""].filter(Boolean).join(", ")
   );
 
   return res;
