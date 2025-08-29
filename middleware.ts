@@ -18,10 +18,13 @@ export const config = {
 };
 
 export function middleware(req: NextRequest) {
+  console.log("🔍 Middleware executing for:", req.nextUrl.pathname);
+  
   const { pathname } = req.nextUrl;
 
   // HARD SKIP: assets and anything that looks like a file
   if (SKIP_PREFIXES.some((p) => pathname.startsWith(p)) || HAS_EXT.test(pathname)) {
+    console.log("⏭️ Skipping static asset:", pathname);
     return NextResponse.next();
   }
 
@@ -31,14 +34,17 @@ export function middleware(req: NextRequest) {
   const wantsHtml = accept.includes("text/html");
 
   if (!isApi && !wantsHtml) {
+    console.log("⏭️ Skipping non-HTML/API request:", pathname);
     return NextResponse.next();
   }
+
+  console.log("✅ Applying middleware to:", pathname, "isApi:", isApi, "wantsHtml:", wantsHtml);
 
   const res = NextResponse.next();
 
   // Prove middleware executed (remove later)
   res.headers.set("x-mw", "1");
-  res.headers.set("x-mw-version", "5");
+  res.headers.set("x-mw-version", "6");
   res.headers.set("x-mw-path", pathname);
   res.headers.set("x-mw-accept", accept);
   res.headers.set("x-mw-is-api", isApi.toString());
