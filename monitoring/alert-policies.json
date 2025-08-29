@@ -1,0 +1,252 @@
+{
+  "policies": [
+    {
+      "displayName": "High Error Rate (5xx > 1%)",
+      "conditions": [
+        {
+          "displayName": "Error rate exceeds 1%",
+          "conditionThreshold": {
+            "filter": "metric.type=\"run.googleapis.com/request_count\" AND resource.type=\"cloud_run_revision\" AND metric.labels.response_code_class=\"5xx\"",
+            "comparison": "COMPARISON_GREATER_THAN",
+            "thresholdValue": 0.01,
+            "duration": "300s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_RATE",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "604800s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "High error rate detected. Check application logs and recent deployments.",
+        "mimeType": "text/markdown"
+      }
+    },
+    {
+      "displayName": "High Response Time (p95 > 1s)",
+      "conditions": [
+        {
+          "displayName": "p95 response time exceeds 1 second",
+          "conditionThreshold": {
+            "filter": "metric.type=\"run.googleapis.com/request_latencies\" AND resource.type=\"cloud_run_revision\"",
+            "comparison": "COMPARISON_GREATER_THAN",
+            "thresholdValue": 1000,
+            "duration": "300s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_PERCENTILE_95",
+                "crossSeriesReducer": "REDUCE_MEAN"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "1800s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "High response time detected. Check database performance and resource utilization.",
+        "mimeType": "text/markdown"
+      }
+    },
+    {
+      "displayName": "High CPU Utilization (> 80%)",
+      "conditions": [
+        {
+          "displayName": "CPU utilization exceeds 80%",
+          "conditionThreshold": {
+            "filter": "metric.type=\"run.googleapis.com/container/cpu/utilizations\" AND resource.type=\"cloud_run_revision\"",
+            "comparison": "COMPARISON_GREATER_THAN",
+            "thresholdValue": 0.8,
+            "duration": "300s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_MEAN",
+                "crossSeriesReducer": "REDUCE_MEAN"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "1800s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "High CPU utilization detected. Consider scaling up or optimizing code.",
+        "mimeType": "text/markdown"
+      }
+    },
+    {
+      "displayName": "High Memory Utilization (> 85%)",
+      "conditions": [
+        {
+          "displayName": "Memory utilization exceeds 85%",
+          "conditionThreshold": {
+            "filter": "metric.type=\"run.googleapis.com/container/memory/utilizations\" AND resource.type=\"cloud_run_revision\"",
+            "comparison": "COMPARISON_GREATER_THAN",
+            "thresholdValue": 0.85,
+            "duration": "300s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_MEAN",
+                "crossSeriesReducer": "REDUCE_MEAN"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "1800s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "High memory utilization detected. Check for memory leaks or increase memory allocation.",
+        "mimeType": "text/markdown"
+      }
+    },
+    {
+      "displayName": "CSP Violation Spike",
+      "conditions": [
+        {
+          "displayName": "CSP violations exceed threshold",
+          "conditionThreshold": {
+            "filter": "resource.type=\"cloud_run_revision\" AND textPayload:\"CSP Violation\"",
+            "comparison": "COMPARISON_GREATER_THAN",
+            "thresholdValue": 10,
+            "duration": "300s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_COUNT",
+                "crossSeriesReducer": "REDUCE_COUNT"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "3600s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "CSP violation spike detected. Review recent changes and update CSP policy if needed.",
+        "mimeType": "text/markdown"
+      }
+    },
+    {
+      "displayName": "Authentication Failure Spike",
+      "conditions": [
+        {
+          "displayName": "Authentication failures exceed threshold",
+          "conditionThreshold": {
+            "filter": "metric.type=\"firebase.googleapis.com/auth/user_login_failure_count\"",
+            "comparison": "COMPARISON_GREATER_THAN",
+            "thresholdValue": 5,
+            "duration": "300s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_RATE",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "1800s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "Authentication failure spike detected. Check for potential security issues.",
+        "mimeType": "text/markdown"
+      }
+    },
+    {
+      "displayName": "Firestore Connection Issues",
+      "conditions": [
+        {
+          "displayName": "Firestore connection errors",
+          "conditionThreshold": {
+            "filter": "metric.type=\"firestore.googleapis.com/api/request_count\" AND metric.labels.response_code=\"UNAVAILABLE\"",
+            "comparison": "COMPARISON_GREATER_THAN",
+            "thresholdValue": 1,
+            "duration": "300s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_RATE",
+                "crossSeriesReducer": "REDUCE_SUM"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "1800s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "Firestore connection issues detected. Check Firestore status and network connectivity.",
+        "mimeType": "text/markdown"
+      }
+    },
+    {
+      "displayName": "Instance Count Zero",
+      "conditions": [
+        {
+          "displayName": "No active instances",
+          "conditionThreshold": {
+            "filter": "metric.type=\"run.googleapis.com/container/instance_count\" AND resource.type=\"cloud_run_revision\"",
+            "comparison": "COMPARISON_EQUAL",
+            "thresholdValue": 0,
+            "duration": "60s",
+            "aggregations": [
+              {
+                "alignmentPeriod": "60s",
+                "perSeriesAligner": "ALIGN_MEAN",
+                "crossSeriesReducer": "REDUCE_MEAN"
+              }
+            ]
+          }
+        }
+      ],
+      "alertStrategy": {
+        "autoClose": "300s"
+      },
+      "notificationChannels": [
+        "projects/walduae-project-20250809071906/notificationChannels/CHANNEL_ID"
+      ],
+      "documentation": {
+        "content": "No active instances detected. Service may be down or misconfigured.",
+        "mimeType": "text/markdown"
+      }
+    }
+  ]
+}

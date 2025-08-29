@@ -76,6 +76,12 @@ const ConfigSchema = z.object({
     FEAT_SUB_POINTS: z.boolean().default(true),
     PAYNOW_LIVE: z.boolean().default(true),
     STUB_CHECKOUT: z.boolean().default(false),
+    // PayNow integration feature flag
+    paynow: z
+      .object({
+        enabled: z.boolean().default(false),
+      })
+      .default({ enabled: false }),
     webhookMode: z.enum(["sync", "queue"]).default("sync"),
     // PHASE 6A: Queue Mode Canary
     webhookQueueCanaryRatio: z.number().min(0).max(1).default(0),
@@ -319,43 +325,53 @@ async function getSecret(secretName: string): Promise<string> {
   }
 }
 
+async function readConfigText(): Promise<string> {
+  const val = process.env.SIRAJ_CONFIG_JSON;
+  if (!val) throw new Error("SIRAJ_CONFIG_JSON is not set");
+
+  const trimmed = val.trim();
+
+  // Case A: Cloud Run --set-secrets injected the JSON as the env value
+  if (trimmed.startsWith("{")) return trimmed;
+
+  // Case B: Env is a full Secret Manager resource name
+  //   e.g., projects/123/secrets/siraj-config/versions/latest
+  const sm = new SecretManagerServiceClient();
+  let name: string;
+
+  if (trimmed.startsWith("projects/")) {
+    name = trimmed;
+  } else {
+    // Case C: Env is just the secret name; fetch latest from current project
+    const project = process.env.GOOGLE_CLOUD_PROJECT;
+    if (!project) throw new Error("GOOGLE_CLOUD_PROJECT not set");
+    name = `projects/${project}/secrets/${trimmed}/versions/latest`;
+  }
+
+  const [v] = await sm.accessSecretVersion({ name });
+  const buf = v.payload?.data;
+  if (!buf) throw new Error("Secret payload is empty");
+  // Secret Manager requires UTF-8 for env injection; enforce here too:
+  const text = Buffer.from(buf).toString("utf8");
+  return text;
+}
+
 export async function getConfig(): Promise<Config> {
   const now = Date.now();
   if (cached && now < expiresAt) return cached;
 
   try {
-    // Check if config is available as environment variable first (Cloud Run mounted secret)
-    if (process.env.SIRAJ_CONFIG) {
-      console.log(
-        "[config] Loading configuration from SIRAJ_CONFIG environment variable",
-      );
-      const parsed = ConfigSchema.parse(JSON.parse(process.env.SIRAJ_CONFIG));
-      cached = parsed;
-      expiresAt = now + TTL_MS;
-      return parsed;
+    const text = await readConfigText();
+    let parsed: Config;
+    try {
+      parsed = ConfigSchema.parse(JSON.parse(text));
+    } catch (err) {
+      // log safe diagnostics without leaking secret contents
+      const head = text.slice(0, 80).replace(/\s+/g, " ");
+      console.error("Config parse failed", { head, length: text.length, err });
+      throw err;
     }
 
-    // Try to load from Google Secret Manager API
-    if (
-      process.env.NODE_ENV === "production" ||
-      process.env.USE_SECRET_MANAGER === "true"
-    ) {
-      console.log(
-        "[config] Loading configuration from Google Secret Manager API",
-      );
-
-      const configSecret = await getSecret("siraj-config");
-      const parsed = ConfigSchema.parse(JSON.parse(configSecret));
-      cached = parsed;
-      expiresAt = now + TTL_MS;
-      return parsed;
-    }
-
-    // Fallback to local config file for development
-    const CONFIG_PATH =
-      process.env.SIRAJ_CONFIG_PATH ?? "/var/secrets/siraj/config.json";
-    const raw = fs.readFileSync(CONFIG_PATH, "utf8");
-    const parsed = ConfigSchema.parse(JSON.parse(raw));
     cached = parsed;
     expiresAt = now + TTL_MS;
     return parsed;
@@ -363,7 +379,8 @@ export async function getConfig(): Promise<Config> {
     // In development, fall back to environment variables
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        "[config] Secret Manager and config file not available, falling back to env vars",
+        "[config] Failed to load from SIRAJ_CONFIG_JSON, falling back to environment variables",
+        error,
       );
       return getConfigFromEnv();
     }
@@ -417,6 +434,10 @@ function getConfigFromEnv(): Config {
       FEAT_SUB_POINTS: process.env.FEAT_SUB_POINTS === "1",
       PAYNOW_LIVE: process.env.PAYNOW_LIVE === "1",
       STUB_CHECKOUT: process.env.STUB_CHECKOUT === "1",
+      // PayNow integration feature flag
+      paynow: {
+        enabled: process.env.PAYNOW_ENABLED === "1",
+      },
       webhookMode: (process.env.WEBHOOK_MODE as "sync" | "queue") ?? "sync",
       webhookQueueCanaryRatio: Number.parseFloat(
         process.env.WEBHOOK_QUEUE_CANARY_RATIO ?? "0",

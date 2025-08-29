@@ -1,13 +1,10 @@
-// Client-side features still read from env vars
+// Client-side features from build-time env vars only
 export const features = {
-  pointsServer: process.env.FEAT_POINTS === "1",
+  // Server-side features: use getConfig() from ~/server/config instead
   pointsClient: process.env.NEXT_PUBLIC_FEAT_POINTS === "1",
-  stubCheckout:
-    process.env.STUB_CHECKOUT === "1" ||
-    process.env.NEXT_PUBLIC_STUB_CHECKOUT === "1",
-  liveCheckout:
-    process.env.PAYNOW_LIVE === "1" ||
-    process.env.NEXT_PUBLIC_PAYNOW_LIVE === "1",
+  stubCheckout: process.env.NEXT_PUBLIC_STUB_CHECKOUT === "1",
+  liveCheckout: process.env.NEXT_PUBLIC_PAYNOW_LIVE === "1",
 };
 
-// For server-side features, use getConfig() from ~/server/config instead
+// ⚠️ DO NOT ADD SERVER ENV READS HERE
+// Server features must use getConfig() from ~/server/config

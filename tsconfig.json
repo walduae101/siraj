@@ -42,5 +42,5 @@
     "**/*.js",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "dist", "test-typescript.ts", "check-and-fix.ps1"]
+  "exclude": ["node_modules", "dist", "test-typescript.ts", "check-and-fix.ps1", "tailwind.config.js"]
 }

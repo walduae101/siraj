@@ -1,29 +1,59 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { getConfig } from "~/server/config";
 
 import SteamService from "../services/steam";
 // Avoid top-level import of firebase-admin to prevent bundling into RSC build
 import PayNowService from "./../services/paynow";
 
+// Helper to check PayNow feature flag
+async function checkPayNowEnabled() {
+  const cfg = await getConfig();
+  if (!cfg.features.paynow.enabled) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "PayNow integration is currently disabled",
+    });
+  }
+}
+
 export const paynowRouter = createTRPCRouter({
-  getStore: publicProcedure.query(({ ctx }) => PayNowService.getStore(ctx)),
+  getStore: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.getStore(ctx);
+  }),
 
-  getProducts: publicProcedure.query(({ ctx }) =>
-    PayNowService.getProducts(ctx),
-  ),
+  getProducts: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.getProducts(ctx);
+  }),
 
-  getNavlinks: publicProcedure.query(({ ctx }) =>
-    PayNowService.getNavlinks(ctx),
-  ),
+  getNavlinks: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.getNavlinks(ctx);
+  }),
 
-  getTags: publicProcedure.query(({ ctx }) => PayNowService.getTags(ctx)),
+  getTags: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.getTags(ctx);
+  }),
 
-  getModules: publicProcedure.query(({ ctx }) => PayNowService.getModules(ctx)),
+  getModules: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.getModules(ctx);
+  }),
 
-  getAuth: publicProcedure.query(({ ctx }) => PayNowService.getAuth(ctx)),
+  getAuth: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.getAuth(ctx);
+  }),
 
-  getCart: publicProcedure.query(({ ctx }) => PayNowService.getCart(ctx)),
+  getCart: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.getCart(ctx);
+  }),
 
   updateCartItem: publicProcedure
     .input(
@@ -35,7 +65,10 @@ export const paynowRouter = createTRPCRouter({
         subscription: z.boolean().default(false),
       }),
     )
-    .mutation(({ ctx, input }) => PayNowService.updateCartItem(ctx, input)),
+    .mutation(async ({ ctx, input }) => {
+      await checkPayNowEnabled();
+      return PayNowService.updateCartItem(ctx, input);
+    }),
 
   checkout: publicProcedure
     .input(
@@ -58,11 +91,17 @@ export const paynowRouter = createTRPCRouter({
           .array(),
       }),
     )
-    .mutation(({ ctx, input }) => PayNowService.checkout(ctx, input)),
+    .mutation(async ({ ctx, input }) => {
+      await checkPayNowEnabled();
+      return PayNowService.checkout(ctx, input);
+    }),
 
   checkoutFromCart: publicProcedure
     .input(z.any())
-    .mutation(({ ctx, input }) => PayNowService.checkoutFromCart(ctx, input)),
+    .mutation(async ({ ctx, input }) => {
+      await checkPayNowEnabled();
+      return PayNowService.checkoutFromCart(ctx, input);
+    }),
 
   steamLogin: publicProcedure
     .input(
@@ -71,6 +110,7 @@ export const paynowRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
+      await checkPayNowEnabled();
       const { query } = input;
 
       const steamId = await SteamService.resolveSteamIdFromOpenIdQS(query);
@@ -80,16 +120,21 @@ export const paynowRouter = createTRPCRouter({
       return token;
     }),
 
-  getSteamLoginUrl: publicProcedure.query(async ({ ctx }) =>
-    SteamService.getLoginUrl(),
-  ),
+  getSteamLoginUrl: publicProcedure.query(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return SteamService.getLoginUrl();
+  }),
 
-  logout: publicProcedure.mutation(({ ctx }) => PayNowService.logout(ctx)),
+  logout: publicProcedure.mutation(async ({ ctx }) => {
+    await checkPayNowEnabled();
+    return PayNowService.logout(ctx);
+  }),
 
   // Firebase Google login: accepts an ID token, verifies it, maps to PayNow customer
   googleLogin: publicProcedure
     .input(z.object({ idToken: z.string().min(10) }))
     .mutation(async ({ input }) => {
+      await checkPayNowEnabled();
       const { getAdminAuth, getFirestore } = await import(
         "~/server/firebase/admin-lazy"
       );

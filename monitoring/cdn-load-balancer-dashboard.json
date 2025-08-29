@@ -1,0 +1,314 @@
+{
+  "displayName": "CDN & Load Balancer Monitoring",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "height": 4,
+        "widget": {
+          "title": "Load Balancer Response Codes",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "4xx Errors",
+                "minAlignmentPeriod": "60s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/https/request_count\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["resource.labels.forwarding_rule_name"],
+                      "perSeriesAligner": "ALIGN_RATE"
+                    }
+                  }
+                }
+              },
+              {
+                "legendTemplate": "5xx Errors",
+                "minAlignmentPeriod": "60s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/https/request_count\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\" AND metric.labels.response_code_class=\"5xx\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["resource.labels.forwarding_rule_name"],
+                      "perSeriesAligner": "ALIGN_RATE"
+                    }
+                  }
+                }
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Requests per second",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6,
+        "xPos": 0,
+        "yPos": 0
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "CDN Cache Hit Ratio",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "Cache Hit Ratio",
+                "minAlignmentPeriod": "300s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/https/request_count\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\"",
+                    "aggregation": {
+                      "alignmentPeriod": "300s",
+                      "crossSeriesReducer": "REDUCE_MEAN",
+                      "groupByFields": ["metric.labels.cache_hit"],
+                      "perSeriesAligner": "ALIGN_RATE"
+                    }
+                  }
+                }
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Hit Ratio",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6,
+        "xPos": 6,
+        "yPos": 0
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "Load Balancer Latency (p95)",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "p95 Latency",
+                "minAlignmentPeriod": "60s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/https/total_latencies\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "crossSeriesReducer": "REDUCE_PERCENTILE_95",
+                      "groupByFields": ["resource.labels.forwarding_rule_name"],
+                      "perSeriesAligner": "ALIGN_MEAN"
+                    }
+                  }
+                }
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Latency (ms)",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6,
+        "xPos": 0,
+        "yPos": 4
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "TLS Handshake Success Rate",
+          "xyChart": {
+            "chartOptions": {
+              "mode": "COLOR"
+            },
+            "dataSets": [
+              {
+                "legendTemplate": "TLS Success Rate",
+                "minAlignmentPeriod": "60s",
+                "plotType": "LINE",
+                "targetAxis": "Y1",
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/https/tls_negotiation_count\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\"",
+                    "aggregation": {
+                      "alignmentPeriod": "60s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["metric.labels.tls_negotiation_result"],
+                      "perSeriesAligner": "ALIGN_RATE"
+                    }
+                  }
+                }
+              }
+            ],
+            "timeshiftDuration": "0s",
+            "yAxis": {
+              "label": "Handshakes per second",
+              "scale": "LINEAR"
+            }
+          }
+        },
+        "width": 6,
+        "xPos": 6,
+        "yPos": 4
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "Backend Health Status",
+          "scorecard": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/backend/request_count\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\"",
+                    "aggregation": {
+                      "alignmentPeriod": "300s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["resource.labels.backend_name"],
+                      "perSeriesAligner": "ALIGN_RATE"
+                    }
+                  }
+                }
+              }
+            ],
+            "thresholds": [
+              {
+                "color": "RED",
+                "direction": "ABOVE",
+                "value": 0
+              },
+              {
+                "color": "YELLOW",
+                "direction": "ABOVE",
+                "value": 10
+              },
+              {
+                "color": "GREEN",
+                "direction": "ABOVE",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "width": 4,
+        "xPos": 0,
+        "yPos": 8
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "CDN Egress (GB)",
+          "scorecard": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/https/egress_bytes\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\"",
+                    "aggregation": {
+                      "alignmentPeriod": "3600s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["resource.labels.forwarding_rule_name"],
+                      "perSeriesAligner": "ALIGN_RATE"
+                    }
+                  }
+                }
+              }
+            ],
+            "thresholds": [
+              {
+                "color": "GREEN",
+                "direction": "BELOW",
+                "value": 1
+              },
+              {
+                "color": "YELLOW",
+                "direction": "BELOW",
+                "value": 10
+              },
+              {
+                "color": "RED",
+                "direction": "ABOVE",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "width": 4,
+        "xPos": 4,
+        "yPos": 8
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "SSL Certificate Status",
+          "scorecard": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type=\"loadbalancing.googleapis.com/https/ssl_certificate_count\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\"",
+                    "aggregation": {
+                      "alignmentPeriod": "300s",
+                      "crossSeriesReducer": "REDUCE_SUM",
+                      "groupByFields": ["resource.labels.forwarding_rule_name"],
+                      "perSeriesAligner": "ALIGN_MEAN"
+                    }
+                  }
+                }
+              }
+            ],
+            "thresholds": [
+              {
+                "color": "RED",
+                "direction": "BELOW",
+                "value": 1
+              },
+              {
+                "color": "GREEN",
+                "direction": "ABOVE",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "width": 4,
+        "xPos": 8,
+        "yPos": 8
+      },
+      {
+        "height": 4,
+        "widget": {
+          "title": "Recent Load Balancer Errors",
+          "logsPanel": {
+            "filter": "resource.type=\"http_load_balancer\" AND resource.labels.forwarding_rule_name=\"siraj-web-fr\" AND (httpRequest.status>=400 OR severity>=ERROR)",
+            "resourceNames": ["projects/walduae-project-20250809071906"]
+          }
+        },
+        "width": 12,
+        "xPos": 0,
+        "yPos": 12
+      }
+    ]
+  }
+}

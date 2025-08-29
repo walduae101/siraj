@@ -29,9 +29,70 @@ const config = {
         ],
       },
       {
+        source: "/fonts/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store",
+          },
+        ],
+      },
+      {
         // Keep HTML short-lived – avoids stale HTML referencing old chunk hashes
         source: "/:path*",
-        headers: [{ key: "Cache-Control", value: "no-store" }],
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=15552000; includeSubDomains; preload",
+          },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          {
+            key: "Permissions-Policy",
+            value: [
+              "accelerometer=()",
+              "autoplay=()",
+              "camera=()",
+              "display-capture=()",
+              "encrypted-media=()",
+              "fullscreen=(self)",
+              "geolocation=()",
+              "gyroscope=()",
+              "microphone=()",
+              "payment=(self)",
+              "usb=()",
+              "xr-spatial-tracking=()",
+            ].join(", "),
+          },
+          // Start CSP in Report-Only so we can tune safely
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: [
+              "default-src 'self'",
+              "base-uri 'self'",
+              "script-src 'self' https:",
+              "style-src 'self' https: 'unsafe-inline'",
+              "img-src 'self' data: https:",
+              "font-src 'self' https:",
+              "connect-src 'self' https: wss: *.googleapis.com *.firebaseio.com *.gstatic.com",
+              "frame-ancestors 'none'",
+              "frame-src https://accounts.google.com https://*.firebaseapp.com",
+              "object-src 'none'",
+              "report-uri /api/csp-report",
+            ].join("; "),
+          },
+        ],
       },
     ];
   },

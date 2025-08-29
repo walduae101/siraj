@@ -1,5 +1,15 @@
 steps:
-  # Step 1: Build the Docker image with Firebase build args
+  # Step 1: Install dependencies and run typecheck/lint
+  - name: 'node:20'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npm ci
+        npm run typecheck
+        npm run check
+
+  # Step 2: Build the Docker image with Firebase build args
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
@@ -19,13 +29,13 @@ steps:
       - 'NEXT_PUBLIC_FIREBASE_APP_ID=1:207501673877:web:8c8265c153623cf14ae29c'
       - '.'
 
-  # Step 2: Push the image to Artifact Registry
+  # Step 3: Push the image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/siraj/web:latest'
 
-  # Step 3: Deploy to Cloud Run
+  # Step 4: Deploy to Cloud Run
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       - 'run'
@@ -51,6 +61,53 @@ steps:
       - '--timeout'
       - '60s'
       - '--cpu-boost'
+
+  # Step 5: Wait for deployment to be ready
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Waiting for deployment to be ready..."
+        sleep 30
+
+  # Step 6: Run CDN smoke tests
+  - name: 'curlimages/curl:latest'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Test security headers and performance
+        echo "Running CDN smoke tests..."
+        
+        # Test homepage
+        response=$(curl -s -o /dev/null -w "%{http_code} %{time_total}" https://siraj.life)
+        status_code=$(echo $response | cut -d' ' -f1)
+        response_time=$(echo $response | cut -d' ' -f2)
+        response_time_ms=$(echo "$response_time * 1000" | bc -l)
+        
+        if [ "$status_code" != "200" ]; then
+          echo "❌ Homepage status code: $status_code (expected 200)"
+          exit 1
+        fi
+        
+        if (( $(echo "$response_time_ms > 1200" | bc -l) )); then
+          echo "❌ Homepage response time: ${response_time_ms}ms (max 1200ms)"
+          exit 1
+        fi
+        
+        # Test security headers
+        headers=$(curl -s -I https://siraj.life)
+        required_headers=("Strict-Transport-Security" "X-Content-Type-Options" "X-Frame-Options" "Referrer-Policy")
+        
+        for header in "${required_headers[@]}"; do
+          if ! echo "$headers" | grep -qi "$header:"; then
+            echo "❌ Missing security header: $header"
+            exit 1
+          fi
+        done
+        
+        echo "✅ CDN smoke tests passed"
 
 # Images to be pushed to registry
 images:

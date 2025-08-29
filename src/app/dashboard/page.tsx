@@ -7,16 +7,12 @@ import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
 import { features } from "~/config/features";
 import { getFirebaseAuth } from "~/lib/firebase/client";
-import { api } from "~/trpc/react";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useFirebaseUser();
-  const { data: auth, isLoading } = api.paynow.getAuth.useQuery(undefined, {
-    enabled: !!user?.uid, // Only run when user is authenticated
-  });
 
-  if (userLoading || isLoading) {
+  if (userLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center">
@@ -89,17 +85,13 @@ export default function DashboardPage() {
           <h2 className="mb-4 font-semibold text-2xl">الملف الشخصي</h2>
           <div className="space-y-2 text-sm">
             <p>
-              <strong>الاسم:</strong>{" "}
-              {auth?.name || auth?.profile?.name || "غير محدد"}
+              <strong>الاسم:</strong> {user.displayName || "غير محدد"}
             </p>
             <p>
-              <strong>معرف العميل:</strong> {auth?.id}
+              <strong>معرف Firebase:</strong> {user.uid}
             </p>
             <p>
-              <strong>تاريخ الإنشاء:</strong>{" "}
-              {auth?.created_at
-                ? new Date(auth.created_at).toLocaleDateString("ar-SA")
-                : "-"}
+              <strong>البريد الإلكتروني:</strong> {user.email}
             </p>
           </div>
         </div>

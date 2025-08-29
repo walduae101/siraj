@@ -40,17 +40,18 @@ export default function Error({
           </Button>
         </div>
 
-        {process.env.NODE_ENV === "development" && (
-          <details className="mt-4 text-left">
-            <summary className="cursor-pointer text-muted-foreground text-sm">
-              Error details (development only)
-            </summary>
-            <pre className="mt-2 rounded bg-muted p-2 text-xs">
-              {error.message}
-              {error.stack && `\n\n${error.stack}`}
-            </pre>
-          </details>
-        )}
+        {typeof window !== "undefined" &&
+          window.location.hostname === "localhost" && (
+            <details className="mt-4 text-left">
+              <summary className="cursor-pointer text-muted-foreground text-sm">
+                Error details (development only)
+              </summary>
+              <pre className="mt-2 rounded bg-muted p-2 text-xs">
+                {error.message}
+                {error.stack && `\n\n${error.stack}`}
+              </pre>
+            </details>
+          )}
       </div>
     </div>
   );
