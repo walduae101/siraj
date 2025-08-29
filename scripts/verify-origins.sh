@@ -1,8 +1,6 @@
 #!/bin/bash
-
 # Verify origin parity between US and EU regions
 # This script checks that both regions return identical headers for the same content
-
 set -e
 
 echo "🔍 Verifying origin parity between US and EU regions..."
@@ -26,6 +24,7 @@ else
     echo "❌ HTML pages: US and EU differ"
     echo "US: $US_HTML"
     echo "EU: $EU_HTML"
+    exit 1
 fi
 
 # Test API endpoints
@@ -40,12 +39,14 @@ else
     echo "❌ API endpoints: US and EU differ"
     echo "US: $US_API"
     echo "EU: $EU_API"
+    exit 1
 fi
 
 # Test static chunks
 echo ""
 echo "📦 Testing static chunks..."
 CHUNK_PATH=$(curl -sSL "$US_ORIGIN/" -H 'Accept: text/html' | grep -o '/_next/static/chunks/[^"]\+\.js' | head -n1)
+
 if [ -n "$CHUNK_PATH" ]; then
     US_CHUNK=$(curl -sSI "$US_ORIGIN$CHUNK_PATH" | grep -E 'cache-control|content-type|x-static|x-mw' | sort)
     EU_CHUNK=$(curl -sSI "$EU_ORIGIN$CHUNK_PATH" | grep -E 'cache-control|content-type|x-static|x-mw' | sort)
@@ -58,6 +59,7 @@ if [ -n "$CHUNK_PATH" ]; then
         echo "   Chunk: $CHUNK_PATH"
         echo "US: $US_CHUNK"
         echo "EU: $EU_CHUNK"
+        exit 1
     fi
 else
     echo "⚠️  Could not find static chunk path"
