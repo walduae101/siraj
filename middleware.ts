@@ -2,10 +2,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-// Hard excludes for assets
-const STATIC_PREFIXES = [
-  "/_next/static",
-  "/_next/image",
+// Absolute skips
+const HARD_SKIP_PREFIXES = [
+  "/_next/",         // covers static + image + data
   "/assets",
   "/fonts",
   "/favicon.ico",
@@ -15,15 +14,18 @@ const STATIC_PREFIXES = [
 const FILE_EXT_RE = /\.(?:js|mjs|css|map|json|png|jpe?g|gif|svg|webp|ico|woff2?)$/i;
 
 export const config = {
-  // Fast-path skip at the matcher level
-  matcher: ["/((?!_next/static|_next/image|assets|fonts|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)", "/api/:path*"],
+  // Fast-path skip for anything under _next/ etc.
+  matcher: [
+    "/((?!_next/|assets|fonts|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
+    "/api/:path*",
+  ],
 };
 
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // Belt & braces: early skip for assets/files by extension
-  if (STATIC_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
+  // Belt & braces: early return if it looks like a static file
+  if (HARD_SKIP_PREFIXES.some((p) => path.startsWith(p)) || FILE_EXT_RE.test(path)) {
     return NextResponse.next();
   }
 
@@ -34,10 +36,10 @@ export function middleware(req: NextRequest) {
 
   const res = NextResponse.next();
 
-  // Verification header to prove middleware path (remove later)
+  // Verification header (remove later)
   res.headers.set("x-mw", "1");
 
-  // Security headers only
+  // Security headers ONLY (do not touch Cache-Control here)
   res.headers.set("strict-transport-security", "max-age=31536000; includeSubDomains; preload");
   res.headers.set("x-content-type-options", "nosniff");
   res.headers.set("x-frame-options", "DENY");
@@ -62,6 +64,5 @@ export function middleware(req: NextRequest) {
     ].join("; ")
   );
 
-  // ❌ Do NOT set Cache-Control here
   return res;
 }

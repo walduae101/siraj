@@ -5,25 +5,33 @@ const config = {
   experimental: { turbo: { rules: {} } },
   async headers() {
     return [
-      // Immutable static assets
+      // Immutable assets
       {
         source: "/_next/static/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "x-static", value: "1" }, // debug: proves static rule applied
+        ],
       },
-      { // Next image loader responses
+      {
         source: "/_next/image",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
       },
-      // API: never cache
+
+      // APIs: never cache
       {
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
-      // HTML: no-store (match only when the client expects HTML)
+
+      // HTML: only when Accept asks for HTML
       {
         source: "/:path*",
-        has: [{ type: "header", key: "Accept", value: ".*text/html.*" }],
-        headers: [{ key: "Cache-Control", value: "no-store" }],
+        has: [{ type: "header", key: "accept", value: ".*text/html.*" }],
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "x-html", value: "1" }, // debug
+        ],
       },
     ];
   },
