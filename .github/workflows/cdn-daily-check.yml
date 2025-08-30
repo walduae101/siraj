@@ -1,0 +1,46 @@
+name: CDN Daily Check
+
+on:
+  schedule:
+    # 05:30 UTC = 09:30 Asia/Dubai
+    - cron: '30 5 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    name: Daily CDN Header Verification
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup curl
+        run: |
+          # Ensure curl is available and working
+          curl --version
+          
+      - name: Run quick-check
+        run: |
+          echo "🔍 Running daily CDN header verification..."
+          chmod +x scripts/quick-check.sh || true
+          ./scripts/quick-check.sh
+          echo "✅ Daily check completed successfully"
+          
+      - name: Run drift monitor (if available)
+        run: |
+          if [ -f "scripts/drift-monitor.sh" ]; then
+            echo "🔍 Running drift monitor..."
+            chmod +x scripts/drift-monitor.sh
+            ./scripts/drift-monitor.sh
+            echo "✅ Drift monitor completed"
+          else
+            echo "⚠️  Drift monitor script not found, skipping"
+          fi
+          
+      - name: Report status
+        if: always()
+        run: |
+          echo "📊 Daily CDN check completed at $(date)"
+          echo "🌐 Domain: https://siraj.life"
+          echo "📅 Next check: Tomorrow at 05:30 UTC"

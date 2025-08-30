@@ -41,6 +41,40 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the r
 ## Theming
 The website's color scheme is fully configurable by editing the CSS file located at `/src/styles/globals.css`
 
+## CDN & Security
+
+Siraj is deployed with enterprise-grade CDN and security headers for optimal performance and protection.
+
+### Quick Verification Commands
+
+**HTML (expect no-store + security headers):**
+```bash
+curl -sSI https://siraj.life | egrep -i '^(HTTP|cache-control|content-type|vary|strict-transport|x-content-type-options|x-frame-options|referrer-policy|permissions-policy|content-security-policy)'
+```
+
+**API (expect JSON + no-store):**
+```bash
+curl -sSI https://siraj.life/api/health | egrep -i '^(HTTP|cache-control|content-type)'
+```
+
+**Real chunk (expect immutable, no security headers):**
+```bash
+ASSET=$(curl -s https://siraj.life | grep -oE '/_next/static/(chunks|app)/[^"]+\.js' | head -1)
+curl -sSI "https://siraj.life$ASSET" | egrep -i '^(HTTP|cache-control|content-type|age|etag)'
+```
+
+### Security Features
+- **Immutable static assets** with optimal caching
+- **HTML/API security headers** through CDN
+- **Multi-region parity** with automated enforcement
+- **CSP Report-Only** monitoring (enforcement planned for Sep 6, 2025)
+- **Daily automated checks** via GitHub Actions
+
+### Documentation
+- [**Golden Headers Contract**](./GOLDEN_HEADERS_CONTRACT.md) - Exact header requirements
+- [**CDN Configuration**](./CDN_CONFIGURATION.md) - CDN settings and behavior
+- [**Operational Runbook**](./OPERATIONAL_RUNBOOK.md) - Troubleshooting and monitoring
+
 ## Payments & Webhooks
 
 Siraj integrates with PayNow for secure payment processing with enterprise-grade monitoring and reliability. The webhook system includes comprehensive observability, security hardening, and queue-based architecture for high performance.
