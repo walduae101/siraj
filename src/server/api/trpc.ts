@@ -20,7 +20,13 @@ export async function getConfigSafely() {
     return cfg ?? {};
   } catch (e) {
     console.error("[config] getConfig failed; returning empty config", e);
-    return {};
+    return {
+      features: {
+        paynow: {
+          enabled: false,
+        },
+      },
+    };
   }
 }
 
