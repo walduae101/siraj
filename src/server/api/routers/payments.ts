@@ -17,7 +17,7 @@ export const paymentsRouter = createTRPCRouter({
   }),
 
   clientToken: publicProcedure.query(async () => {
-    const cfg = getConfig();
+    const cfg = await getConfig();
     const enabled = cfg.features?.paynow?.enabled === true;
     if (!enabled) {
       return { enabled, token: null as unknown as string };
@@ -30,7 +30,7 @@ export const paymentsRouter = createTRPCRouter({
   createIntent: publicProcedure
     .input(CreateIntentInput)
     .mutation(async ({ input }) => {
-      const cfg = getConfig();
+      const cfg = await getConfig();
       const enabled = cfg.features?.paynow?.enabled === true;
       if (!enabled) {
         return { ok: false, reason: "PAYNOW_DISABLED" as const };
