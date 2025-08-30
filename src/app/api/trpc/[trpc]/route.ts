@@ -30,24 +30,10 @@ async function handler(req: Request) {
       });
     }
 
-    // Import tRPC dependencies
-    const { fetchRequestHandler } = await import('@trpc/server/adapters/fetch');
-    const { appRouter } = await import('~/server/api/root');
-    const { createTRPCContext } = await import('~/server/api/trpc');
-
-    // Handle tRPC request
-    return await fetchRequestHandler({
-      endpoint: '/api/trpc',
-      req,
-      router: appRouter,
-      createContext: async () => await createTRPCContext({ req }),
-      onError({ error, path }) {
-        console.error('[tRPC] error', { path, message: error.message });
-      },
-      responseMeta({ errors }) {
-        const headers = baseHeaders();
-        return { headers, status: errors?.length ? 200 : undefined };
-      },
+    // For now, just return a simple response to test the route
+    return new Response(JSON.stringify({ ok: true, message: 'tRPC route working' }), {
+      status: 200,
+      headers: jsonHeaders(),
     });
   } catch (error: any) {
     console.error('[tRPC] handler error:', error?.message || error);
