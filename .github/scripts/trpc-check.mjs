@@ -27,21 +27,21 @@ function ensureHeader(headers, name, predicate, label) {
 async function attempt(i) {
   console.log(`Attempt ${i}/${MAX_ATTEMPTS}`);
 
-          // 1) HEAD probe on /api/trpc (index route)
+                  // 1) HEAD probe on /api/trpc (router route)
         {
-          const r = await head(`${BASE_URL}/api/trpc`);
-          if (!(r.status === 204 || r.status === 200)) throw new Error(`HEAD /api/trpc status ${r.status}`);
-          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'index' || v === 'router', 'HEAD /api/trpc');
-          ensureHeader(r.headers, 'cache-control', v => String(v).includes('no-store'), 'HEAD /api/trpc');
+          const r = await head(`${BASE_URL}/api/trpc/_probe`);
+          if (!(r.status === 204 || r.status === 200)) throw new Error(`HEAD /api/trpc/_probe status ${r.status}`);
+          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'HEAD /api/trpc/_probe');
+          ensureHeader(r.headers, 'cache-control', v => String(v).includes('no-store'), 'HEAD /api/trpc/_probe');
         }
 
-          // 2) Index probe
+        // 2) Router probe
         {
-          const r = await get(`${BASE_URL}/api/trpc?__probe=1`);
-          if (!r.ok) throw new Error(`GET /api/trpc?__probe=1 not ok: ${r.status}`);
-          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'index', 'GET index probe');
-          ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET index probe');
-          if (!r.body?.ok || r.body?.kind !== 'index') throw new Error('Index probe failed');
+          const r = await get(`${BASE_URL}/api/trpc/_probe?__probe=1`);
+          if (!r.ok) throw new Error(`GET router probe not ok: ${r.status}`);
+          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'GET router probe');
+          ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET router probe');
+          if (!r.body?.ok || r.body?.kind !== 'router') throw new Error('Router probe failed');
         }
 
         // 3) Router probe
