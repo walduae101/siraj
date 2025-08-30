@@ -73,7 +73,13 @@ export const adminRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const { uid, amount, reason } = input;
-      const adminUid = ctx.adminUser.uid;
+      const adminUid = ctx.adminUser?.uid;
+      if (!adminUid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Admin authentication required",
+        });
+      }
 
       // Validate amount
       if (amount === 0) {
@@ -128,7 +134,13 @@ export const adminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const adminUid = ctx.adminUser.uid;
+      const adminUid = ctx.adminUser?.uid;
+      if (!adminUid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Admin authentication required",
+        });
+      }
 
       // Convert dates to Timestamps if provided
       const productData = {
@@ -176,7 +188,13 @@ export const adminRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const adminUid = ctx.adminUser.uid;
+      const adminUid = ctx.adminUser?.uid;
+      if (!adminUid) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Admin authentication required",
+        });
+      }
 
       // Convert dates to Timestamps
       const promotionData = {
