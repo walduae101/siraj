@@ -43,7 +43,7 @@ async function coreHandler(req: Request) {
     endpoint: ENDPOINT,
     req,
     router: appRouter,
-    createContext: async () => await createTRPCContext({ req }),
+    createContext: async () => await createTRPCContext({ req, headers: req.headers }),
     onError({ error, path }) {
       // Never crash the route; keep it observable
       console.error(`[tRPC] error on "${path ?? 'unknown'}":`, {

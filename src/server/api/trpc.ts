@@ -43,9 +43,106 @@ export async function getConfigSafely(): Promise<SafeConfig> {
 }
 
 // Ensure context factory never throws and carries config explicitly
-export const createTRPCContext = async (opts: { req: Request }) => {
-  const cfg = await getConfigSafely();
-  return { req: opts.req, cfg };
+export const createTRPCContext = async (opts: { 
+  req?: Request; 
+  headers?: Headers; 
+  resHeaders?: Headers; 
+}) => {
+  try {
+    const cfg = await getConfigSafely();
+    
+    // Handle both new and old calling patterns
+    const req = opts.req;
+    const headers = opts.headers || req?.headers || new Headers();
+    const resHeaders = opts.resHeaders || new Headers();
+    
+    const payNowStorefrontHeaders: Record<string, string> = {};
+
+    // IP Address & Country Code Forwarding
+    const realIpAddress =
+      headers.get("cf-connecting-ip") ||
+      headers.get("x-real-ip") ||
+      headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+
+    const realCountryCode = headers.get("cf-ipcountry");
+
+    if (realIpAddress && isValidPublicIP(realIpAddress)) {
+      payNowStorefrontHeaders["x-paynow-customer-ip"] = realIpAddress;
+    }
+
+    if (realCountryCode && isValidCountryCode(realCountryCode)) {
+      payNowStorefrontHeaders["x-paynow-customer-countrycode"] = realCountryCode;
+    }
+
+    const pnToken = headers
+      .get("cookie")
+      ?.split(";")
+      ?.find((cookie) => cookie.trim().startsWith("pn_token="))
+      ?.split("=")[1];
+
+    // URL decode the token in case it was encoded
+    const decodedToken = pnToken ? decodeURIComponent(pnToken) : null;
+
+    if (decodedToken) {
+      // Sanitize token to prevent "Invalid character in header content" errors
+      const sanitizedToken = decodedToken
+        .trim()
+        .replace(/[\r\n\t]/g, "")
+        .replace(/[^\x20-\x7E]/g, "");
+      console.log(
+        "Setting auth header with token length:",
+        sanitizedToken.length,
+      );
+      console.log("Original token length:", decodedToken.length);
+      console.log("Token has control chars:", decodedToken !== sanitizedToken);
+      payNowStorefrontHeaders.Authorization = `Customer ${sanitizedToken}`;
+    }
+
+    // Extract Firebase auth token
+    let firebaseUser: {
+      uid: string;
+      email?: string;
+      [key: string]: unknown;
+    } | null = null;
+    const authHeader = headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const auth = await getAdminAuth();
+        firebaseUser = await auth.verifyIdToken(token);
+        console.log("Firebase user authenticated:", firebaseUser.uid);
+      } catch (error) {
+        console.error("Failed to verify Firebase token:", {
+          error: error instanceof Error ? error.message : String(error),
+          tokenLength: token.length,
+          tokenPrefix: `${token.substring(0, 20)}...`,
+        });
+      }
+    } else {
+      if (authHeader) {
+        console.warn("Invalid auth header format:", authHeader.substring(0, 50));
+      }
+    }
+
+    return {
+      headers,
+      resHeaders,
+      payNowStorefrontHeaders,
+      firebaseUser,
+      cfg,
+      req,
+    };
+  } catch (e) {
+    console.error("[tRPC] createTRPCContext failed; using minimal context");
+    return {
+      headers: opts.headers || new Headers(),
+      resHeaders: opts.resHeaders || new Headers(),
+      payNowStorefrontHeaders: {},
+      firebaseUser: null,
+      cfg: DEFAULT_SAFE_CONFIG,
+      req: opts.req,
+    };
+  }
 };
 
 export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;

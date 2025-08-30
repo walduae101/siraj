@@ -1,8 +1,12 @@
 export default interface Context {
-  req: Request;
+  headers: Headers;
+  resHeaders: Headers;
+  payNowStorefrontHeaders: Record<string, string>;
+  firebaseUser: { uid: string; email?: string; [key: string]: unknown } | null;
   cfg: {
     features: {
       paynow: { enabled: boolean; methods: string[] };
     };
   };
+  req?: Request;
 }
