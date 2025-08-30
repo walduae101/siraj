@@ -7,6 +7,7 @@ import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
 import { features } from "~/config/features";
 import { getFirebaseAuth } from "~/lib/firebase/client";
+import DashboardCards from "~/components/dashboard/DashboardCards";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,6 +31,11 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8" dir="rtl">
       <h1 className="mb-8 font-bold text-3xl">لوحة التحكم</h1>
+
+      {/* Dashboard Cards */}
+      <div className="mb-8">
+        <DashboardCards />
+      </div>
 
       {/* Points/Wallet Section */}
       {features.pointsClient && (
