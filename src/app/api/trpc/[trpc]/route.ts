@@ -12,7 +12,12 @@ function trpcHandler(req: Request) {
       req,
       router: appRouter,
       // NOTE: createTRPCContext is async; adapter supports async
-      createContext: createTRPCContext,
+      createContext: async ({ resHeaders }) => {
+        return await createTRPCContext({
+          headers: req.headers,
+          resHeaders,
+        });
+      },
       onError({ path, error, type, req }) {
         const msg = `[tRPC] path=${path ?? "(root)"} type=${type} code=${error.code} msg=${error.message}`;
         console.error(msg);
