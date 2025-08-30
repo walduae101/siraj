@@ -24,8 +24,7 @@ const DEFAULT_SAFE_CONFIG: SafeConfig = {
 
 async function getConfigSafely(): Promise<SafeConfig> {
   try {
-    // If a project getConfig() exists, prefer it (lazy import to avoid top-level crashes)
-    const mod = await import('../config'); // adjust if your getConfig() lives elsewhere
+    const mod = await import('~/server/config'); // adjust if actual path differs
     const raw: any = await (mod as any).getConfig?.();
     return {
       features: {
@@ -47,17 +46,13 @@ async function getConfigSafely(): Promise<SafeConfig> {
  */
 export async function createTRPCContext(input: { req?: Request; headers?: Headers; resHeaders?: Headers }) {
   const cfg = await getConfigSafely();
-
-  // Legacy compatibility: expose headers/resHeaders if provided
   const headers = input.headers ?? input.req?.headers;
   const resHeaders = input.resHeaders ?? new Headers();
-
-  // If you previously had auth user on context, keep a null-safe placeholder
-  const firebaseUser: { uid: string; email?: string; [key: string]: unknown } | null = null;
-  const adminUser: { uid: string; email?: string; [key: string]: unknown } | null = null;
+  const firebaseUser = null; // placeholder to satisfy legacy access
+  const adminUser = null;    // placeholder if legacy admin code reads it
 
   return {
-    req: input.req ?? new Request('http://local.fake'), // harmless placeholder if not provided
+    req: input.req ?? new Request('http://local.invalid'), // harmless placeholder
     headers: headers ?? new Headers(),
     resHeaders,
     payNowStorefrontHeaders: {}, // Add missing field
