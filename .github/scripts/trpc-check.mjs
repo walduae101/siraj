@@ -27,39 +27,48 @@ function ensureHeader(headers, name, predicate, label) {
 async function attempt(i) {
   console.log(`Attempt ${i}/${MAX_ATTEMPTS}`);
 
-  // 1) HEAD probe on /api/trpc
-  {
-    const r = await head(`${BASE_URL}/api/trpc`);
-    if (!(r.status === 204 || r.status === 200)) throw new Error(`HEAD /api/trpc status ${r.status}`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'HEAD /api/trpc');
-    ensureHeader(r.headers, 'cache-control', v => String(v).includes('no-store'), 'HEAD /api/trpc');
-  }
+          // 1) HEAD probe on /api/trpc (index route)
+        {
+          const r = await head(`${BASE_URL}/api/trpc`);
+          if (!(r.status === 204 || r.status === 200)) throw new Error(`HEAD /api/trpc status ${r.status}`);
+          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'index' || v === 'router', 'HEAD /api/trpc');
+          ensureHeader(r.headers, 'cache-control', v => String(v).includes('no-store'), 'HEAD /api/trpc');
+        }
 
-  // 2) Explicit probe
-  {
-    const r = await get(`${BASE_URL}/api/trpc/_probe?__probe=1`);
-    if (!r.ok) throw new Error(`GET probe not ok: ${r.status}`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'GET probe');
-    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET probe');
-    if (!r.body?.ok) throw new Error('Probe body missing ok=true');
-  }
+          // 2) Index probe
+        {
+          const r = await get(`${BASE_URL}/api/trpc?__probe=1`);
+          if (!r.ok) throw new Error(`GET /api/trpc?__probe=1 not ok: ${r.status}`);
+          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'index', 'GET index probe');
+          ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET index probe');
+          if (!r.body?.ok || r.body?.kind !== 'index') throw new Error('Index probe failed');
+        }
 
-  // 3) payments.methods
-  {
-    const r = await get(`${BASE_URL}/api/trpc/payments.methods?input=%7B%7D`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'payments.methods');
-    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'payments.methods');
-    if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`payments.methods error: ${JSON.stringify(r.body)}`);
-  }
+        // 3) Router probe
+        {
+          const r = await get(`${BASE_URL}/api/trpc/_probe?__probe=1`);
+          if (!r.ok) throw new Error(`GET router probe not ok: ${r.status}`);
+          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'GET router probe');
+          ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET router probe');
+          if (!r.body?.ok || r.body?.kind !== 'router') throw new Error('Router probe failed');
+        }
 
-  // 4) receipts.list page=1 pageSize=2
-  {
-    const input = encodeURIComponent(JSON.stringify({ page: 1, pageSize: 2 }));
-    const r = await get(`${BASE_URL}/api/trpc/receipts.list?input=${input}`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'receipts.list');
-    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'receipts.list');
-    if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`receipts.list error: ${JSON.stringify(r.body)}`);
-  }
+          // 4) payments.methods
+        {
+          const r = await get(`${BASE_URL}/api/trpc/payments.methods?input=%7B%7D`);
+          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'payments.methods');
+          ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'payments.methods');
+          if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`payments.methods error: ${JSON.stringify(r.body)}`);
+        }
+
+        // 5) receipts.list page=1 pageSize=2
+        {
+          const input = encodeURIComponent(JSON.stringify({ page: 1, pageSize: 2 }));
+          const r = await get(`${BASE_URL}/api/trpc/receipts.list?input=${input}`);
+          ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'receipts.list');
+          ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'receipts.list');
+          if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`receipts.list error: ${JSON.stringify(r.body)}`);
+        }
 }
 
 (async () => {

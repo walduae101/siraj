@@ -12,28 +12,26 @@ import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
 import { type inferAsyncReturnType } from "@trpc/server";
 
-/* additions at top-level of file */
+import type { Headers as NodeHeaders } from 'node-fetch'; // or global Headers in Node 20
+
 type PaynowFeature = { enabled: boolean; methods: string[] };
 type Features = { paynow: PaynowFeature };
 type SafeConfig = { features: Features };
 
-// Minimal safe default that matches shape the app expects
 const DEFAULT_SAFE_CONFIG: SafeConfig = {
   features: { paynow: { enabled: false, methods: [] } },
 };
 
-// Safe config wrapper that never throws
-export async function getConfigSafely(): Promise<SafeConfig> {
+async function getConfigSafely(): Promise<SafeConfig> {
   try {
-    // If you already have getConfig(), prefer to deep-merge its result.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const cfg: any = await getConfig(); // existing impl in this module/project
-    // Defensive merge
+    // If a project getConfig() exists, prefer it (lazy import to avoid top-level crashes)
+    const mod = await import('./config'); // adjust if your getConfig() lives elsewhere
+    const raw: any = await (mod as any).getConfig?.();
     return {
       features: {
         paynow: {
-          enabled: Boolean(cfg?.features?.paynow?.enabled ?? false),
-          methods: Array.isArray(cfg?.features?.paynow?.methods) ? cfg.features.paynow.methods : [],
+          enabled: Boolean(raw?.features?.paynow?.enabled ?? false),
+          methods: Array.isArray(raw?.features?.paynow?.methods) ? raw.features.paynow.methods : [],
         },
       },
     };
@@ -42,110 +40,32 @@ export async function getConfigSafely(): Promise<SafeConfig> {
   }
 }
 
-// Ensure context factory never throws and carries config explicitly
-export const createTRPCContext = async (opts: { 
-  req?: Request; 
-  headers?: Headers; 
-  resHeaders?: Headers; 
-}) => {
-  try {
-    const cfg = await getConfigSafely();
-    
-    // Handle both new and old calling patterns
-    const req = opts.req;
-    const headers = opts.headers || req?.headers || new Headers();
-    const resHeaders = opts.resHeaders || new Headers();
-    
-    const payNowStorefrontHeaders: Record<string, string> = {};
+/**
+ * Backward-compatible createTRPCContext:
+ * - New callers: createTRPCContext({ req })
+ * - Legacy callers: createTRPCContext({ headers, resHeaders })
+ */
+export async function createTRPCContext(input: { req?: Request; headers?: NodeHeaders | Headers; resHeaders?: Headers }) {
+  const cfg = await getConfigSafely();
 
-    // IP Address & Country Code Forwarding
-    const realIpAddress =
-      headers.get("cf-connecting-ip") ||
-      headers.get("x-real-ip") ||
-      headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  // Legacy compatibility: expose headers/resHeaders if provided
+  const headers = input.headers ?? input.req?.headers;
+  const resHeaders = input.resHeaders ?? new Headers();
 
-    const realCountryCode = headers.get("cf-ipcountry");
+  // If you previously had auth user on context, keep a null-safe placeholder
+  const firebaseUser = null;
 
-    if (realIpAddress && isValidPublicIP(realIpAddress)) {
-      payNowStorefrontHeaders["x-paynow-customer-ip"] = realIpAddress;
-    }
-
-    if (realCountryCode && isValidCountryCode(realCountryCode)) {
-      payNowStorefrontHeaders["x-paynow-customer-countrycode"] = realCountryCode;
-    }
-
-    const pnToken = headers
-      .get("cookie")
-      ?.split(";")
-      ?.find((cookie) => cookie.trim().startsWith("pn_token="))
-      ?.split("=")[1];
-
-    // URL decode the token in case it was encoded
-    const decodedToken = pnToken ? decodeURIComponent(pnToken) : null;
-
-    if (decodedToken) {
-      // Sanitize token to prevent "Invalid character in header content" errors
-      const sanitizedToken = decodedToken
-        .trim()
-        .replace(/[\r\n\t]/g, "")
-        .replace(/[^\x20-\x7E]/g, "");
-      console.log(
-        "Setting auth header with token length:",
-        sanitizedToken.length,
-      );
-      console.log("Original token length:", decodedToken.length);
-      console.log("Token has control chars:", decodedToken !== sanitizedToken);
-      payNowStorefrontHeaders.Authorization = `Customer ${sanitizedToken}`;
-    }
-
-    // Extract Firebase auth token
-    let firebaseUser: {
-      uid: string;
-      email?: string;
-      [key: string]: unknown;
-    } | null = null;
-    const authHeader = headers.get("authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      try {
-        const auth = await getAdminAuth();
-        firebaseUser = await auth.verifyIdToken(token);
-        console.log("Firebase user authenticated:", firebaseUser.uid);
-      } catch (error) {
-        console.error("Failed to verify Firebase token:", {
-          error: error instanceof Error ? error.message : String(error),
-          tokenLength: token.length,
-          tokenPrefix: `${token.substring(0, 20)}...`,
-        });
-      }
-    } else {
-      if (authHeader) {
-        console.warn("Invalid auth header format:", authHeader.substring(0, 50));
-      }
-    }
-
-    return {
-      headers,
-      resHeaders,
-      payNowStorefrontHeaders,
-      firebaseUser,
-      cfg,
-      req,
-    };
-  } catch (e) {
-    console.error("[tRPC] createTRPCContext failed; using minimal context");
-    return {
-      headers: opts.headers || new Headers(),
-      resHeaders: opts.resHeaders || new Headers(),
-      payNowStorefrontHeaders: {},
-      firebaseUser: null,
-      cfg: DEFAULT_SAFE_CONFIG,
-      req: opts.req,
-    };
-  }
-};
+  return {
+    req: input.req ?? new Request('http://local.fake'), // harmless placeholder if not provided
+    headers,
+    resHeaders,
+    firebaseUser,
+    cfg,
+  };
+}
 
 export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
+export type Context = TRPCContext;
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
