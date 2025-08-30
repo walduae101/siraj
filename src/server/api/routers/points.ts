@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { pointsService } from "../../services/points";
-import { protectedProcedure } from "../trpc";
 import { zCredit, zGetLedger, zSpend, zSpendPreview } from "../schema/points";
+import { protectedProcedure } from "../trpc";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
 export const pointsRouter = createTRPCRouter({
