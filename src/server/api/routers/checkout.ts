@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { features } from "~/config/features";
-import { protectedProcedure } from "~/server/api/protectedCompat";
+import { protectedProcedure } from "~/server/api/trpc";
 import {
   checkoutCompleteInput,
   checkoutPreviewInput,

@@ -1,2 +1,2 @@
-import { protectedProcedure } from "~/server/api/protectedCompat";
+import { protectedProcedure } from "~/server/api/trpc";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";

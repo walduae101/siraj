@@ -11,8 +11,8 @@ export const receiptsRouter = createTRPCRouter({
   byId: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
     .query(async ({ input }) => {
-      const { getReceiptById } = await import('~/server/services/receipts.service');
-      return await getReceiptById("demo", input.id);
+      const { getReceipt } = await import('~/server/services/receipts.service');
+      return await getReceipt("demo", input.id);
     }),
 });
 

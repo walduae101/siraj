@@ -4,7 +4,7 @@ import superjson from "superjson";
 
 import { ZodError } from "zod";
 
-import type Context from "./types/context";
+
 
 import { TRPCError } from "@trpc/server";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
@@ -12,7 +12,7 @@ import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
 import { type inferAsyncReturnType } from "@trpc/server";
 
-import type { Headers as NodeHeaders } from 'node-fetch'; // or global Headers in Node 20
+
 
 type PaynowFeature = { enabled: boolean; methods: string[] };
 type Features = { paynow: PaynowFeature };
@@ -25,7 +25,7 @@ const DEFAULT_SAFE_CONFIG: SafeConfig = {
 async function getConfigSafely(): Promise<SafeConfig> {
   try {
     // If a project getConfig() exists, prefer it (lazy import to avoid top-level crashes)
-    const mod = await import('./config'); // adjust if your getConfig() lives elsewhere
+    const mod = await import('../config'); // adjust if your getConfig() lives elsewhere
     const raw: any = await (mod as any).getConfig?.();
     return {
       features: {
@@ -45,7 +45,7 @@ async function getConfigSafely(): Promise<SafeConfig> {
  * - New callers: createTRPCContext({ req })
  * - Legacy callers: createTRPCContext({ headers, resHeaders })
  */
-export async function createTRPCContext(input: { req?: Request; headers?: NodeHeaders | Headers; resHeaders?: Headers }) {
+export async function createTRPCContext(input: { req?: Request; headers?: Headers; resHeaders?: Headers }) {
   const cfg = await getConfigSafely();
 
   // Legacy compatibility: expose headers/resHeaders if provided
@@ -53,13 +53,14 @@ export async function createTRPCContext(input: { req?: Request; headers?: NodeHe
   const resHeaders = input.resHeaders ?? new Headers();
 
   // If you previously had auth user on context, keep a null-safe placeholder
-  const firebaseUser = null;
-  const adminUser = null;
+  const firebaseUser: { uid: string; email?: string; [key: string]: unknown } | null = null;
+  const adminUser: { uid: string; email?: string; [key: string]: unknown } | null = null;
 
   return {
     req: input.req ?? new Request('http://local.fake'), // harmless placeholder if not provided
-    headers,
+    headers: headers ?? new Headers(),
     resHeaders,
+    payNowStorefrontHeaders: {}, // Add missing field
     firebaseUser,
     adminUser,
     cfg,
@@ -67,7 +68,21 @@ export async function createTRPCContext(input: { req?: Request; headers?: NodeHe
 }
 
 export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
-export type Context = TRPCContext;
+export type Context = {
+  headers: Headers;
+  resHeaders: Headers;
+  payNowStorefrontHeaders: Record<string, string>;
+  firebaseUser: { uid: string; email?: string; [key: string]: unknown } | null;
+  adminUser: { uid: string; email?: string; [key: string]: unknown } | null;
+  user?: { uid: string; email?: string; [key: string]: unknown };
+  userId?: string;
+  cfg: {
+    features: {
+      paynow: { enabled: boolean; methods: string[] };
+    };
+  };
+  req?: Request;
+};
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
@@ -96,7 +111,8 @@ export const publicProcedure = t.procedure;
 
 // Admin procedure that checks for admin claims
 export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  if (!ctx.firebaseUser?.uid) {
+  const typedCtx = ctx as Context;
+  if (!typedCtx.firebaseUser?.uid) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Authentication required",
@@ -105,7 +121,7 @@ export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
   // Check admin claims
   const auth = await getAdminAuth();
-  const userRecord = await auth.getUser(ctx.firebaseUser.uid);
+  const userRecord = await auth.getUser(typedCtx.firebaseUser.uid);
 
   if (!userRecord.customClaims?.admin) {
     throw new TRPCError({
@@ -116,15 +132,16 @@ export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
   return next({
     ctx: {
-      ...ctx,
-      adminUser: ctx.firebaseUser,
+      ...typedCtx,
+      adminUser: typedCtx.firebaseUser as { uid: string; email?: string; [key: string]: unknown },
     },
   });
 });
 
 // Protected procedure for authenticated users
 export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  if (!ctx.firebaseUser?.uid) {
+  const typedCtx = ctx as Context;
+  if (!typedCtx.firebaseUser?.uid) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Authentication required",
@@ -133,9 +150,9 @@ export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
   return next({
     ctx: {
-      ...ctx,
-      user: ctx.firebaseUser,
-      userId: ctx.firebaseUser.uid,
+      ...typedCtx,
+      user: typedCtx.firebaseUser as { uid: string; email?: string; [key: string]: unknown },
+      userId: typedCtx.firebaseUser.uid,
     },
   });
 });

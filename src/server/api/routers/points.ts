@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { pointsService } from "../../services/points";
-import { protectedProcedure } from "../protectedCompat";
+import { protectedProcedure } from "../trpc";
 import { zCredit, zGetLedger, zSpend, zSpendPreview } from "../schema/points";
 import { createTRPCRouter, publicProcedure } from "../trpc";
 
