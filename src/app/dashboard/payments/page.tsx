@@ -1,33 +1,61 @@
-import { api } from "~/trpc/react";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useEffect, useState } from "react";
+import { api } from "~/trpc/react";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
 export default function PaymentsPage() {
-  // If you already expose feature flags via a tRPC endpoint or config hook, use it.
-  // For now, read from a public endpoint or assume false to show "Coming soon".
-  // TODO: wire to real feature flag endpoint (features.paynow.enabled)
-  const payNowEnabled = false;
+  const { data: methods } = api.payments.methods.useQuery();
+  const { data: tokenData } = api.payments.clientToken.useQuery();
+  const createIntent = api.payments.createIntent.useMutation();
+
+  const [amount, setAmount] = useState<number>(50);
+
+  const enabled = tokenData?.enabled === true;
+  const disabledMsg = "PayNow is currently disabled. Please check back soon.";
+
+  useEffect(() => {
+    // no-op; we just want to ensure hooks mount without flicker
+  }, []);
 
   return (
-    <main className="container max-w-4xl py-6" dir="rtl">
-      <h1 className="font-semibold text-2xl">المدفوعات</h1>
-      {!payNowEnabled ? (
-        <div className="mt-4 rounded-lg border p-4">
-          <div className="font-medium">PayNow قريباً</div>
-          <p className="mt-1 text-muted-foreground text-sm">
-            نحن ننهي تكامل بوابة الدفع. ستتمكن من إضافة طريقة دفع والدفع بالدرهم
-            الإماراتي.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-4 rounded-lg border p-4">
-          <div className="font-medium">إضافة طريقة دفع</div>
-          <p className="mt-1 text-muted-foreground text-sm">
-            ادفع بأمان مع PayNow.
-          </p>
-          {/* TODO: Insert real PayNow entry point when enabled */}
-        </div>
-      )}
-    </main>
+    <div className="mx-auto max-w-2xl space-y-4" dir="rtl">
+      <Card>
+        <CardHeader>
+          <CardTitle>طرق الدفع / Payment Methods</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="text-sm opacity-80">Available: {methods?.join(", ") || "…"}</div>
+          {!enabled && (
+            <div className="rounded-md bg-amber-50 p-3 text-amber-900 text-sm">{disabledMsg}</div>
+          )}
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              className="input input-bordered w-32 rounded-md border px-2 py-1"
+              value={amount}
+              min={1}
+              onChange={(e) => setAmount(Number(e.target.value || 0))}
+              disabled={!enabled}
+            />
+            <Button
+              disabled={!enabled || createIntent.isPending}
+              onClick={async () => {
+                const res = await createIntent.mutateAsync({ amount, currency: "AED", provider: "paynow" });
+                if (res.ok && res.redirectUrl) {
+                  window.location.href = res.redirectUrl;
+                }
+              }}
+            >
+              {createIntent.isPending ? "Processing…" : "Pay AED"}
+            </Button>
+          </div>
+          {enabled && tokenData?.token && (
+            <div className="text-xs text-muted-foreground">Client token ready.</div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
