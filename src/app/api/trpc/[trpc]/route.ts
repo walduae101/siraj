@@ -43,7 +43,7 @@ async function coreHandler(req: Request) {
     endpoint: ENDPOINT,
     req,
     router: appRouter,
-    createContext: async () => await createTRPCContext({ req, headers: req.headers }),
+    createContext: async () => await createTRPCContext({ req }),
     onError({ error, path }) {
       // Never crash the route; keep it observable
       console.error(`[tRPC] error on "${path ?? 'unknown'}":`, {
@@ -62,5 +62,8 @@ async function coreHandler(req: Request) {
     },
   });
 }
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export { coreHandler as GET, coreHandler as POST, coreHandler as OPTIONS, coreHandler as HEAD };
