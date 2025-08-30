@@ -49,14 +49,14 @@ export function LedgerTable({
   const q = api.points.ledger.useInfiniteQuery(
     { uid, limit: pageSize },
     {
-      getNextPageParam: (last) => last?.nextCursor,
+      getNextPageParam: (last: any) => last?.nextCursor,
       staleTime: 10_000,
       enabled: !!uid && on, // Only run when uid is available and feature is enabled
     },
   );
 
   const rows = React.useMemo(
-    () => (q.data?.pages ?? []).flatMap((p) => p.items ?? []),
+    () => (q.data?.pages ?? []).flatMap((p: any) => p.items ?? []),
     [q.data?.pages],
   );
 

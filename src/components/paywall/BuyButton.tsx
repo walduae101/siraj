@@ -23,13 +23,13 @@ export function BuyButton({
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   const createCheckout = api.checkout?.create?.useMutation({
-    onSuccess: (res) => {
+    onSuccess: (res: any) => {
       if (res?.url) {
         setIsRedirecting(true);
         window.location.href = res.url;
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Checkout failed:", error);
       console.error("Full error details:", {
         message: error.message,

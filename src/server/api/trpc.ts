@@ -54,12 +54,14 @@ export async function createTRPCContext(input: { req?: Request; headers?: NodeHe
 
   // If you previously had auth user on context, keep a null-safe placeholder
   const firebaseUser = null;
+  const adminUser = null;
 
   return {
     req: input.req ?? new Request('http://local.fake'), // harmless placeholder if not provided
     headers,
     resHeaders,
     firebaseUser,
+    adminUser,
     cfg,
   };
 }

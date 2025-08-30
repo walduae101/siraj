@@ -42,8 +42,8 @@ export default function PaymentsPage() {
             <Button
               disabled={!enabled || createIntent.isPending}
               onClick={async () => {
-                const res = await createIntent.mutateAsync({ amount, currency: "AED", provider: "paynow" });
-                if (res.ok && res.redirectUrl) {
+                const res = await createIntent.mutateAsync({ amount, currency: "AED", returnUrl: window.location.href });
+                if (res.enabled && res.redirectUrl) {
                   window.location.href = res.redirectUrl;
                 }
               }}

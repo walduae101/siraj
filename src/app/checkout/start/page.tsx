@@ -57,7 +57,7 @@ function CheckoutStartContent() {
 
   const router = useRouter();
   const createCheckout = api.checkout?.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.url) {
         window.location.href = data.url; // Redirect to PayNow hosted checkout
       }

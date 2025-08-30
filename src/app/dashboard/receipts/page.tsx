@@ -9,7 +9,7 @@ export default function ReceiptsPage() {
   const { data } = api.receipts.list.useQuery({ page: 1, pageSize: 20 });
   const [selected, setSelected] = useState<string | null>(null);
   const receipt = api.receipts.byId.useQuery(
-    { receiptId: selected ?? "" },
+    { id: selected ?? "" },
     { enabled: !!selected }
   );
 
@@ -28,7 +28,7 @@ export default function ReceiptsPage() {
               </tr>
             </thead>
             <tbody>
-            {data?.data?.map((r, idx) => (
+            {data?.map((r, idx) => (
               <tr key={r.id} className="border-b last:border-0">
                 <td className="py-2">{idx+1}</td>
                 <td className="py-2">AED {r.total.toFixed(2)}</td>
@@ -47,12 +47,12 @@ export default function ReceiptsPage() {
         <CardHeader><CardTitle>التفاصيل / Details</CardTitle></CardHeader>
         <CardContent className="space-y-2">
           {!selected && <div className="text-sm opacity-70">Select a receipt…</div>}
-          {selected && receipt.data?.data && (
+          {selected && receipt.data && (
             <div className="space-y-2">
-              <div className="font-medium">{receipt.data.data.merchant ?? "Siraj"}</div>
-              <div className="text-sm">ID: {receipt.data.data.id}</div>
-              <div className="text-sm">Total: AED {receipt.data.data.total.toFixed(2)}</div>
-              <div className="text-sm">Date: {new Date(receipt.data.data.issuedAt).toLocaleString("ar-AE")}</div>
+              <div className="font-medium">{receipt.data.merchant ?? "Siraj"}</div>
+              <div className="text-sm">ID: {receipt.data.id}</div>
+              <div className="text-sm">Total: AED {receipt.data.total.toFixed(2)}</div>
+              <div className="text-sm">Date: {new Date(receipt.data.issuedAt).toLocaleString("ar-AE")}</div>
             </div>
           )}
         </CardContent>
