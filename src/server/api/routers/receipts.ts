@@ -1,23 +1,21 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import { listReceipts, getReceipt } from "~/server/services/receipts.service";
 
 export const receiptsRouter = createTRPCRouter({
-  list: protectedProcedure
+  list: publicProcedure
     .input(z.object({ page: z.number().default(1), pageSize: z.number().default(20) }).optional())
-    .query(async ({ input, ctx }) => {
+    .query(async ({ input }) => {
       const page = input?.page ?? 1;
       const pageSize = input?.pageSize ?? 20;
-      const uid = ctx.userId ?? "demo";
-      const data = await listReceipts(uid, page, pageSize);
+      const data = await listReceipts("demo", page, pageSize);
       return { data, page, pageSize };
     }),
 
-  byId: protectedProcedure
-    .input(z.object({ receiptId: z.string(), userId: z.string().optional() }))
-    .query(async ({ input, ctx }) => {
-      const uid = input.userId ?? ctx.userId ?? "demo";
-      const data = await getReceipt(uid, input.receiptId);
+  byId: publicProcedure
+    .input(z.object({ id: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const data = await getReceipt("demo", input.id);
       return { data };
     }),
 });

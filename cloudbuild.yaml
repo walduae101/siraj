@@ -113,6 +113,23 @@ steps:
         ./scripts/quick-check.sh
         echo "✅ Quick check passed"
 
+  # 1g. tRPC post-deploy checks (prod)
+  - name: 'gcr.io/cloud-builders/bash'
+    id: trpc-postdeploy
+    entrypoint: bash
+    args:
+      - -lc
+      - |
+        set -euo pipefail
+        echo "🔍 Running tRPC post-deploy checks..."
+        node -v
+        node .github/scripts/trpc-check.mjs
+        echo "✅ tRPC checks passed"
+    env:
+      - BASE_URL=https://siraj.life
+      - MAX_ATTEMPTS=30
+      - SLEEP_SECONDS=20
+
 substitutions:
   _URL_MAP: siraj-web-map
   _SERVICE_US: siraj

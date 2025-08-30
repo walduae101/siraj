@@ -17,15 +17,17 @@ export async function getConfigSafely() {
   try {
     const { getConfig } = await import("~/server/config");
     const cfg = await getConfig();
-    return cfg ?? {};
-  } catch (e) {
-    console.error("[config] getConfig failed; returning empty config", e);
+    // Guarantee a predictable shape even if cfg is undefined/partial
     return {
       features: {
-        paynow: {
-          enabled: false,
-        },
+        paynow: { enabled: Boolean(cfg?.features?.paynow?.enabled) },
       },
+      ...cfg,
+    };
+  } catch (e) {
+    console.error("[config] getConfig failed; returning safe defaults");
+    return {
+      features: { paynow: { enabled: false } },
     };
   }
 }
@@ -38,10 +40,13 @@ export const createTRPCContext = async ({
   resHeaders: Headers;
 }): Promise<Context> => {
   try {
+    // Put your existing auth/session/db wiring here if any.
+    // Must never throw. If any step fails, fall through to minimal ctx.
+    const cfg = await getConfigSafely();
+    
     const payNowStorefrontHeaders: Record<string, string> = {};
 
     // IP Address & Country Code Forwarding
-
     const realIpAddress =
       headers.get("cf-connecting-ip") ||
       headers.get("x-real-ip") ||
@@ -112,14 +117,16 @@ export const createTRPCContext = async ({
       resHeaders,
       payNowStorefrontHeaders,
       firebaseUser,
+      cfg,
     };
   } catch (e) {
-    console.error("[tRPC] createTRPCContext failed; falling back to minimal context", e);
+    console.error("[tRPC] createTRPCContext failed; using minimal context");
     return {
       headers,
       resHeaders,
       payNowStorefrontHeaders: {},
       firebaseUser: null,
+      cfg: { features: { paynow: { enabled: false } } },
     };
   }
 };
