@@ -1,110 +1,62 @@
 "use client";
 
-import { useState } from "react";
 import { api } from "~/trpc/react";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
 
 export default function ReceiptsPage() {
-  const { data, isLoading } = api.receipts.list.useQuery();
+  const { data } = api.receipts.list.useQuery({ page: 1, pageSize: 20 });
   const [selected, setSelected] = useState<string | null>(null);
-  const { data: detail } = api.receipts.get.useQuery(
-    { id: selected ?? "" },
-    { enabled: !!selected },
+  const receipt = api.receipts.byId.useQuery(
+    { receiptId: selected ?? "" },
+    { enabled: !!selected }
   );
 
   return (
-    <main className="container max-w-5xl py-6" dir="rtl">
-      <h1 className="font-semibold text-2xl">الإيصالات</h1>
-      <div className="mt-4 rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40">
-            <tr>
-              <th className="p-3 text-right">الرقم</th>
-              <th className="p-3 text-right">تاريخ الإنشاء</th>
-              <th className="p-3 text-right">المبلغ</th>
-              <th className="p-3 text-right">الحالة</th>
-              <th className="p-3 text-right">الإجراء</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
-              <tr>
-                <td className="p-3" colSpan={5}>
-                  جارٍ التحميل...
-                </td>
+    <div className="grid gap-4 lg:grid-cols-2" dir="rtl">
+      <Card>
+        <CardHeader><CardTitle>الإيصالات / Receipts</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="py-2">#</th>
+                <th className="py-2">Total</th>
+                <th className="py-2">Date</th>
+                <th className="py-2"></th>
               </tr>
-            )}
-            {data?.map((r: any) => (
-              <tr key={r.id} className="border-t">
-                <td className="p-3">{r.id}</td>
-                <td className="p-3">
-                  {new Date(r.createdAt).toLocaleString("ar-SA")}
-                </td>
-                <td className="p-3">
-                  {(r.amount / 100).toFixed(2)} درهم إماراتي
-                </td>
-                <td className="p-3 capitalize">
-                  {r.status === "success"
-                    ? "نجح"
-                    : r.status === "refunded"
-                      ? "مسترد"
-                      : "فشل"}
-                </td>
-                <td className="p-3">
-                  <button
-                    className="underline"
-                    onClick={() => setSelected(r.id)}
-                  >
-                    عرض
-                  </button>
+            </thead>
+            <tbody>
+            {data?.data?.map((r, idx) => (
+              <tr key={r.id} className="border-b last:border-0">
+                <td className="py-2">{idx+1}</td>
+                <td className="py-2">AED {r.total.toFixed(2)}</td>
+                <td className="py-2">{new Date(r.issuedAt).toLocaleDateString("ar-AE")}</td>
+                <td className="py-2">
+                  <Button variant="secondary" size="sm" onClick={() => setSelected(r.id)}>Details</Button>
                 </td>
               </tr>
             ))}
-            {!isLoading && !data?.length && (
-              <tr>
-                <td className="p-3" colSpan={5}>
-                  لا توجد إيصالات بعد.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
 
-      {detail && (
-        <div className="mt-6 rounded-lg border p-4">
-          <div className="font-medium">تفاصيل الإيصال</div>
-          <div className="mt-2 grid gap-2 md:grid-cols-2">
-            <div>
-              <span className="text-muted-foreground">الرقم:</span> {detail.id}
+      <Card>
+        <CardHeader><CardTitle>التفاصيل / Details</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {!selected && <div className="text-sm opacity-70">Select a receipt…</div>}
+          {selected && receipt.data?.data && (
+            <div className="space-y-2">
+              <div className="font-medium">{receipt.data.data.merchant ?? "Siraj"}</div>
+              <div className="text-sm">ID: {receipt.data.data.id}</div>
+              <div className="text-sm">Total: AED {receipt.data.data.total.toFixed(2)}</div>
+              <div className="text-sm">Date: {new Date(receipt.data.data.issuedAt).toLocaleString("ar-AE")}</div>
             </div>
-            <div>
-              <span className="text-muted-foreground">تاريخ الإنشاء:</span>{" "}
-              {new Date(detail.createdAt).toLocaleString("ar-SA")}
-            </div>
-            <div>
-              <span className="text-muted-foreground">المبلغ:</span>{" "}
-              {(detail.amount / 100).toFixed(2)} درهم إماراتي
-            </div>
-            <div>
-              <span className="text-muted-foreground">الحالة:</span>{" "}
-              {detail.status === "success"
-                ? "نجح"
-                : detail.status === "refunded"
-                  ? "مسترد"
-                  : "فشل"}
-            </div>
-          </div>
-          <div className="mt-3 text-muted-foreground text-sm">
-            {detail.description ?? "—"}
-          </div>
-          <div className="mt-4">
-            {/* Placeholder; Sprint 2 will add PDF export & storage-backed downloads */}
-            <button className="rounded-md border px-3 py-1.5">
-              تصدير PDF (قريباً)
-            </button>
-          </div>
-        </div>
-      )}
-    </main>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
