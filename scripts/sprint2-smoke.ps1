@@ -11,7 +11,7 @@ Write-Host "tRPC: payments.clientToken"
 $token = (curl.exe -sS "https://siraj.life/api/trpc/payments.clientToken?input=%7B%7D") | Out-String
 if ($LASTEXITCODE -ne 0) { throw "payments.clientToken failed" }
 
-Write-Host "tRPC: receipts.list (first page)"
+Write-Host "tRPC: receipts.list page=1"
 $receipts = (curl.exe -sS "https://siraj.life/api/trpc/receipts.list?input=%7B%22page%22:1,%22pageSize%22:20%7D") | Out-String
 if ($LASTEXITCODE -ne 0) { throw "receipts.list failed" }
 

@@ -10,6 +10,19 @@ import { TRPCError } from "@trpc/server";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
 import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
+import { type inferAsyncReturnType } from "@trpc/server";
+
+// Safe config wrapper that never throws
+export async function getConfigSafely() {
+  try {
+    const { getConfig } = await import("~/server/config");
+    const cfg = await getConfig();
+    return cfg ?? {};
+  } catch (e) {
+    console.error("[config] getConfig failed; returning empty config", e);
+    return {};
+  }
+}
 
 export const createTRPCContext = async ({
   headers,
@@ -18,82 +31,94 @@ export const createTRPCContext = async ({
   headers: Headers;
   resHeaders: Headers;
 }): Promise<Context> => {
-  const payNowStorefrontHeaders: Record<string, string> = {};
+  try {
+    const payNowStorefrontHeaders: Record<string, string> = {};
 
-  // IP Address & Country Code Forwarding
+    // IP Address & Country Code Forwarding
 
-  const realIpAddress =
-    headers.get("cf-connecting-ip") ||
-    headers.get("x-real-ip") ||
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const realIpAddress =
+      headers.get("cf-connecting-ip") ||
+      headers.get("x-real-ip") ||
+      headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
-  const realCountryCode = headers.get("cf-ipcountry");
+    const realCountryCode = headers.get("cf-ipcountry");
 
-  if (realIpAddress && isValidPublicIP(realIpAddress)) {
-    payNowStorefrontHeaders["x-paynow-customer-ip"] = realIpAddress;
-  }
-
-  if (realCountryCode && isValidCountryCode(realCountryCode)) {
-    payNowStorefrontHeaders["x-paynow-customer-countrycode"] = realCountryCode;
-  }
-
-  const pnToken = headers
-    .get("cookie")
-    ?.split(";")
-    ?.find((cookie) => cookie.trim().startsWith("pn_token="))
-    ?.split("=")[1];
-
-  // URL decode the token in case it was encoded
-  const decodedToken = pnToken ? decodeURIComponent(pnToken) : null;
-
-  if (decodedToken) {
-    // Sanitize token to prevent "Invalid character in header content" errors
-    const sanitizedToken = decodedToken
-      .trim()
-      .replace(/[\r\n\t]/g, "")
-      .replace(/[^\x20-\x7E]/g, "");
-    console.log(
-      "Setting auth header with token length:",
-      sanitizedToken.length,
-    );
-    console.log("Original token length:", decodedToken.length);
-    console.log("Token has control chars:", decodedToken !== sanitizedToken);
-    payNowStorefrontHeaders.Authorization = `Customer ${sanitizedToken}`;
-  }
-
-  // Extract Firebase auth token
-  let firebaseUser: {
-    uid: string;
-    email?: string;
-    [key: string]: unknown;
-  } | null = null;
-  const authHeader = headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    try {
-      const auth = await getAdminAuth();
-      firebaseUser = await auth.verifyIdToken(token);
-      console.log("Firebase user authenticated:", firebaseUser.uid);
-    } catch (error) {
-      console.error("Failed to verify Firebase token:", {
-        error: error instanceof Error ? error.message : String(error),
-        tokenLength: token.length,
-        tokenPrefix: `${token.substring(0, 20)}...`,
-      });
+    if (realIpAddress && isValidPublicIP(realIpAddress)) {
+      payNowStorefrontHeaders["x-paynow-customer-ip"] = realIpAddress;
     }
-  } else {
-    if (authHeader) {
-      console.warn("Invalid auth header format:", authHeader.substring(0, 50));
-    }
-  }
 
-  return {
-    headers,
-    resHeaders,
-    payNowStorefrontHeaders,
-    firebaseUser,
-  };
+    if (realCountryCode && isValidCountryCode(realCountryCode)) {
+      payNowStorefrontHeaders["x-paynow-customer-countrycode"] = realCountryCode;
+    }
+
+    const pnToken = headers
+      .get("cookie")
+      ?.split(";")
+      ?.find((cookie) => cookie.trim().startsWith("pn_token="))
+      ?.split("=")[1];
+
+    // URL decode the token in case it was encoded
+    const decodedToken = pnToken ? decodeURIComponent(pnToken) : null;
+
+    if (decodedToken) {
+      // Sanitize token to prevent "Invalid character in header content" errors
+      const sanitizedToken = decodedToken
+        .trim()
+        .replace(/[\r\n\t]/g, "")
+        .replace(/[^\x20-\x7E]/g, "");
+      console.log(
+        "Setting auth header with token length:",
+        sanitizedToken.length,
+      );
+      console.log("Original token length:", decodedToken.length);
+      console.log("Token has control chars:", decodedToken !== sanitizedToken);
+      payNowStorefrontHeaders.Authorization = `Customer ${sanitizedToken}`;
+    }
+
+    // Extract Firebase auth token
+    let firebaseUser: {
+      uid: string;
+      email?: string;
+      [key: string]: unknown;
+    } | null = null;
+    const authHeader = headers.get("authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.slice(7);
+      try {
+        const auth = await getAdminAuth();
+        firebaseUser = await auth.verifyIdToken(token);
+        console.log("Firebase user authenticated:", firebaseUser.uid);
+      } catch (error) {
+        console.error("Failed to verify Firebase token:", {
+          error: error instanceof Error ? error.message : String(error),
+          tokenLength: token.length,
+          tokenPrefix: `${token.substring(0, 20)}...`,
+        });
+      }
+    } else {
+      if (authHeader) {
+        console.warn("Invalid auth header format:", authHeader.substring(0, 50));
+      }
+    }
+
+    return {
+      headers,
+      resHeaders,
+      payNowStorefrontHeaders,
+      firebaseUser,
+    };
+  } catch (e) {
+    console.error("[tRPC] createTRPCContext failed; falling back to minimal context", e);
+    return {
+      headers,
+      resHeaders,
+      payNowStorefrontHeaders: {},
+      firebaseUser: null,
+    };
+  }
 };
+
+export type TRPCContext = inferAsyncReturnType<typeof createTRPCContext>;
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,

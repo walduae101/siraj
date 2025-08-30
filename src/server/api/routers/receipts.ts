@@ -4,11 +4,13 @@ import { listReceipts, getReceipt } from "~/server/services/receipts.service";
 
 export const receiptsRouter = createTRPCRouter({
   list: protectedProcedure
-    .input(z.object({ page: z.number().min(1).default(1), pageSize: z.number().min(1).max(50).default(20), userId: z.string().optional() }))
+    .input(z.object({ page: z.number().default(1), pageSize: z.number().default(20) }).optional())
     .query(async ({ input, ctx }) => {
-      const uid = input.userId ?? ctx.userId ?? "demo";
-      const data = await listReceipts(uid, input.page, input.pageSize);
-      return { data, page: input.page, pageSize: input.pageSize };
+      const page = input?.page ?? 1;
+      const pageSize = input?.pageSize ?? 20;
+      const uid = ctx.userId ?? "demo";
+      const data = await listReceipts(uid, page, pageSize);
+      return { data, page, pageSize };
     }),
 
   byId: protectedProcedure
