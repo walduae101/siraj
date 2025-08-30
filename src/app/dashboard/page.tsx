@@ -3,11 +3,11 @@
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
+import DashboardCards from "~/components/dashboard/DashboardCards";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
 import { features } from "~/config/features";
 import { getFirebaseAuth } from "~/lib/firebase/client";
-import DashboardCards from "~/components/dashboard/DashboardCards";
 
 export default function DashboardPage() {
   const router = useRouter();
