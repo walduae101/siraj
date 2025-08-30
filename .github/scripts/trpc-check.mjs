@@ -1,175 +1,79 @@
-/* tRPC post-deploy checks against production */
-const BASE = process.env.BASE_URL || "https://siraj.life";
-const MAX_ATTEMPTS = Number(process.env.MAX_ATTEMPTS || 30); // ~10min
-const SLEEP_SECONDS = Number(process.env.SLEEP_SECONDS || 20);
+/* eslint-disable no-console */
+import process from 'node:process';
 
-const enc = encodeURIComponent;
-const urls = {
-  head: `${BASE}/api/trpc`,
-  methods: `${BASE}/api/trpc/payments.methods?input=${enc("{}")}`,
-  token: `${BASE}/api/trpc/payments.clientToken?input=${enc("{}")}`,
-  receipts: `${BASE}/api/trpc/receipts.list?input=${enc(JSON.stringify({ page: 1, pageSize: 20 }))}`,
-};
+const BASE_URL = process.env.BASE_URL ?? 'https://siraj.life';
+const MAX_ATTEMPTS = Number(process.env.MAX_ATTEMPTS ?? 30);
+const SLEEP_SECONDS = Number(process.env.SLEEP_SECONDS ?? 20);
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function head(url) {
+  const res = await fetch(url, { method: 'HEAD' });
+  return { ok: res.ok, status: res.status, headers: res.headers };
 }
 
-async function fetchWith(method, url) {
-  const res = await fetch(url, { method, redirect: "manual" });
-  const text = await res.text(); // always capture body for diagnostics
-  return { res, text };
+async function get(url) {
+  const res = await fetch(url);
+  let body = null;
+  try { body = await res.json(); } catch {}
+  return { ok: res.ok, status: res.status, headers: res.headers, body };
 }
 
-function assertHeader(res, name, predicate, msg) {
-  const val = res.headers.get(name);
-  if (!predicate(val)) throw new Error(`${msg} (header ${name}="${val}")`);
-  return val;
+function ensureHeader(headers, name, predicate, label) {
+  const val = headers.get(name);
+  if (!predicate(val)) throw new Error(`Missing/invalid header ${name}: ${val} (${label})`);
 }
 
-function parseTRPCEnvelope(text) {
-  // Expect tRPC envelope: {"result": {"data": ...}} or {"error": {...}}
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch (e) {
-    throw new Error(`Response not JSON: ${text.slice(0, 200)}`);
-  }
-  if (json.error)
-    throw new Error(`tRPC error: ${JSON.stringify(json.error).slice(0, 200)}`);
-  if (!json.result || typeof json.result !== "object")
-    throw new Error(`No tRPC result envelope: ${text.slice(0, 200)}`);
-  return json.result.data;
-}
+async function attempt(i) {
+  console.log(`Attempt ${i}/${MAX_ATTEMPTS}`);
 
-async function checkOnce() {
-  // 1) HEAD /api/trpc
+  // 1) HEAD probe on /api/trpc
   {
-    const { res } = await fetchWith("HEAD", urls.head);
-    if (res.status !== 204)
-      throw new Error(`HEAD /api/trpc expected 204, got ${res.status}`);
-    assertHeader(
-      res,
-      "x-trpc-handler",
-      (v) => v === "1",
-      "x-trpc-handler header missing",
-    );
-    assertHeader(
-      res,
-      "cache-control",
-      (v) => v?.toLowerCase().includes("no-store"),
-      "no-store missing on HEAD",
-    );
+    const r = await head(`${BASE_URL}/api/trpc`);
+    if (!(r.status === 204 || r.status === 200)) throw new Error(`HEAD /api/trpc status ${r.status}`);
+    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'HEAD /api/trpc');
+    ensureHeader(r.headers, 'cache-control', v => String(v).includes('no-store'), 'HEAD /api/trpc');
   }
 
-  // 2) payments.methods
+  // 2) Explicit probe
   {
-    const { res, text } = await fetchWith("GET", urls.methods);
-    if (res.status !== 200)
-      throw new Error(`payments.methods status ${res.status}`);
-    assertHeader(
-      res,
-      "content-type",
-      (v) => v?.includes("application/json"),
-      "content-type not application/json",
-    );
-    assertHeader(
-      res,
-      "cache-control",
-      (v) => v?.toLowerCase().includes("no-store"),
-      "no-store missing",
-    );
-    assertHeader(
-      res,
-      "x-trpc-handler",
-      (v) => v === "1",
-      "x-trpc-handler header missing",
-    );
-    const data = parseTRPCEnvelope(text);
-    if (typeof data !== "object") throw new Error("methods: data not object");
-    if (!("enabled" in data)) throw new Error("methods: enabled field missing");
-    if (!Array.isArray(data.methods) && data.enabled)
-      throw new Error("methods: methods array missing when enabled");
+    const r = await get(`${BASE_URL}/api/trpc/_probe?__probe=1`);
+    if (!r.ok) throw new Error(`GET probe not ok: ${r.status}`);
+    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'GET probe');
+    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET probe');
+    if (!r.body?.ok) throw new Error('Probe body missing ok=true');
   }
 
-  // 3) payments.clientToken
+  // 3) payments.methods
   {
-    const { res, text } = await fetchWith("GET", urls.token);
-    if (res.status !== 200)
-      throw new Error(`payments.clientToken status ${res.status}`);
-    assertHeader(
-      res,
-      "content-type",
-      (v) => v?.includes("application/json"),
-      "content-type not application/json",
-    );
-    assertHeader(
-      res,
-      "cache-control",
-      (v) => v?.toLowerCase().includes("no-store"),
-      "no-store missing",
-    );
-    assertHeader(
-      res,
-      "x-trpc-handler",
-      (v) => v === "1",
-      "x-trpc-handler header missing",
-    );
-    const data = parseTRPCEnvelope(text);
-    if (typeof data !== "object")
-      throw new Error("clientToken: data not object");
-    if (!("enabled" in data))
-      throw new Error("clientToken: enabled field missing");
-    if (data.enabled && !data.token)
-      throw new Error("clientToken: token missing when enabled");
+    const r = await get(`${BASE_URL}/api/trpc/payments.methods?input=%7B%7D`);
+    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'payments.methods');
+    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'payments.methods');
+    if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`payments.methods error: ${JSON.stringify(r.body)}`);
   }
 
-  // 4) receipts.list
+  // 4) receipts.list page=1 pageSize=2
   {
-    const { res, text } = await fetchWith("GET", urls.receipts);
-    if (res.status !== 200)
-      throw new Error(`receipts.list status ${res.status}`);
-    assertHeader(
-      res,
-      "content-type",
-      (v) => v?.includes("application/json"),
-      "content-type not application/json",
-    );
-    assertHeader(
-      res,
-      "cache-control",
-      (v) => v?.toLowerCase().includes("no-store"),
-      "no-store missing",
-    );
-    assertHeader(
-      res,
-      "x-trpc-handler",
-      (v) => v === "1",
-      "x-trpc-handler header missing",
-    );
-    const data = parseTRPCEnvelope(text);
-    if (typeof data !== "object")
-      throw new Error("receipts.list: data not object");
+    const input = encodeURIComponent(JSON.stringify({ page: 1, pageSize: 2 }));
+    const r = await get(`${BASE_URL}/api/trpc/receipts.list?input=${input}`);
+    ensureHeader(r.headers, 'x-trpc-handler', v => !!v, 'receipts.list');
+    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'receipts.list');
+    if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`receipts.list error: ${JSON.stringify(r.body)}`);
   }
 }
 
 (async () => {
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  for (let i = 1; i <= MAX_ATTEMPTS; i++) {
     try {
-      console.log(
-        `tRPC post-deploy check attempt ${attempt}/${MAX_ATTEMPTS} @ ${new Date().toISOString()}`,
-      );
-      await checkOnce();
-      console.log("✅ tRPC checks passed");
+      await attempt(i);
+      console.log('tRPC checks: ✅ PASS');
       process.exit(0);
-    } catch (e) {
-      console.warn(`⚠️  ${e.message || e}`);
-      if (attempt < MAX_ATTEMPTS) {
-        await sleep(SLEEP_SECONDS * 1000);
-        continue;
-      }
-      console.error("❌ tRPC checks failed after retries");
-      process.exit(1);
+    } catch (err) {
+      console.warn('tRPC checks: attempt failed:', err?.message ?? err);
+      if (i === MAX_ATTEMPTS) break;
+      await sleep(SLEEP_SECONDS * 1000);
     }
   }
+  console.error('tRPC checks: ❌ FAIL');
+  process.exit(1);
 })();

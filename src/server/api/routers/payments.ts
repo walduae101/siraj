@@ -12,32 +12,36 @@ const CreateIntentInput = z.object({
 export const paymentsRouter = createTRPCRouter({
   methods: publicProcedure
     .input(z.void())
-    .query(async () => {
-      const cfg = await getConfigSafely();
-      return { enabled: !!cfg.features?.paynow?.enabled, methods: ["paynow"] };
+    .query(({ ctx }) => {
+      const paynow = ctx.cfg.features.paynow;
+      return { enabled: paynow.enabled, methods: paynow.methods };
     }),
 
   clientToken: publicProcedure
     .input(z.void())
-    .query(async () => {
-      const cfg = await getConfigSafely();
-      const enabled = !!cfg.features?.paynow?.enabled;
-      return enabled ? { enabled, token: "stub-CLIENT-TOKEN" } : { enabled };
+    .query(({ ctx }) => {
+      // Gate by feature; never throw
+      if (!ctx.cfg.features.paynow.enabled) {
+        return { enabled: false, token: null as string | null };
+      }
+      // Stub token for now; replace later with real integration
+      return { enabled: true, token: 'stub-client-token' };
     }),
 
   createIntent: publicProcedure
-    .input(z.object({ amount: z.number().positive(), currency: z.string().min(1) }))
-    .mutation(async ({ input }) => {
-      const cfg = await getConfigSafely();
-      const enabled = !!cfg.features?.paynow?.enabled;
-      if (!enabled) return { ok: false, reason: "disabled" };
-      return {
-        ok: true,
-        id: `demo_${Date.now()}`,
-        amount: input.amount,
-        currency: input.currency,
-        redirectUrl: "/dashboard/payments?status=created",
-      };
+    .input(z.object({
+      amount: z.number().positive(),
+      currency: z.string().min(3).max(3),
+      returnUrl: z.string().url(),
+    }))
+    .mutation(({ input, ctx }) => {
+      if (!ctx.cfg.features.paynow.enabled) {
+        // Do not error; gracefully signal disabled state
+        return { enabled: false, redirectUrl: null as string | null };
+      }
+      // Minimal happy-path stub
+      const redirectUrl = `${new URL(input.returnUrl).origin}/dashboard/payments?status=processing`;
+      return { enabled: true, redirectUrl };
     }),
 });
 

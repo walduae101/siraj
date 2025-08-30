@@ -12,126 +12,43 @@ import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
 import { type inferAsyncReturnType } from "@trpc/server";
 
+/* additions at top-level of file */
+type PaynowFeature = { enabled: boolean; methods: string[] };
+type Features = { paynow: PaynowFeature };
+type SafeConfig = { features: Features };
+
+// Minimal safe default that matches shape the app expects
+const DEFAULT_SAFE_CONFIG: SafeConfig = {
+  features: { paynow: { enabled: false, methods: [] } },
+};
+
 // Safe config wrapper that never throws
-export async function getConfigSafely() {
+export async function getConfigSafely(): Promise<SafeConfig> {
   try {
-    const { getConfig } = await import("~/server/config");
-    const cfg = await getConfig();
-    // Guarantee a predictable shape even if cfg is undefined/partial
+    // If you already have getConfig(), prefer to deep-merge its result.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const cfg: any = await getConfig(); // existing impl in this module/project
+    // Defensive merge
     return {
       features: {
-        paynow: { enabled: Boolean(cfg?.features?.paynow?.enabled) },
+        paynow: {
+          enabled: Boolean(cfg?.features?.paynow?.enabled ?? false),
+          methods: Array.isArray(cfg?.features?.paynow?.methods) ? cfg.features.paynow.methods : [],
+        },
       },
-      ...cfg,
     };
-  } catch (e) {
-    console.error("[config] getConfig failed; returning safe defaults");
-    return {
-      features: { paynow: { enabled: false } },
-    };
+  } catch {
+    return DEFAULT_SAFE_CONFIG;
   }
 }
 
-export const createTRPCContext = async ({
-  headers,
-  resHeaders,
-}: {
-  headers: Headers;
-  resHeaders: Headers;
-}): Promise<Context> => {
-  try {
-    // Put your existing auth/session/db wiring here if any.
-    // Must never throw. If any step fails, fall through to minimal ctx.
-    const cfg = await getConfigSafely();
-    
-    const payNowStorefrontHeaders: Record<string, string> = {};
-
-    // IP Address & Country Code Forwarding
-    const realIpAddress =
-      headers.get("cf-connecting-ip") ||
-      headers.get("x-real-ip") ||
-      headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-
-    const realCountryCode = headers.get("cf-ipcountry");
-
-    if (realIpAddress && isValidPublicIP(realIpAddress)) {
-      payNowStorefrontHeaders["x-paynow-customer-ip"] = realIpAddress;
-    }
-
-    if (realCountryCode && isValidCountryCode(realCountryCode)) {
-      payNowStorefrontHeaders["x-paynow-customer-countrycode"] = realCountryCode;
-    }
-
-    const pnToken = headers
-      .get("cookie")
-      ?.split(";")
-      ?.find((cookie) => cookie.trim().startsWith("pn_token="))
-      ?.split("=")[1];
-
-    // URL decode the token in case it was encoded
-    const decodedToken = pnToken ? decodeURIComponent(pnToken) : null;
-
-    if (decodedToken) {
-      // Sanitize token to prevent "Invalid character in header content" errors
-      const sanitizedToken = decodedToken
-        .trim()
-        .replace(/[\r\n\t]/g, "")
-        .replace(/[^\x20-\x7E]/g, "");
-      console.log(
-        "Setting auth header with token length:",
-        sanitizedToken.length,
-      );
-      console.log("Original token length:", decodedToken.length);
-      console.log("Token has control chars:", decodedToken !== sanitizedToken);
-      payNowStorefrontHeaders.Authorization = `Customer ${sanitizedToken}`;
-    }
-
-    // Extract Firebase auth token
-    let firebaseUser: {
-      uid: string;
-      email?: string;
-      [key: string]: unknown;
-    } | null = null;
-    const authHeader = headers.get("authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.slice(7);
-      try {
-        const auth = await getAdminAuth();
-        firebaseUser = await auth.verifyIdToken(token);
-        console.log("Firebase user authenticated:", firebaseUser.uid);
-      } catch (error) {
-        console.error("Failed to verify Firebase token:", {
-          error: error instanceof Error ? error.message : String(error),
-          tokenLength: token.length,
-          tokenPrefix: `${token.substring(0, 20)}...`,
-        });
-      }
-    } else {
-      if (authHeader) {
-        console.warn("Invalid auth header format:", authHeader.substring(0, 50));
-      }
-    }
-
-    return {
-      headers,
-      resHeaders,
-      payNowStorefrontHeaders,
-      firebaseUser,
-      cfg,
-    };
-  } catch (e) {
-    console.error("[tRPC] createTRPCContext failed; using minimal context");
-    return {
-      headers,
-      resHeaders,
-      payNowStorefrontHeaders: {},
-      firebaseUser: null,
-      cfg: { features: { paynow: { enabled: false } } },
-    };
-  }
+// Ensure context factory never throws and carries config explicitly
+export const createTRPCContext = async (opts: { req: Request }) => {
+  const cfg = await getConfigSafely();
+  return { req: opts.req, cfg };
 };
 
-export type TRPCContext = inferAsyncReturnType<typeof createTRPCContext>;
+export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
