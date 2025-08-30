@@ -128,7 +128,7 @@ async function attempt(i) {
       (v) => String(v).toLowerCase().includes("application/json"),
       "payments.methods",
     );
-    if (!r.body || (r.body.error && r.body.error.code))
+    if (!r.body || r.body.error?.code)
       throw new Error(`payments.methods error: ${JSON.stringify(r.body)}`);
   }
 
@@ -148,7 +148,7 @@ async function attempt(i) {
       (v) => String(v).toLowerCase().includes("application/json"),
       "receipts.list",
     );
-    if (!r.body || (r.body.error && r.body.error.code))
+    if (!r.body || r.body.error?.code)
       throw new Error(`receipts.list error: ${JSON.stringify(r.body)}`);
   }
 }
