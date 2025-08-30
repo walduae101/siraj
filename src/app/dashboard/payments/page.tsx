@@ -26,7 +26,7 @@ export default function PaymentsPage() {
           <CardTitle>طرق الدفع / Payment Methods</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="text-sm opacity-80">Available: {methods?.join(", ") || "…"}</div>
+          <div className="text-sm opacity-80">Available: {methods?.methods?.join(", ") || "…"}</div>
           {!enabled && (
             <div className="rounded-md bg-amber-50 p-3 text-amber-900 text-sm">{disabledMsg}</div>
           )}
