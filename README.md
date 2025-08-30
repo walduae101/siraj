@@ -96,5 +96,37 @@ Siraj integrates with PayNow for secure payment processing with enterprise-grade
 ## Deployment
 This project can be deployed on various platforms. For detailed deployment instructions, see the [T3 Stack Deployment Guide](https://create.t3.gg/en/deployment).
 
+## Branching Policy
+
+This repository follows a strict branching policy to maintain code quality and streamline development:
+
+### Branch Structure
+- **`main`** - The only long-lived branch, contains production-ready code
+- **Feature branches** - Short-lived branches for development work (e.g., `sprint1/feature-name`, `hotfix/critical-fix`)
+
+### Development Workflow
+1. **Create feature branch** from `main`: `git checkout -b sprint1/feature-name`
+2. **Develop and test** your changes locally
+3. **Push branch** and create a pull request
+4. **Code review** - At least one approval required
+5. **Merge via squash** - Maintains linear history
+6. **Auto-deletion** - Feature branches are automatically deleted after merge
+
+### Branch Protection Rules
+- ✅ Require pull request reviews (minimum 1 approval)
+- ✅ Require status checks to pass before merging
+- ✅ Require branches to be up to date before merging
+- ✅ Require conversation resolution before merging
+- ✅ Require linear history (enforces squash merges)
+- ✅ Restrict direct pushes to `main`
+- ✅ Block force pushes and deletions
+- ✅ Auto-delete head branches after merge
+
+### Naming Conventions
+- `sprint*/` - Sprint-related features
+- `hotfix/` - Critical production fixes
+- `feature/` - General features
+- `bugfix/` - Bug fixes
+
 ## Contributing
 Contributions are welcome! If you'd like to improve Siraj or suggest new features, please fork the repository, make your changes, and submit a pull request.
