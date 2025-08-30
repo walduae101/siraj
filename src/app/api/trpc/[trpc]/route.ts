@@ -12,8 +12,8 @@ const handler = (req: NextRequest) =>
     endpoint: "/api/trpc",
     req,
     router: appRouter,
-    createContext: ({ resHeaders }) =>
-      createTRPCContext({
+    createContext: async ({ resHeaders }) =>
+      await createTRPCContext({
         headers: req.headers,
         resHeaders,
       }),
