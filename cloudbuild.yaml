@@ -20,7 +20,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/siraj:$COMMIT_SHA']
 
-  # Deploy to Cloud Run (US region)
+  # Deploy to Cloud Run (US region) with Secret Manager
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     args:
       - run
@@ -33,8 +33,8 @@ steps:
       - --platform
       - managed
       - --allow-unauthenticated
-      - --set-env-vars
-      - NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY},NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN},NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID},NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET},NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID},NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID},NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${_NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}
+      - --update-secrets
+      - NEXT_PUBLIC_FIREBASE_PROJECT_ID=NEXT_PUBLIC_FIREBASE_PROJECT_ID:latest,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:latest,NEXT_PUBLIC_FIREBASE_API_KEY=NEXT_PUBLIC_FIREBASE_API_KEY:latest,NEXT_PUBLIC_WEBSITE_URL=NEXT_PUBLIC_WEBSITE_URL:latest,NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE=NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE:latest,NEXT_PUBLIC_DISCORD_INVITE_URL=NEXT_PUBLIC_DISCORD_INVITE_URL:latest,NEXT_PUBLIC_PAYNOW_STORE_ID=NEXT_PUBLIC_PAYNOW_STORE_ID:latest,NEXT_PUBLIC_BACKGROUND_IMAGE_URL=NEXT_PUBLIC_BACKGROUND_IMAGE_URL:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,PAYNOW_API_KEY=PAYNOW_API_KEY:latest,FIREBASE_PROJECT_ID=FIREBASE_PROJECT_ID:latest,PAYNOW_STORE_ID=PAYNOW_STORE_ID:latest,SIRAJ_CONFIG_JSON=SIRAJ_CONFIG_JSON:latest
 
   # 1b. Capture the exact image the US service is running
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
@@ -63,7 +63,34 @@ steps:
         gcloud run services update siraj-eu --region=europe-west1 --image "$IMAGE" --quiet
         echo "✅ EU deployment complete"
 
-  # 1d. Invalidate CDN cache
+  # 1d. Environment parity check (ensure both regions have same secret refs)
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: env-parity
+    entrypoint: bash
+    args:
+      - -lc
+      - |
+        set -euo pipefail
+        echo "🔍 Checking environment parity..."
+        dump () {
+          gcloud run services describe "${1}" --region "${2}" --format=json \
+          | jq -r '.spec.template.spec.containers[0].env[]? 
+              | if has("valueFrom") and .valueFrom.secretKeyRef.name then
+                  "\(.name)=secret:\(.valueFrom.secretKeyRef.name)"
+                else
+                  "\(.name)=plain"
+                end' | sort
+        }
+        US="$(dump "siraj" "us-central1")"
+        EU="$(dump "siraj-eu" "europe-west1")"
+        echo "US environment refs:"
+        echo "$US"
+        echo "EU environment refs:"
+        echo "$EU"
+        diff <(echo "$US") <(echo "$EU") || { echo "❌ Environment parity check failed"; exit 1; }
+        echo "✅ Environment parity verified"
+
+  # 1e. Invalidate CDN cache
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     id: invalidate-cdn
     entrypoint: bash
@@ -75,7 +102,7 @@ steps:
         gcloud compute url-maps invalidate-cdn-cache siraj-web-map --path '/*' --quiet
         echo "✅ CDN cache invalidated"
 
-  # 1e. Post-deploy verifications (origin parity + CDN headers)
+  # 1f. Post-deploy verifications (origin parity + CDN headers)
   - name: 'gcr.io/cloud-builders/bash'
     id: verify-origins
     entrypoint: bash
@@ -100,7 +127,7 @@ steps:
         ./scripts/cdn-parity.sh
         echo "✅ CDN headers verified"
 
-  # 1f. Quick smoke test (fast headers check)
+  # 1g. Quick smoke test (fast headers check)
   - name: 'gcr.io/cloud-builders/bash'
     id: quick-check
     entrypoint: bash
@@ -113,7 +140,7 @@ steps:
         ./scripts/quick-check.sh
         echo "✅ Quick check passed"
 
-  # 1g. tRPC post-deploy checks (prod)
+  # 1h. tRPC post-deploy checks (prod)
   - id: "tRPC post-deploy checks (prod)"
     name: node:20
     entrypoint: bash
