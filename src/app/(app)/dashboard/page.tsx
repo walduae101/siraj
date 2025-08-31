@@ -16,6 +16,7 @@ interface Message {
 export default function DashboardPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -38,22 +39,74 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with real AI API call
-      // const response = await fetch('/api/ai/chat', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ message: content })
-      // });
-      // const data = await response.json();
-      
-      // For now, show a placeholder response
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "سيتم ربط هذه الميزة بـ API الذكاء الاصطناعي قريباً.",
-        role: "assistant",
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiResponse]);
+      // Create or get chat ID
+      let chatId = currentChatId;
+      if (!chatId) {
+        const chatResponse = await fetch("/api/chats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: "demo-user", // TODO: Get from auth
+            title: content.substring(0, 50) + "...",
+            initialMessage: content,
+          }),
+        });
+        
+        if (chatResponse.ok) {
+          const chat = await chatResponse.json();
+          chatId = chat.id;
+          setCurrentChatId(chatId);
+        }
+      } else {
+        // Add message to existing chat
+        await fetch(`/api/chats/${chatId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: "demo-user", // TODO: Get from auth
+            content,
+            role: "user",
+          }),
+        });
+      }
+
+      // Poll for assistant response
+      let attempts = 0;
+      const maxAttempts = 30;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+          clearInterval(pollInterval);
+          setIsLoading(false);
+          return;
+        }
+
+        try {
+          const messagesResponse = await fetch(`/api/chats/${chatId}/messages?userId=demo-user`);
+          if (messagesResponse.ok) {
+            const apiMessages = await messagesResponse.json();
+            const formattedMessages: Message[] = apiMessages.map((msg: any) => ({
+              id: msg.id,
+              content: msg.content,
+              role: msg.role,
+              timestamp: new Date(msg.createdAt),
+            }));
+
+            setMessages(formattedMessages);
+            
+            // Check if assistant has responded
+            const lastMessage = formattedMessages[formattedMessages.length - 1];
+            if (lastMessage && lastMessage.role === "assistant") {
+              clearInterval(pollInterval);
+              setIsLoading(false);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to poll for messages:", error);
+        }
+      }, 1000);
+
     } catch (error) {
       console.error('Failed to send message:', error);
       const errorMessage: Message = {
@@ -63,7 +116,6 @@ export default function DashboardPage() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
       setIsLoading(false);
     }
   };

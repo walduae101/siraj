@@ -1,27 +1,37 @@
 import { z } from "zod";
 
-// Client-side environment schema - only public values
+// Client-side environment schema - re-exported from server
 export const clientEnvSchema = z.object({
-  NEXT_PUBLIC_BACKGROUND_IMAGE_URL: z
-    .string()
-    .default(
-      "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80",
-    ),
-  NEXT_PUBLIC_DISCORD_INVITE_URL: z
-    .string()
-    .default("https://discord.gg/siraj"),
-  NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: z
-    .string()
-    .default("Connecting to Siraj Game Server..."),
-  NEXT_PUBLIC_WEBSITE_URL: z.string().default("https://siraj.life"),
+  // Public Firebase config
+  NEXT_PUBLIC_FIREBASE_API_KEY: z.string(),
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string(),
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string(),
+  NEXT_PUBLIC_FIREBASE_APP_ID: z.string(),
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string(),
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z.string(),
+  
+  // Public app config
+  NEXT_PUBLIC_WEBSITE_URL: z.string(),
+  NEXT_PUBLIC_PAYNOW_STORE_ID: z.string(),
+  NEXT_PUBLIC_BACKGROUND_IMAGE_URL: z.string(),
+  NEXT_PUBLIC_DISCORD_INVITE_URL: z.string(),
+  NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: z.string(),
 });
 
-// Client environment - only public values that can be exposed to the browser
+// Client environment - will be populated from server environment
 export const clientEnv = clientEnvSchema.parse({
-  NEXT_PUBLIC_BACKGROUND_IMAGE_URL: process.env.NEXT_PUBLIC_BACKGROUND_IMAGE_URL,
-  NEXT_PUBLIC_DISCORD_INVITE_URL: process.env.NEXT_PUBLIC_DISCORD_INVITE_URL,
-  NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: process.env.NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE,
-  NEXT_PUBLIC_WEBSITE_URL: process.env.NEXT_PUBLIC_WEBSITE_URL,
+  // These will be populated by the server environment loader
+  NEXT_PUBLIC_FIREBASE_API_KEY: "",
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "",
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: "",
+  NEXT_PUBLIC_FIREBASE_APP_ID: "",
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "",
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "",
+  NEXT_PUBLIC_WEBSITE_URL: "",
+  NEXT_PUBLIC_PAYNOW_STORE_ID: "",
+  NEXT_PUBLIC_BACKGROUND_IMAGE_URL: "",
+  NEXT_PUBLIC_DISCORD_INVITE_URL: "",
+  NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: "",
 });
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>;

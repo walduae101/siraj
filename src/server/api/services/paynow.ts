@@ -27,7 +27,7 @@ export default class PayNowService {
     return axios.create({
       baseURL: "https://api.paynow.gg/v1",
       headers: {
-        "x-paynow-store-id": env.PAYNOW_STORE_ID,
+        "x-paynow-store-id": env.NEXT_PUBLIC_PAYNOW_STORE_ID,
       },
     });
   }
@@ -92,7 +92,7 @@ export default class PayNowService {
   public static async getModules(ctx: Context) {
     return PayNowService.request<Module[]>({
       method: "GET",
-      url: `/webstores/${(await loadServerEnv()).PAYNOW_STORE_ID}/modules/prepared`,
+      url: `/webstores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/modules/prepared`,
       headers: ctx.payNowStorefrontHeaders,
     });
   }
@@ -235,7 +235,7 @@ export default class PayNowService {
     try {
       const existing = await PayNowService.request<Customer>({
         method: "GET",
-        url: `/stores/${(await loadServerEnv()).PAYNOW_STORE_ID}/customers/lookup`,
+        url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/customers/lookup`,
         headers: await PayNowService.paynowHeaders(),
         params: { email },
       });
@@ -249,7 +249,7 @@ export default class PayNowService {
 
     const created = await PayNowService.request<Customer>({
       method: "POST",
-      url: `/stores/${(await loadServerEnv()).PAYNOW_STORE_ID}/customers`,
+      url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/customers`,
       headers: {
         ...(await PayNowService.paynowHeaders()),
       },
@@ -269,7 +269,7 @@ export default class PayNowService {
 
     const { token } = await PayNowService.request<{ token: string }>({
       method: "POST",
-      url: `/stores/${(await loadServerEnv()).PAYNOW_STORE_ID}/customers/${customerId}/tokens`,
+      url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/customers/${customerId}/tokens`,
       headers: {
         ...(await PayNowService.paynowHeaders()),
       },
@@ -316,7 +316,7 @@ export default class PayNowService {
   public static async getGiftcardBalanceByCode(code: string): Promise<number> {
     const giftCardsReq = await PayNowService.request<GiftCard[]>({
       method: "GET",
-      url: `/stores/${(await loadServerEnv()).PAYNOW_STORE_ID}/giftcards`,
+      url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/giftcards`,
       headers: {
         ...(await PayNowService.paynowHeaders()),
       },

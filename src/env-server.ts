@@ -1,91 +1,145 @@
 import { z } from "zod";
 import { getSecret, getSecretName, SECRET_NAMES } from "./lib/secretManager";
 
-// Server-side environment schema
+// Server-side environment schema - ALL values from GSM
 export const serverEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]),
   
-  // These will be loaded from Google Secret Manager
-  FIREBASE_API_KEY: z.string(),
-  FIREBASE_AUTH_DOMAIN: z.string(),
-  FIREBASE_PROJECT_ID: z.string(),
-  FIREBASE_APP_ID: z.string().optional(),
+  // Public Firebase config (from GSM for consistency)
+  NEXT_PUBLIC_FIREBASE_API_KEY: z.string(),
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string(),
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string(),
+  NEXT_PUBLIC_FIREBASE_APP_ID: z.string(),
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string(),
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z.string(),
   
+  // Public app config (from GSM)
+  NEXT_PUBLIC_WEBSITE_URL: z.string(),
+  NEXT_PUBLIC_PAYNOW_STORE_ID: z.string(),
+  NEXT_PUBLIC_BACKGROUND_IMAGE_URL: z.string(),
+  NEXT_PUBLIC_DISCORD_INVITE_URL: z.string(),
+  NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: z.string(),
+  
+  // Server-only secrets
   PAYNOW_API_KEY: z.string(),
-  PAYNOW_STORE_ID: z.string(),
-  PAYNOW_WEBHOOK_SECRET: z.string().optional(),
-  PAYNOW_PRODUCTS_JSON: z.string().optional().default("{}"),
-  
-  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
+  PAYNOW_WEBHOOK_SECRET: z.string(),
   OPENAI_API_KEY: z.string(),
+  CRON_SECRET: z.string(),
   
-  GAMESERVER_GAME: z.enum(["source", "minecraft"]).optional(),
-  GAMESERVER_IP: z.string().optional(),
-  GAMESERVER_PORT: z.string().optional(),
+  // Optional configs (from GSM with defaults)
+  PAYNOW_PRODUCTS_JSON: z.string().optional().default("{}"),
+  FIREBASE_SERVICE_ACCOUNT_JSON: z.string().optional(),
   
-  // Subscription Points System
-  FEAT_SUB_POINTS: z
-    .string()
-    .optional()
-    .transform((val) => val === "1"),
+  // Feature flags (from GSM)
+  FEAT_SUB_POINTS: z.string().optional().transform((val) => val === "1"),
   SUB_PLAN_POINTS_JSON: z.string().optional().default("{}"),
   SUB_POINTS_KIND: z.enum(["paid", "promo"]).optional().default("promo"),
-  SUB_POINTS_EXPIRE_DAYS: z
-    .string()
-    .optional()
-    .transform((val) => Number(val) || 365),
-  SUB_TOPUP_LAZY: z
-    .string()
-    .optional()
-    .transform((val) => val === "1"),
-  CRON_SECRET: z.string().optional(),
+  SUB_POINTS_EXPIRE_DAYS: z.string().optional().transform((val) => Number(val) || 365),
+  SUB_TOPUP_LAZY: z.string().optional().transform((val) => val === "1"),
 });
 
-// Server environment loader that fetches secrets from Google Secret Manager
+// Server environment loader that fetches ALL values from Google Secret Manager
 export async function loadServerEnv() {
   const [
+    // Public Firebase config
     firebaseApiKey,
     firebaseAuthDomain,
     firebaseProjectId,
     firebaseAppId,
-    paynowApiKey,
+    firebaseStorageBucket,
+    firebaseMessagingSenderId,
+    
+    // Public app config
+    websiteUrl,
     paynowStoreId,
+    backgroundImageUrl,
+    discordInviteUrl,
+    gameserverConnectionMessage,
+    
+    // Server secrets
+    paynowApiKey,
     paynowWebhookSecret,
     openaiApiKey,
     cronSecret,
+    
+    // Optional configs
+    paynowProductsJson,
+    firebaseServiceAccountJson,
+    
+    // Feature flags
+    featSubPoints,
+    subPlanPointsJson,
+    subPointsKind,
+    subPointsExpireDays,
+    subTopupLazy,
   ] = await Promise.all([
-    getSecret(getSecretName(SECRET_NAMES.FIREBASE_API_KEY)),
-    getSecret(getSecretName(SECRET_NAMES.FIREBASE_AUTH_DOMAIN)),
-    getSecret(getSecretName(SECRET_NAMES.FIREBASE_PROJECT_ID)),
-    getSecret(getSecretName(SECRET_NAMES.FIREBASE_APP_ID)).catch(() => undefined),
-    getSecret(getSecretName(SECRET_NAMES.PAYNOW_API_KEY)),
-    getSecret(getSecretName(SECRET_NAMES.PAYNOW_STORE_ID)),
-    getSecret(getSecretName(SECRET_NAMES.PAYNOW_WEBHOOK_SECRET)).catch(() => undefined),
-    getSecret(getSecretName(SECRET_NAMES.OPENAI_API_KEY)),
-    getSecret(getSecretName(SECRET_NAMES.CRON_SECRET)).catch(() => undefined),
+    // Public Firebase config
+    getSecret(getSecretName("NEXT_PUBLIC_FIREBASE_API_KEY")),
+    getSecret(getSecretName("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN")),
+    getSecret(getSecretName("NEXT_PUBLIC_FIREBASE_PROJECT_ID")),
+    getSecret(getSecretName("NEXT_PUBLIC_FIREBASE_APP_ID")),
+    getSecret(getSecretName("NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET")),
+    getSecret(getSecretName("NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID")),
+    
+    // Public app config
+    getSecret(getSecretName("NEXT_PUBLIC_WEBSITE_URL")),
+    getSecret(getSecretName("NEXT_PUBLIC_PAYNOW_STORE_ID")),
+    getSecret(getSecretName("NEXT_PUBLIC_BACKGROUND_IMAGE_URL")),
+    getSecret(getSecretName("NEXT_PUBLIC_DISCORD_INVITE_URL")),
+    getSecret(getSecretName("NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE")),
+    
+    // Server secrets
+    getSecret(getSecretName("PAYNOW_API_KEY")),
+    getSecret(getSecretName("PAYNOW_WEBHOOK_SECRET")),
+    getSecret(getSecretName("OPENAI_API_KEY")),
+    getSecret(getSecretName("CRON_SECRET")),
+    
+    // Optional configs
+    getSecret(getSecretName("PAYNOW_PRODUCTS_JSON")).catch(() => "{}"),
+    getSecret(getSecretName("FIREBASE_SERVICE_ACCOUNT_JSON")).catch(() => undefined),
+    
+    // Feature flags
+    getSecret(getSecretName("FEAT_SUB_POINTS")).catch(() => "0"),
+    getSecret(getSecretName("SUB_PLAN_POINTS_JSON")).catch(() => "{}"),
+    getSecret(getSecretName("SUB_POINTS_KIND")).catch(() => "promo").then(val => val.trim()),
+    getSecret(getSecretName("SUB_POINTS_EXPIRE_DAYS")).catch(() => "365"),
+    getSecret(getSecretName("SUB_TOPUP_LAZY")).catch(() => "0"),
   ]);
 
   return serverEnvSchema.parse({
     NODE_ENV: process.env.NODE_ENV || "development",
-    FIREBASE_API_KEY: firebaseApiKey,
-    FIREBASE_AUTH_DOMAIN: firebaseAuthDomain,
-    FIREBASE_PROJECT_ID: firebaseProjectId,
-    FIREBASE_APP_ID: firebaseAppId,
+    
+    // Public Firebase config
+    NEXT_PUBLIC_FIREBASE_API_KEY: firebaseApiKey,
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: firebaseAuthDomain,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: firebaseProjectId,
+    NEXT_PUBLIC_FIREBASE_APP_ID: firebaseAppId,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: firebaseStorageBucket,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: firebaseMessagingSenderId,
+    
+    // Public app config
+    NEXT_PUBLIC_WEBSITE_URL: websiteUrl,
+    NEXT_PUBLIC_PAYNOW_STORE_ID: paynowStoreId,
+    NEXT_PUBLIC_BACKGROUND_IMAGE_URL: backgroundImageUrl,
+    NEXT_PUBLIC_DISCORD_INVITE_URL: discordInviteUrl,
+    NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: gameserverConnectionMessage,
+    
+    // Server secrets
     PAYNOW_API_KEY: paynowApiKey,
-    PAYNOW_STORE_ID: paynowStoreId,
     PAYNOW_WEBHOOK_SECRET: paynowWebhookSecret,
-    PAYNOW_PRODUCTS_JSON: process.env.PAYNOW_PRODUCTS_JSON,
-    FIREBASE_SERVICE_ACCOUNT_JSON: process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
     OPENAI_API_KEY: openaiApiKey,
-    GAMESERVER_GAME: process.env.GAMESERVER_GAME,
-    GAMESERVER_IP: process.env.GAMESERVER_IP,
-    GAMESERVER_PORT: process.env.GAMESERVER_PORT,
-    FEAT_SUB_POINTS: process.env.FEAT_SUB_POINTS,
-    SUB_PLAN_POINTS_JSON: process.env.SUB_PLAN_POINTS_JSON,
-    SUB_POINTS_KIND: process.env.SUB_POINTS_KIND,
-    SUB_POINTS_EXPIRE_DAYS: process.env.SUB_POINTS_EXPIRE_DAYS,
-    SUB_TOPUP_LAZY: process.env.SUB_TOPUP_LAZY,
     CRON_SECRET: cronSecret,
+    
+    // Optional configs
+    PAYNOW_PRODUCTS_JSON: paynowProductsJson,
+    FIREBASE_SERVICE_ACCOUNT_JSON: firebaseServiceAccountJson,
+    
+    // Feature flags
+    FEAT_SUB_POINTS: featSubPoints,
+    SUB_PLAN_POINTS_JSON: subPlanPointsJson,
+    SUB_POINTS_KIND: subPointsKind,
+    SUB_POINTS_EXPIRE_DAYS: subPointsExpireDays,
+    SUB_TOPUP_LAZY: subTopupLazy,
   });
 }
 
