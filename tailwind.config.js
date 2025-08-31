@@ -45,8 +45,8 @@ module.exports = {
         },
 
         // Background colors
-        background: "#09090b",
-        "background-secondary": "#8e51ff",
+        background: "#0B0B10",
+        "background-secondary": "#111218",
 
         // Foreground colors
         foreground: "#fafafa",
@@ -71,8 +71,8 @@ module.exports = {
 
         // Accent colors
         accent: {
-          DEFAULT: "#27272a",
-          foreground: "#fafafa",
+          DEFAULT: "#00E5FF",
+          foreground: "#0B0B10",
         },
 
         // Destructive colors
@@ -82,7 +82,7 @@ module.exports = {
         },
 
         // Border colors
-        border: "rgba(255, 255, 255, 0.1)",
+        border: "#23242B",
         input: "rgba(255, 255, 255, 0.15)",
         ring: "#7f22fe",
 
@@ -121,22 +121,25 @@ module.exports = {
         128: "32rem", // 512px
       },
 
-      // Border radius
+      // Border radius (updated for modern UI)
       borderRadius: {
-        lg: "var(--radius)",
+        lg: "16px",
+        xl: "20px",
+        "2xl": "24px",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        xl: "calc(var(--radius) + 4px)",
       },
 
-      // Shadows
+      // Shadows (enhanced for modern UI)
       boxShadow: {
         glow: "0 0 20px rgba(127, 34, 254, 0.3)",
         "glow-lg": "0 0 40px rgba(127, 34, 254, 0.4)",
         "inner-glow": "inset 0 0 20px rgba(127, 34, 254, 0.2)",
+        "soft-glow": "0 4px 20px rgba(0, 229, 255, 0.15)",
+        "accent-glow": "0 0 30px rgba(0, 229, 255, 0.25)",
       },
 
-      // Animation
+      // Animation (Framer Motion compatible)
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",
         "fade-out": "fadeOut 0.5s ease-in-out",
@@ -147,6 +150,9 @@ module.exports = {
         "bounce-gentle": "bounceGentle 2s ease-in-out infinite",
         "pulse-gentle": "pulseGentle 2s ease-in-out infinite",
         "smooth-bob": "smoothBob 2.5s ease-in-out infinite",
+        "gradient-drift": "gradientDrift 30s ease-in-out infinite",
+        "particle-twinkle": "particleTwinkle 3s ease-in-out infinite",
+        "grid-parallax": "gridParallax 20s linear infinite",
       },
 
       keyframes: {
@@ -185,6 +191,21 @@ module.exports = {
         smoothBob: {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-12px)" },
+        },
+        gradientDrift: {
+          "0%": { transform: "translate(0%, 0%) scale(1)" },
+          "25%": { transform: "translate(10%, 15%) scale(1.1)" },
+          "50%": { transform: "translate(-5%, 25%) scale(0.9)" },
+          "75%": { transform: "translate(-15%, 10%) scale(1.05)" },
+          "100%": { transform: "translate(0%, 0%) scale(1)" },
+        },
+        particleTwinkle: {
+          "0%, 100%": { opacity: "0.3", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.2)" },
+        },
+        gridParallax: {
+          "0%": { transform: "translateY(0px)" },
+          "100%": { transform: "translateY(-20px)" },
         },
       },
 

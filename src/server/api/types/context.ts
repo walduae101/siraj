@@ -9,7 +9,9 @@ export default interface Context {
   cfg: {
     features: {
       paynow: { enabled: boolean; methods: string[] };
+      receipts: { persist: boolean };
     };
   };
   req?: Request;
+  reqId: string;
 }

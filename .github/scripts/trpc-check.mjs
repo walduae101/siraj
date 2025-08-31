@@ -1,27 +1,54 @@
+import assert from "node:assert/strict";
 /* eslint-disable no-console */
-import process from 'node:process';
+import process from "node:process";
 
-const BASE_URL = process.env.BASE_URL ?? 'https://siraj.life';
+const BASE_URL = process.env.BASE_URL ?? "https://siraj.life";
 const MAX_ATTEMPTS = Number(process.env.MAX_ATTEMPTS ?? 30);
 const SLEEP_SECONDS = Number(process.env.SLEEP_SECONDS ?? 20);
 
-function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 async function head(url) {
-  const res = await fetch(url, { method: 'HEAD' });
+  const res = await fetch(url, { method: "HEAD" });
   return { ok: res.ok, status: res.status, headers: res.headers };
 }
 
 async function get(url) {
   const res = await fetch(url);
   let body = null;
-  try { body = await res.json(); } catch {}
+  try {
+    body = await res.json();
+  } catch {}
   return { ok: res.ok, status: res.status, headers: res.headers, body };
+}
+
+async function fetchJson(url, init) {
+  const r = await fetch(url, init);
+  const txt = await r.text();
+  try {
+    return {
+      ok: r.ok,
+      status: r.status,
+      json: JSON.parse(txt),
+      headers: r.headers,
+    };
+  } catch {
+    return {
+      ok: r.ok,
+      status: r.status,
+      json: null,
+      body: txt,
+      headers: r.headers,
+    };
+  }
 }
 
 function ensureHeader(headers, name, predicate, label) {
   const val = headers.get(name);
-  if (!predicate(val)) throw new Error(`Missing/invalid header ${name}: ${val} (${label})`);
+  if (!predicate(val))
+    throw new Error(`Missing/invalid header ${name}: ${val} (${label})`);
 }
 
 async function attempt(i) {
@@ -30,59 +57,145 @@ async function attempt(i) {
   // 1) HEAD /api/trpc (index route)
   {
     const r = await head(`${BASE_URL}/api/trpc`);
-    if (!(r.status === 204 || r.status === 200)) throw new Error(`HEAD /api/trpc status ${r.status}`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => v === 'index', 'HEAD /api/trpc');
-    ensureHeader(r.headers, 'cache-control', v => String(v).includes('no-store'), 'HEAD /api/trpc');
+    if (!(r.status === 204 || r.status === 200))
+      throw new Error(`HEAD /api/trpc status ${r.status}`);
+    ensureHeader(
+      r.headers,
+      "x-trpc-handler",
+      (v) => v === "index",
+      "HEAD /api/trpc",
+    );
+    ensureHeader(
+      r.headers,
+      "cache-control",
+      (v) => String(v).includes("no-store"),
+      "HEAD /api/trpc",
+    );
   }
 
   // 2) Index probe
   {
     const r = await get(`${BASE_URL}/api/trpc?__probe=1`);
     if (!r.ok) throw new Error(`GET /api/trpc?__probe=1 not ok: ${r.status}`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => v === 'index', 'GET index probe');
-    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET index probe');
-    if (!r.body?.ok || r.body?.kind !== 'index') throw new Error('Index probe failed');
+    ensureHeader(
+      r.headers,
+      "x-trpc-handler",
+      (v) => v === "index",
+      "GET index probe",
+    );
+    ensureHeader(
+      r.headers,
+      "content-type",
+      (v) => String(v).toLowerCase().includes("application/json"),
+      "GET index probe",
+    );
+    if (!r.body?.ok || r.body?.kind !== "index")
+      throw new Error("Index probe failed");
   }
 
   // 3) Router probe
   {
     const r = await get(`${BASE_URL}/api/trpc/_probe?__probe=1`);
     if (!r.ok) throw new Error(`GET router probe not ok: ${r.status}`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'GET router probe');
-    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'GET router probe');
-    if (!r.body?.ok || r.body?.kind !== 'router') throw new Error('Router probe failed');
+    ensureHeader(
+      r.headers,
+      "x-trpc-handler",
+      (v) => v === "router",
+      "GET router probe",
+    );
+    ensureHeader(
+      r.headers,
+      "content-type",
+      (v) => String(v).toLowerCase().includes("application/json"),
+      "GET router probe",
+    );
+    if (!r.body?.ok || r.body?.kind !== "router")
+      throw new Error("Router probe failed");
   }
 
   // 4) payments.methods
   {
     const r = await get(`${BASE_URL}/api/trpc/payments.methods?input=%7B%7D`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'payments.methods');
-    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'payments.methods');
-    if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`payments.methods error: ${JSON.stringify(r.body)}`);
+    ensureHeader(
+      r.headers,
+      "x-trpc-handler",
+      (v) => v === "router",
+      "payments.methods",
+    );
+    ensureHeader(
+      r.headers,
+      "content-type",
+      (v) => String(v).toLowerCase().includes("application/json"),
+      "payments.methods",
+    );
+    if (!r.body || r.body.error?.code)
+      throw new Error(`payments.methods error: ${JSON.stringify(r.body)}`);
   }
 
   // 5) receipts.list page=1 pageSize=2
   {
     const input = encodeURIComponent(JSON.stringify({ page: 1, pageSize: 2 }));
     const r = await get(`${BASE_URL}/api/trpc/receipts.list?input=${input}`);
-    ensureHeader(r.headers, 'x-trpc-handler', v => v === 'router', 'receipts.list');
-    ensureHeader(r.headers, 'content-type', v => String(v).toLowerCase().includes('application/json'), 'receipts.list');
-    if (!r.body || (r.body.error && r.body.error.code)) throw new Error(`receipts.list error: ${JSON.stringify(r.body)}`);
+    ensureHeader(
+      r.headers,
+      "x-trpc-handler",
+      (v) => v === "router",
+      "receipts.list",
+    );
+    ensureHeader(
+      r.headers,
+      "content-type",
+      (v) => String(v).toLowerCase().includes("application/json"),
+      "receipts.list",
+    );
+    if (!r.body || r.body.error?.code)
+      throw new Error(`receipts.list error: ${JSON.stringify(r.body)}`);
   }
+}
+
+async function runAdditional() {
+  const base = process.env.BASE_URL || "https://siraj.life";
+  // tRPC method
+  const m = await fetchJson(`${base}/api/trpc/payments.methods?input=%7B%7D`);
+  assert.equal(m.status, 200, "payments.methods not 200");
+  assert.equal(
+    m.headers.get("x-trpc-handler"),
+    "router",
+    "missing x-trpc-handler",
+  );
+
+  // Receipts list (does not require persist)
+  const r = await fetchJson(
+    `${base}/api/trpc/receipts.list?input=%7B%22page%22:1,%22pageSize%22:10%7D`,
+  );
+  assert.equal(r.status, 200, "receipts.list not 200");
+
+  // HEAD tRPC surface
+  const h = await fetch(`${base}/api/trpc/payments.methods`, {
+    method: "HEAD",
+  });
+  assert.equal(h.status, 204, "tRPC HEAD not 204");
 }
 
 (async () => {
   for (let i = 1; i <= MAX_ATTEMPTS; i++) {
     try {
       await attempt(i);
-      console.log('tRPC checks: ✅ PASS');
+      console.log("tRPC checks: ✅ PASS");
+
+      // Run additional checks if in CI
+      if (process.env.CI) {
+        await runAdditional();
+        console.log("Additional checks: ✅ PASS");
+      }
+
       process.exit(0);
     } catch (err) {
-      console.warn('tRPC checks: attempt failed:', err?.message ?? err);
+      console.warn("tRPC checks: attempt failed:", err?.message ?? err);
       if (i === MAX_ATTEMPTS) break;
       await sleep(SLEEP_SECONDS * 1000);
     }
   }
-  console.error('tRPC checks: ❌ FAIL');
+  console.error("tRPC checks: ❌ FAIL");
   process.exit(1);
 })();

@@ -1,36 +1,40 @@
+import crypto from "node:crypto";
 import { initTRPC } from "@trpc/server";
-
 import superjson from "superjson";
-
 import { ZodError } from "zod";
 
-
-
 import { TRPCError } from "@trpc/server";
+import type { inferAsyncReturnType } from "@trpc/server";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
 import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
-import { type inferAsyncReturnType } from "@trpc/server";
-
-
 
 type PaynowFeature = { enabled: boolean; methods: string[] };
-type Features = { paynow: PaynowFeature };
+type ReceiptsFeature = { persist: boolean };
+type Features = { paynow: PaynowFeature; receipts: ReceiptsFeature };
 type SafeConfig = { features: Features };
 
 const DEFAULT_SAFE_CONFIG: SafeConfig = {
-  features: { paynow: { enabled: false, methods: [] } },
+  features: {
+    paynow: { enabled: false, methods: [] },
+    receipts: { persist: false },
+  },
 };
 
-async function getConfigSafely(): Promise<SafeConfig> {
+export async function getConfigSafely(): Promise<SafeConfig> {
   try {
-    const mod = await import('~/server/config'); // adjust if actual path differs
+    const mod = await import("~/server/config"); // adjust if actual path differs
     const raw: any = await (mod as any).getConfig?.();
     return {
       features: {
         paynow: {
           enabled: Boolean(raw?.features?.paynow?.enabled ?? false),
-          methods: Array.isArray(raw?.features?.paynow?.methods) ? raw.features.paynow.methods : [],
+          methods: Array.isArray(raw?.features?.paynow?.methods)
+            ? raw.features.paynow.methods
+            : [],
+        },
+        receipts: {
+          persist: Boolean(raw?.features?.receipts?.persist ?? false),
         },
       },
     };
@@ -44,21 +48,27 @@ async function getConfigSafely(): Promise<SafeConfig> {
  * - New callers: createTRPCContext({ req })
  * - Legacy callers: createTRPCContext({ headers, resHeaders })
  */
-export async function createTRPCContext(input: { req?: Request; headers?: Headers; resHeaders?: Headers }) {
+export async function createTRPCContext(input: {
+  req?: Request;
+  headers?: Headers;
+  resHeaders?: Headers;
+}) {
   const cfg = await getConfigSafely();
   const headers = input.headers ?? input.req?.headers;
   const resHeaders = input.resHeaders ?? new Headers();
   const firebaseUser = null; // placeholder to satisfy legacy access
-  const adminUser = null;    // placeholder if legacy admin code reads it
+  const adminUser = null; // placeholder if legacy admin code reads it
+  const reqId = crypto.randomUUID();
 
   return {
-    req: input.req ?? new Request('http://local.invalid'), // harmless placeholder
+    req: input.req ?? new Request("http://local.invalid"), // harmless placeholder
     headers: headers ?? new Headers(),
     resHeaders,
     payNowStorefrontHeaders: {}, // Add missing field
     firebaseUser,
     adminUser,
     cfg,
+    reqId,
   };
 }
 
@@ -74,9 +84,11 @@ export type Context = {
   cfg: {
     features: {
       paynow: { enabled: boolean; methods: string[] };
+      receipts: { persist: boolean };
     };
   };
   req?: Request;
+  reqId: string;
 };
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
@@ -128,7 +140,11 @@ export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
   return next({
     ctx: {
       ...typedCtx,
-      adminUser: typedCtx.firebaseUser as { uid: string; email?: string; [key: string]: unknown },
+      adminUser: typedCtx.firebaseUser as {
+        uid: string;
+        email?: string;
+        [key: string]: unknown;
+      },
     },
   });
 });
@@ -146,7 +162,11 @@ export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
   return next({
     ctx: {
       ...typedCtx,
-      user: typedCtx.firebaseUser as { uid: string; email?: string; [key: string]: unknown },
+      user: typedCtx.firebaseUser as {
+        uid: string;
+        email?: string;
+        [key: string]: unknown;
+      },
       userId: typedCtx.firebaseUser.uid,
     },
   });
