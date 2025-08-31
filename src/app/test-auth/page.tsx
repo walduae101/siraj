@@ -13,9 +13,9 @@ export default function TestAuthPage() {
   });
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-
-    if (!auth) return;
+    const setupAuth = async () => {
+      try {
+        const auth = await getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
@@ -46,9 +46,15 @@ export default function TestAuthPage() {
           error: null,
         });
       }
-    });
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.error("Auth setup failed:", e);
+      setAuthState((prev: any) => ({ ...prev, loading: false, error: "Auth setup failed" }));
+    }
+  };
 
-    return () => unsubscribe();
+  setupAuth();
   }, []);
 
   const testApiCall = async () => {
@@ -65,8 +71,7 @@ export default function TestAuthPage() {
 
   const testTrpcCall = async () => {
     try {
-      const auth = getFirebaseAuth();
-      if (!auth) return;
+      const auth = await getFirebaseAuth();
       const user = auth.currentUser;
       if (!user) {
         alert("No user logged in");

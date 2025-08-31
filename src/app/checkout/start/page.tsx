@@ -26,15 +26,15 @@ function CheckoutStartContent() {
   const [uid, setUid] = React.useState<string>("");
 
   React.useEffect(() => {
-    try {
-      const firebaseApp = getFirebaseApp();
-      if (firebaseApp) {
-        const auth = getAuth(firebaseApp);
+    const setupAuth = async () => {
+      try {
+        const auth = await getFirebaseAuth();
         setUid(auth.currentUser?.uid ?? "");
+      } catch {
+        // ignore; stays empty if not signed in
       }
-    } catch {
-      // ignore; stays empty if not signed in
-    }
+    };
+    setupAuth();
   }, []);
 
   const allowedSkus = [

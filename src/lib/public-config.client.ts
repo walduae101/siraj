@@ -22,16 +22,30 @@ async function fetchJSON(url: string) {
 export async function getPublicConfig(): Promise<PublicConfig> {
   const w = window as any;
   if (w.__PUBLIC_CONFIG__) return w.__PUBLIC_CONFIG__;
+  
+  let lastError: Error | null = null;
+  
   try {
+    // Try local config first
     const j = await fetchJSON("/api/public-config");
-    w.__PUBLIC_CONFIG__ = j; return j;
-  } catch (_) {
-    // Fallback to remote via dev-proxy (works only on localhost)
+    w.__PUBLIC_CONFIG__ = j; 
+    return j;
+  } catch (e) {
+    lastError = e as Error;
+    console.warn("Local config failed, trying proxy:", e);
+    
     try {
+      // Fallback to remote via dev-proxy (works only on localhost)
       const j = await fetchJSON("/api/dev-proxy/public-config");
-      w.__PUBLIC_CONFIG__ = j; return j;
+      w.__PUBLIC_CONFIG__ = j; 
+      return j;
     } catch (e2) {
-      throw e2;
+      console.error("Both local and proxy config failed:", e2);
+      
+      // Provide a user-friendly error
+      const error = new Error("تعذر تحميل إعدادات التطبيق. يرجى المحاولة مرة أخرى لاحقاً.");
+      error.cause = { local: lastError, proxy: e2 };
+      throw error;
     }
   }
 }

@@ -77,8 +77,8 @@ export default function DashboardPage() {
           <Button
             variant="outline"
             onClick={async () => {
-              const auth = getFirebaseAuth();
-              if (auth) await signOut(auth);
+              const auth = await getFirebaseAuth();
+              await signOut(auth);
               router.push("/");
             }}
           >

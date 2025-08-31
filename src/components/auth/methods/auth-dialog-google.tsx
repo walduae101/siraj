@@ -52,11 +52,10 @@ export default function AuthDialogGoogle({
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const auth = getFirebaseAuth();
+      const auth = await getFirebaseAuth();
       const provider = new GoogleAuthProvider();
 
       // Use redirect-based auth to avoid COOP issues
-      if (!auth) return;
       await signInWithRedirect(auth, provider);
       // The page will redirect and come back, so we don't need to handle the result here
     } catch (e) {
@@ -69,8 +68,7 @@ export default function AuthDialogGoogle({
   useEffect(() => {
     const handleRedirectResult = async () => {
       try {
-        const auth = getFirebaseAuth();
-        if (!auth) return;
+        const auth = await getFirebaseAuth();
         const result = await getRedirectResult(auth);
 
         if (result?.user) {

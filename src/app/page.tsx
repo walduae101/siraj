@@ -17,20 +17,27 @@ export default function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) return;
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) router.replace("/dashboard");
-    });
-    return () => unsub();
+    const setupAuth = async () => {
+      try {
+        const auth = await getFirebaseAuth();
+        const unsub = onAuthStateChanged(auth, (user) => {
+          if (user) router.replace("/dashboard");
+        });
+        return () => unsub();
+      } catch (e) {
+        console.error("Auth setup failed:", e);
+        setErr("Authentication setup failed");
+      }
+    };
+
+    setupAuth();
   }, [router]);
 
   // Handle redirect result when user comes back from Google auth
   useEffect(() => {
     const handleRedirectResult = async () => {
       try {
-        const auth = getFirebaseAuth();
-        if (!auth) return;
+        const auth = await getFirebaseAuth();
         const result = await getRedirectResult(auth);
 
         if (result?.user) {
@@ -49,11 +56,10 @@ export default function Page() {
   async function login() {
     setBusy(true);
     setErr(null);
-    const auth = getFirebaseAuth();
-    const provider = new GoogleAuthProvider();
     try {
+      const auth = await getFirebaseAuth();
+      const provider = new GoogleAuthProvider();
       // Use redirect-based auth to avoid COOP issues
-      if (!auth) return;
       await signInWithRedirect(auth, provider);
       // The page will redirect and come back, so we don't need to handle the result here
     } catch (e: unknown) {

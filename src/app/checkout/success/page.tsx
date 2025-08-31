@@ -20,8 +20,7 @@ function SuccessContent() {
     const loadFirebaseConfig = async () => {
       try {
         // Get Firebase auth directly
-        const auth = getFirebaseAuth();
-        if (!auth) return;
+        const auth = await getFirebaseAuth();
         const unsubscribe = onAuthStateChanged(auth, (user) => {
           setUserId(user?.uid || null);
         });
