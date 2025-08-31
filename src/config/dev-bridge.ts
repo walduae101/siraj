@@ -17,3 +17,8 @@ export function buildUpstreamUrl(pathname: string, search: string) {
   const url = new URL(rel, REMOTE_BASE);                                 // ABSOLUTE URL
   return url.toString();
 }
+
+// Determine API base URL based on host and dev toggle
+export function devProxyBase(host: string | null): string {
+  return isLocalhost(host) ? '/api/dev-proxy' : '/api';
+}
