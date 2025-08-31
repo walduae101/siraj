@@ -1,11 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { features } from "~/config/features";
-import { protectedProcedure } from "~/server/api/trpc";
 import {
   checkoutCompleteInput,
   checkoutPreviewInput,
 } from "~/server/api/schema/checkout";
+import { protectedProcedure } from "~/server/api/trpc";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { getConfig, getProductId } from "~/server/config";
 import { getDb } from "~/server/firebase/admin-lazy";

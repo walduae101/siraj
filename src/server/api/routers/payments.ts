@@ -1,21 +1,55 @@
-import { publicProcedure, createTRPCRouter } from '~/server/api/trpc';
-import { z } from 'zod';
+import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import type Context from "~/server/api/types/context";
+
+const tokenSchema = z.void();
+const intentSchema = z.object({
+  amountCents: z.number().int().positive(),
+  currency: z.literal("AED"),
+  meta: z.object({ note: z.string().max(140).optional() }).optional(),
+});
+
+function paynowEnabled(ctx: Context) {
+  return Boolean(ctx.cfg?.features?.paynow?.enabled);
+}
 
 export const paymentsRouter = createTRPCRouter({
-  methods: publicProcedure.input(z.void()).query(({ ctx }) => {
-    const p = ctx.cfg.features.paynow;
-    return { enabled: p.enabled, methods: p.methods };
+  methods: publicProcedure.input(tokenSchema).query(({ ctx }) => {
+    // Keep shape stable for UI (enabled + methods[])
+    return {
+      enabled: paynowEnabled(ctx),
+      methods: paynowEnabled(ctx) ? (["paynow"] as const) : ([] as string[]),
+    };
   }),
-  clientToken: publicProcedure.input(z.void()).query(({ ctx }) => {
-    const p = ctx.cfg.features.paynow;
-    return p.enabled ? { enabled: true, token: 'stub-client-token' } : { enabled: false, token: null };
+
+  clientToken: publicProcedure.input(tokenSchema).query(async ({ ctx }) => {
+    if (!paynowEnabled(ctx)) {
+      return { enabled: false as const, token: null as null };
+    }
+    // Stubbed token generator (safe; replace with provider call later)
+    const token = Buffer.from(`${Date.now()}:${ctx.reqId || "demo"}`).toString(
+      "base64url",
+    );
+    return { enabled: true as const, token };
   }),
+
   createIntent: publicProcedure
-    .input(z.object({ amount: z.number().positive(), currency: z.string().length(3), returnUrl: z.string().url() }))
-    .mutation(({ input, ctx }) => {
-      const p = ctx.cfg.features.paynow;
-      if (!p.enabled) return { enabled: false, redirectUrl: null };
-      const url = new URL(input.returnUrl);
-      return { enabled: true, redirectUrl: `${url.origin}/dashboard/payments?status=processing` };
+    .input(intentSchema)
+    .mutation(async ({ ctx, input }) => {
+      if (!paynowEnabled(ctx)) {
+        // deterministic no-op intent in disabled mode (for demos/QA)
+        return {
+          id: `demo_${Date.now()}`,
+          status: "requires_payment" as const,
+          redirectUrl: `${ctx.req?.url ? new URL(ctx.req.url).origin : "https://siraj.life"}/dashboard/payments?demo=1`,
+        };
+      }
+      // Minimal fake intent shaped for UI; real provider call gated behind secrets
+      const id = `pi_${Date.now()}`;
+      // Redirect would normally be provider URL; keep internal for now
+      const redirectUrl = `${ctx.req?.url ? new URL(ctx.req.url).origin : "https://siraj.life"}/dashboard/payments?intent=${id}`;
+      return { id, status: "requires_payment" as const, redirectUrl };
     }),
 });
+
+export type PaymentsRouter = typeof paymentsRouter;
