@@ -1,32 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MessageSquare, Clock, Trash2, Edit3 } from "lucide-react";
+import { apiFetch } from "~/lib/api";
 
 interface Chat {
   id: string;
   title: string;
-  lastMessage: string;
+  lastMessage?: string;
   timestamp: string;
   isToday: boolean;
+  updatedAt: string;
+  messageCount: number;
 }
 
 interface ChatListProps {
   searchQuery: string;
 }
 
-// TODO: Replace with real API call to fetch chats
-const mockChats: Chat[] = [];
-
 export function ChatList({ searchQuery }: ChatListProps) {
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [hoveredChat, setHoveredChat] = useState<string | null>(null);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch chats from API
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await apiFetch("chats");
+        if (response.ok) {
+          const data = await response.json();
+          const formattedChats: Chat[] = data.chats.map((chat: any) => ({
+            id: chat.id,
+            title: chat.title,
+            lastMessage: chat.lastMessage || "No messages yet",
+            timestamp: formatTimestamp(chat.updatedAt),
+            isToday: isToday(chat.updatedAt),
+            updatedAt: chat.updatedAt,
+            messageCount: chat.messageCount || 0,
+          }));
+          setChats(formattedChats);
+        } else {
+          setError("Failed to load chats");
+        }
+      } catch (err) {
+        setError("Failed to load chats");
+        console.error("Error fetching chats:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChats();
+  }, []);
 
   // Filter chats based on search query
-  const filteredChats = mockChats.filter(chat =>
+  const filteredChats = chats.filter(chat =>
     chat.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+    (chat.lastMessage && chat.lastMessage.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Group chats by date
@@ -39,6 +75,26 @@ export function ChatList({ searchQuery }: ChatListProps) {
     }
     return timestamp;
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="animate-pulse space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-16 bg-muted rounded-xl"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-red-500 text-sm">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-6">
@@ -163,4 +219,25 @@ function ChatItem({ chat, isSelected, isHovered, onSelect, onHover }: ChatItemPr
       </button>
     </motion.div>
   );
+}
+
+// Helper functions
+function formatTimestamp(timestamp: string): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+  
+  if (diffInHours < 24) {
+    return "اليوم";
+  } else if (diffInHours < 48) {
+    return "أمس";
+  } else {
+    return date.toLocaleDateString('ar-SA');
+  }
+}
+
+function isToday(timestamp: string): boolean {
+  const date = new Date(timestamp);
+  const now = new Date();
+  return date.toDateString() === now.toDateString();
 }

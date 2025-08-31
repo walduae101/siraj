@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageBubble, LoadingMessageBubble } from "~/components/app/MessageBubble";
 import { Composer } from "~/components/app/Composer";
 import { MessageSquare, Sparkles, Lightbulb } from "lucide-react";
+import { apiFetch } from "~/lib/api";
 
 interface Message {
   id: string;
@@ -42,11 +43,10 @@ export default function DashboardPage() {
       // Create or get chat ID
       let chatId = currentChatId;
       if (!chatId) {
-        const chatResponse = await fetch("/api/chats", {
+        const chatResponse = await apiFetch("chats", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: "demo-user", // TODO: Get from auth
             title: content.substring(0, 50) + "...",
             initialMessage: content,
           }),
@@ -59,11 +59,10 @@ export default function DashboardPage() {
         }
       } else {
         // Add message to existing chat
-        await fetch(`/api/chats/${chatId}/messages`, {
+        await apiFetch(`chats/${chatId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            userId: "demo-user", // TODO: Get from auth
             content,
             role: "user",
           }),
@@ -83,10 +82,10 @@ export default function DashboardPage() {
         }
 
         try {
-          const messagesResponse = await fetch(`/api/chats/${chatId}/messages?userId=demo-user`);
+          const messagesResponse = await apiFetch(`chats/${chatId}/messages`);
           if (messagesResponse.ok) {
             const apiMessages = await messagesResponse.json();
-            const formattedMessages: Message[] = apiMessages.map((msg: any) => ({
+            const formattedMessages: Message[] = apiMessages.messages.map((msg: any) => ({
               id: msg.id,
               content: msg.content,
               role: msg.role,
