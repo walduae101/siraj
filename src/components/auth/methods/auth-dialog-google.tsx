@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { getFirebaseAuth } from "~/lib/firebase/client";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 import { api } from "~/trpc/react";
 
 export default function AuthDialogGoogle({

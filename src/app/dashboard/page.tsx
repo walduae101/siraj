@@ -7,7 +7,7 @@ import DashboardCards from "~/components/dashboard/DashboardCards";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
 import { features } from "~/config/features";
-import { getFirebaseAuth } from "~/lib/firebase/client";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 
 export default function DashboardPage() {
   const router = useRouter();

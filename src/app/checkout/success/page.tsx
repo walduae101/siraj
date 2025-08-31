@@ -4,7 +4,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useState, useEffect } from "react";
 import { WalletWidget } from "~/components/points/WalletWidget";
-import { getFirebaseAuth, getFirestore } from "~/lib/firebase/client";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 
 function SuccessContent() {
   const params = useSearchParams();

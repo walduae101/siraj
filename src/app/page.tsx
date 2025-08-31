@@ -9,7 +9,7 @@ import {
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getFirebaseAuth } from "~/lib/firebase/client";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 
 export default function Page() {
   const [busy, setBusy] = useState(false);

@@ -16,7 +16,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${cairo.variable}`}>
+    <html lang="ar" dir="rtl" className={`${cairo.variable}`} suppressHydrationWarning>
       <body className="min-h-screen font-[family-name:var(--font-cairo)]">
         <NextTopLoader color="var(--primary)" />
 
