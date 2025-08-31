@@ -1,7 +1,13 @@
-// This module provides backward compatibility for direct imports
-// It re-exports from the lazy module to ensure proper initialization
-export {
-  getAdminAuth as getAuth,
-  getDb as db,
-  getAdminAuth as adminAuth,
-} from "./admin-lazy";
+import { getApps, initializeApp, applicationDefault } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+
+let _inited = false;
+
+export function admin() {
+  if (!_inited) {
+    initializeApp({ credential: applicationDefault() });
+    _inited = true;
+  }
+  return { auth: getAuth(), db: getFirestore() };
+}

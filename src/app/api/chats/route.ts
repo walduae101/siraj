@@ -1,77 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
-import { loadServerEnv } from "~/env-server";
-import { initializeApp, getApps, cert } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { NextResponse } from 'next/server';
+import { admin } from '../../../server/firebase/admin';
+import { requireUser } from '../../../server/auth/requireUser';
 
-// Initialize Firebase Admin if not already initialized
-if (getApps().length === 0) {
-  const env = await loadServerEnv();
+export async function GET() {
   try {
-    if (env.FIREBASE_SERVICE_ACCOUNT_JSON && env.FIREBASE_SERVICE_ACCOUNT_JSON !== "{}") {
-      const serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON);
-      initializeApp({
-        credential: cert(serviceAccount),
-        projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      });
-    } else {
-      // Use default credentials (ADC)
-      initializeApp({
-        projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      });
-    }
-  } catch (error) {
-    // Fallback to default credentials
-    initializeApp({
-      projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
+    const user = await requireUser();
+    const { db } = admin();
+    const snap = await db.collection('users').doc(user.uid).collection('chats').orderBy('updatedAt', 'desc').limit(50).get();
+    const chats = snap.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    return NextResponse.json({ chats }, { status: 200 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? 'internal' }, { status: e?.message === 'unauthorized' ? 401 : 500 });
   }
 }
 
-const db = getFirestore();
-
-export async function GET(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
-    }
-
-    const chatsRef = db.collection("users").doc(userId).collection("chats");
-    const snapshot = await chatsRef.orderBy("createdAt", "desc").limit(50).get();
-    
-    const chats = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-      updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-    }));
-
-    return NextResponse.json(chats);
-  } catch (error) {
-    console.error("Failed to fetch chats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch chats" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
+    const user = await requireUser();
     const { userId, title, initialMessage } = await request.json();
     
-    if (!userId || !title) {
+    if (!title) {
       return NextResponse.json(
-        { error: "userId and title are required" },
+        { error: "title is required" },
         { status: 400 }
       );
     }
 
+    const { db } = admin();
     const now = new Date();
     const chatData = {
       title,
@@ -80,7 +35,7 @@ export async function POST(request: NextRequest) {
       messageCount: 0,
     };
 
-    const chatRef = await db.collection("users").doc(userId).collection("chats").add(chatData);
+    const chatRef = await db.collection("users").doc(user.uid).collection("chats").add(chatData);
     
     // If there's an initial message, add it
     if (initialMessage) {
