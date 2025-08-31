@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { api } from "~/trpc/react";
 
 export default function PaymentsPage() {
   const { data: methods } = api.payments.methods.useQuery();
@@ -26,9 +26,13 @@ export default function PaymentsPage() {
           <CardTitle>طرق الدفع / Payment Methods</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="text-sm opacity-80">Available: {methods?.methods?.join(", ") || "…"}</div>
+          <div className="text-sm opacity-80">
+            Available: {methods?.methods?.join(", ") || "…"}
+          </div>
           {!enabled && (
-            <div className="rounded-md bg-amber-50 p-3 text-amber-900 text-sm">{disabledMsg}</div>
+            <div className="rounded-md bg-amber-50 p-3 text-amber-900 text-sm">
+              {disabledMsg}
+            </div>
           )}
           <div className="flex items-center gap-2">
             <input
@@ -42,8 +46,11 @@ export default function PaymentsPage() {
             <Button
               disabled={!enabled || createIntent.isPending}
               onClick={async () => {
-                const res = await createIntent.mutateAsync({ amount, currency: "AED", returnUrl: window.location.href });
-                if (res.enabled && res.redirectUrl) {
+                const res = await createIntent.mutateAsync({
+                  amountCents: amount * 100,
+                  currency: "AED",
+                });
+                if (res.redirectUrl) {
                   window.location.href = res.redirectUrl;
                 }
               }}
@@ -52,7 +59,9 @@ export default function PaymentsPage() {
             </Button>
           </div>
           {enabled && tokenData?.token && (
-            <div className="text-xs text-muted-foreground">Client token ready.</div>
+            <div className="text-muted-foreground text-xs">
+              Client token ready.
+            </div>
           )}
         </CardContent>
       </Card>

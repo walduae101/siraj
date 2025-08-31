@@ -5,8 +5,8 @@ import { adminRouter } from "./routers/admin";
 import { aiRouter } from "./routers/ai";
 import { checkoutRouter } from "./routers/checkout";
 import { fraudRouter } from "./routers/fraud";
-import { paynowRouter } from "./routers/paynow";
 import { paymentsRouter } from "./routers/payments";
+import { paynowRouter } from "./routers/paynow";
 import { pointsRouter } from "./routers/points";
 import { receiptsRouter } from "./routers/receipts";
 

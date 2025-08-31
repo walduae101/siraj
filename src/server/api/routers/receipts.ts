@@ -1,18 +1,23 @@
-import { publicProcedure, createTRPCRouter } from '~/server/api/trpc';
-import { z } from 'zod';
+import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { getReceipt, listReceipts } from "~/server/services/receipts.service";
 
 export const receiptsRouter = createTRPCRouter({
   list: publicProcedure
-    .input(z.object({ page: z.number().int().min(1), pageSize: z.number().int().min(1).max(50) }))
-    .query(async ({ input }) => {
-      const { listReceipts } = await import('~/server/services/receipts.service');
-      return await listReceipts("demo", input.page, input.pageSize);
+    .input(
+      z.object({
+        page: z.number().min(1),
+        pageSize: z.number().min(1).max(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { page, pageSize } = input;
+      return await listReceipts(ctx, { page, pageSize });
     }),
   byId: publicProcedure
     .input(z.object({ id: z.string().min(1) }))
-    .query(async ({ input }) => {
-      const { getReceipt } = await import('~/server/services/receipts.service');
-      return await getReceipt("demo", input.id);
+    .query(async ({ ctx, input }) => {
+      return await getReceipt(ctx, input.id);
     }),
 });
 
