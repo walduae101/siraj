@@ -8,15 +8,15 @@
 - Troubleshooting: If upstream returns HTML, you'll get `502 upstream-non-json` with a small `sample`.
 
 ## Quick Start
-1. Start dev server: `pnpm dev`
+1. Start dev server: `pnpm dev` (defaults to port 3000)
 2. Open browser to `http://localhost:3000`
 3. Use the dev banner to toggle between local/remote backends
 4. Or manually: `localStorage.setItem('siraj.dev.remote', '1')` then reload
 
 ## Smoke Tests
 Run after starting dev server:
-- **Linux/Mac**: `scripts/smoke-dev-bridge.sh`
-- **Windows**: `pwsh scripts/smoke-dev-bridge.ps1`
+- **Linux/Mac**: `scripts/smoke-dev-bridge.sh` (defaults to port 3000)
+- **Windows**: `pwsh scripts/smoke-dev-bridge.ps1` (defaults to port 3000)
 
 ## Authentication
 - Sign in with Google via Firebase Auth

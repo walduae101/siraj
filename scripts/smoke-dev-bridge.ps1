@@ -1,4 +1,4 @@
-param([int]$Port = 3001)
+param([int]$Port = 3000)
 $Base = "http://127.0.0.1:$Port"
 
 Write-Host "→ proxied public-config ($Base/api/dev-proxy/public-config)"

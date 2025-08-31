@@ -21,13 +21,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm build
-      - name: Start server on :3001
+      - name: Start server on :3000
         run: |
-          PORT=3001 pnpm start &> .next/server.log &
-          npx --yes wait-on http://127.0.0.1:3001/api/public-config
+          PORT=3000 pnpm start &> .next/server.log &
+          npx --yes wait-on http://127.0.0.1:3000/api/public-config
       - name: Run smoke
         run: |
-          export PORT=3001
+          export PORT=3000
           bash scripts/smoke-dev-bridge.sh
       - name: Upload server logs on failure
         if: failure()

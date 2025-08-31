@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PORT="${PORT:-3001}"
+PORT="${PORT:-3000}"
 BASE="http://127.0.0.1:${PORT}"
 
 echo "→ proxied public-config (${BASE}/api/dev-proxy/public-config)"
