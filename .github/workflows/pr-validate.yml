@@ -13,6 +13,18 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run GSM guards
+        run: bash scripts/ci-guard.sh
+
       - name: Validate next.config.mjs
         run: bash ./scripts/validate-config.sh
 
