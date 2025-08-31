@@ -24,7 +24,6 @@ jobs:
 
       - name: Run GSM guards
         run: bash scripts/ci-guard.sh
-
       - name: Validate next.config.mjs
         run: bash ./scripts/validate-config.sh
 

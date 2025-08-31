@@ -1,5 +1,25 @@
-import { NextResponse } from 'next/server';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json({ message: 'Test route works!' });
+  return new Response(
+    JSON.stringify({ ok: true, message: "Test route working" }),
+    {
+      status: 200,
+      headers: {
+        "content-type": "application/json",
+        "cache-control": "no-store",
+      },
+    },
+  );
+}
+
+export async function HEAD() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "cache-control": "no-store",
+    },
+  });
+}
 }
