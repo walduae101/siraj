@@ -1,6 +1,6 @@
 "use client";
 
-import { devProxyBase } from '../config/dev-bridge';
+import { isLocalhost } from '../config/dev-bridge';
 import { auth } from './firebase.client';
 
 // Get Firebase ID token for authenticated requests
@@ -19,7 +19,7 @@ export async function getIdToken(): Promise<string | null> {
 export async function apiFetch(path: string, init: RequestInit = {}) {
   // Determine base URL based on current host
   const host = typeof window !== 'undefined' ? window.location.host : null;
-  const base = devProxyBase(host);
+  const base = isLocalhost(host) ? '/api/dev-proxy' : '/api';
   const url = `${base}/${path.replace(/^\//, '')}`;
   
   // Prepare headers
@@ -41,4 +41,11 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   });
   
   return response;
+}
+
+// tRPC base path that uses dev proxy on localhost
+export function trpcBasePath(): string {
+  const host = typeof window !== 'undefined' ? window.location.host : null;
+  const base = isLocalhost(host) ? '/api/dev-proxy' : '/api';
+  return `${base}/trpc`;
 }

@@ -1,17 +1,19 @@
-// Dev bridge configuration for local frontend + remote backend
-// Safe to commit - no secrets, only public URLs
-
-// Remote backend base URL (production or staging)
+// Dev bridge config (authoritative upstream from repo docs)
 export const REMOTE_BASE = 'https://siraj.life';
+export const REMOTE_PREFIX = '/api';
 
-// Check if host is localhost/127.0.0.1
-export function isLocalHost(host: string | null): boolean {
+// Host check
+export function isLocalhost(host?: string | null) {
   if (!host) return false;
-  const hostname = host.split(':')[0].toLowerCase();
-  return hostname === 'localhost' || hostname === '127.0.0.1';
+  const h = host.toLowerCase();
+  return h.startsWith('localhost') || h.startsWith('127.0.0.1');
 }
 
-// Determine API base URL based on host
-export function devProxyBase(host: string | null): string {
-  return isLocalHost(host) ? '/api/_dev/remote' : '/api';
+// Build absolute upstream URL from a local path + search
+export function buildUpstreamUrl(pathname: string, search: string) {
+  const cleanPath = String(pathname || '').replace(/^\/+/, '');        // no leading slashes
+  const prefix = REMOTE_PREFIX.replace(/\/+$/, '');                     // no trailing slash
+  const rel = `${prefix}/${cleanPath}${search || ''}`;
+  const url = new URL(rel, REMOTE_BASE);                                 // ABSOLUTE URL
+  return url.toString();
 }
