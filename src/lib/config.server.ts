@@ -6,18 +6,26 @@ const cache = new Map<string, string>();
 async function read(name: string) {
   if (cache.has(name)) return cache.get(name)!;
   const pid = await c.getProjectId();
-  const [v] = await c.accessSecretVersion({ name: `projects/${pid}/secrets/${name}/versions/latest` });
-  const val = v?.payload?.data?.toString() ?? "";
-  cache.set(name, val);
-  return val;
+  try {
+    const [v] = await c.accessSecretVersion({ name: `projects/${pid}/secrets/${name}/versions/latest` });
+    const val = v?.payload?.data?.toString() ?? "";
+    cache.set(name, val);
+    return val;
+  } catch (error) {
+    console.warn(`Secret ${name} not found, using empty string`);
+    cache.set(name, "");
+    return "";
+  }
 }
 
 export async function getServerConfig() {
   const names = [
     "PAYNOW_API_KEY", "PAYNOW_WEBHOOK_SECRET", "OPENAI_API_KEY",
-    "FIREBASE_API_KEY", "FIREBASE_PROJECT_ID", "FIREBASE_AUTH_DOMAIN", "FIREBASE_APP_ID", "FIREBASE_MESSAGING_SENDER_ID", "FIREBASE_STORAGE_BUCKET",
+    "NEXT_PUBLIC_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_PROJECT_ID", "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", 
+    "NEXT_PUBLIC_FIREBASE_APP_ID", "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID", "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
     "FEAT_SUB_POINTS", "SUB_POINTS_KIND", "SUB_POINTS_EXPIRE_DAYS", "SUB_TOPUP_LAZY",
-    "NEXT_PUBLIC_WEBSITE_URL", "NEXT_PUBLIC_PAYNOW_STORE_ID", "NEXT_PUBLIC_BACKGROUND_IMAGE_URL", "NEXT_PUBLIC_DISCORD_INVITE_URL", "NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE"
+    "NEXT_PUBLIC_WEBSITE_URL", "NEXT_PUBLIC_PAYNOW_STORE_ID", "NEXT_PUBLIC_BACKGROUND_IMAGE_URL", 
+    "NEXT_PUBLIC_DISCORD_INVITE_URL", "NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE"
   ];
   const vals = await Promise.all(names.map(read));
   const m: Record<string, string> = {};
@@ -31,12 +39,12 @@ export async function getServerConfig() {
   };
 
   const firebase = {
-    apiKey: m.FIREBASE_API_KEY,
-    projectId: m.FIREBASE_PROJECT_ID,
-    authDomain: m.FIREBASE_AUTH_DOMAIN,
-    appId: m.FIREBASE_APP_ID,
-    messagingSenderId: m.FIREBASE_MESSAGING_SENDER_ID,
-    storageBucket: m.FIREBASE_STORAGE_BUCKET
+    apiKey: m.NEXT_PUBLIC_FIREBASE_API_KEY,
+    projectId: m.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    authDomain: m.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    appId: m.NEXT_PUBLIC_FIREBASE_APP_ID,
+    messagingSenderId: m.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    storageBucket: m.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
   };
 
   const pub = {
