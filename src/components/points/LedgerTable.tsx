@@ -235,3 +235,4 @@ export function LedgerTable({
     </div>
   );
 }
+

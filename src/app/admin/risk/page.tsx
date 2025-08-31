@@ -488,3 +488,4 @@ export default function RiskQueuePage(props: RiskQueueProps) {
     </div>
   );
 }
+

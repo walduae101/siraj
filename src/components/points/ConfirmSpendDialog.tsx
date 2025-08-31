@@ -230,3 +230,4 @@ export function ConfirmSpendDialog(props: ConfirmSpendDialogProps) {
     </Dialog>
   );
 }
+

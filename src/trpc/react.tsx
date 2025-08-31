@@ -6,7 +6,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import SuperJSON from "superjson";
-import { getFirebaseAuth } from "~/lib/firebase/client";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 
 import type { AppRouter } from "~/server/api/root";
 import { createQueryClient } from "./query-client";
@@ -49,13 +49,11 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 
             // Add Firebase auth token if user is authenticated
             try {
-              const auth = getFirebaseAuth();
-              if (auth) {
-                const user = auth.currentUser;
-                if (user) {
-                  const token = await user.getIdToken();
-                  headers.set("authorization", `Bearer ${token}`);
-                }
+              const auth = await getFirebaseAuth();
+              const user = auth.currentUser;
+              if (user) {
+                const token = await user.getIdToken();
+                headers.set("authorization", `Bearer ${token}`);
               }
             } catch (error) {
               console.warn("Failed to get Firebase auth token:", error);
@@ -82,10 +80,7 @@ function getBaseUrl() {
     return window.location.origin;
   }
 
-  // SSR: use build-time env or fallback
-  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
-  }
-
+  // SSR: use fallback for localhost
   return "http://localhost:3000";
 }
+
