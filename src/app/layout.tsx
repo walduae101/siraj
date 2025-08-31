@@ -7,6 +7,7 @@ import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "~/components/ui/sonner";
 import { TRPCReactProvider } from "~/trpc/react";
+import { DevBanner } from "~/components/dev/DevBanner";
 
 const cairo = Cairo({ subsets: ["arabic"], variable: "--font-cairo" });
 
@@ -18,6 +19,7 @@ export default async function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={`${cairo.variable}`}>
       <body className="min-h-screen font-[family-name:var(--font-cairo)]">
+        <DevBanner />
         <NextTopLoader color="var(--primary)" />
 
         <Toaster position="top-center" />

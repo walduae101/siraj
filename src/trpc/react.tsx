@@ -7,6 +7,7 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import SuperJSON from "superjson";
 import { getFirebaseAuth } from "~/lib/firebase/client";
+import { trpcBasePath } from "~/lib/api";
 
 import type { AppRouter } from "~/server/api/root";
 import { createQueryClient } from "./query-client";
@@ -42,7 +43,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
         }),
         httpLink({
           transformer: SuperJSON,
-          url: `${getBaseUrl()}/api/trpc`,
+          url: `${getBaseUrl()}${trpcBasePath()}`,
           headers: async () => {
             const headers = new Headers();
             headers.set("x-trpc-source", "nextjs-react");

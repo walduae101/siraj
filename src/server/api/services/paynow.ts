@@ -1,4 +1,4 @@
-import { env } from "~/env-combined";
+import { loadServerEnv } from "~/env";
 
 import axios, {
   AxiosError,
@@ -22,27 +22,32 @@ import type Store from "../types/paynow/store";
 import type Tag from "../types/paynow/tag";
 
 export default class PayNowService {
-  private static HTTP: AxiosInstance = axios.create({
-    baseURL: "https://api.paynow.gg/v1",
-    headers: {
-      "x-paynow-store-id": env.NEXT_PUBLIC_PAYNOW_STORE_ID,
-    },
-  });
+  private static async getHTTP(): Promise<AxiosInstance> {
+    const env = await loadServerEnv();
+    return axios.create({
+      baseURL: "https://api.paynow.gg/v1",
+      headers: {
+        "x-paynow-store-id": env.NEXT_PUBLIC_PAYNOW_STORE_ID,
+      },
+    });
+  }
 
   private static async request<T>(config: AxiosRequestConfig) {
-    const request = await PayNowService.HTTP.request(config);
+    const http = await PayNowService.getHTTP();
+    const request = await http.request(config);
     return request.data as T;
   }
 
-  private static getSanitizedApiKey(): string {
+  private static async getSanitizedApiKey(): Promise<string> {
+    const env = await loadServerEnv();
     return (env.PAYNOW_API_KEY ?? "")
       .replace(/["']/g, "")
       .replace(/[^\x20-\x7E]/g, "")
       .trim();
   }
 
-  private static paynowHeaders(): Record<string, string> {
-    const key = PayNowService.getSanitizedApiKey();
+  private static async paynowHeaders(): Promise<Record<string, string>> {
+    const key = await PayNowService.getSanitizedApiKey();
     const auth = `APIKey ${key}`;
     if (/[\r\n]/.test(auth) || !key) throw new Error("Invalid PAYNOW_API_KEY");
     return {
@@ -87,7 +92,7 @@ export default class PayNowService {
   public static async getModules(ctx: Context) {
     return PayNowService.request<Module[]>({
       method: "GET",
-      url: `/webstores/${env.NEXT_PUBLIC_PAYNOW_STORE_ID}/modules/prepared`,
+      url: `/webstores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/modules/prepared`,
       headers: ctx.payNowStorefrontHeaders,
     });
   }
@@ -230,8 +235,8 @@ export default class PayNowService {
     try {
       const existing = await PayNowService.request<Customer>({
         method: "GET",
-        url: `/stores/${env.NEXT_PUBLIC_PAYNOW_STORE_ID}/customers/lookup`,
-        headers: PayNowService.paynowHeaders(),
+        url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/customers/lookup`,
+        headers: await PayNowService.paynowHeaders(),
         params: { email },
       });
 
@@ -244,9 +249,9 @@ export default class PayNowService {
 
     const created = await PayNowService.request<Customer>({
       method: "POST",
-      url: `/stores/${env.NEXT_PUBLIC_PAYNOW_STORE_ID}/customers`,
+      url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/customers`,
       headers: {
-        ...PayNowService.paynowHeaders(),
+        ...(await PayNowService.paynowHeaders()),
       },
       data: { name, email },
     });
@@ -264,9 +269,9 @@ export default class PayNowService {
 
     const { token } = await PayNowService.request<{ token: string }>({
       method: "POST",
-      url: `/stores/${env.NEXT_PUBLIC_PAYNOW_STORE_ID}/customers/${customerId}/tokens`,
+      url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/customers/${customerId}/tokens`,
       headers: {
-        ...PayNowService.paynowHeaders(),
+        ...(await PayNowService.paynowHeaders()),
       },
     });
 
@@ -311,9 +316,9 @@ export default class PayNowService {
   public static async getGiftcardBalanceByCode(code: string): Promise<number> {
     const giftCardsReq = await PayNowService.request<GiftCard[]>({
       method: "GET",
-      url: `/stores/${env.NEXT_PUBLIC_PAYNOW_STORE_ID}/giftcards`,
+      url: `/stores/${(await loadServerEnv()).NEXT_PUBLIC_PAYNOW_STORE_ID}/giftcards`,
       headers: {
-        ...PayNowService.paynowHeaders(),
+        ...(await PayNowService.paynowHeaders()),
       },
       params: {
         code: code,
