@@ -1,27 +1,32 @@
-Write-Host '→ public-config proxied'
+param([int]$Port = 3001)
+$Base = "http://127.0.0.1:$Port"
+
+Write-Host "→ proxied public-config ($Base/api/dev-proxy/public-config)"
 try {
-    $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/dev-proxy/public-config' -Headers @{Accept='application/json'}
-    $content = $response.Content
-    $truncated = $content.Substring(0, [Math]::Min(200, $content.Length))
-    Write-Host $truncated
+  $resp = Invoke-WebRequest -Uri "$Base/api/dev-proxy/public-config" -Headers @{Accept='application/json'}
+  $txt = $resp.Content
+  Write-Output $txt.Substring(0, [Math]::Min(200, $txt.Length))
 } catch {
-    Write-Host "Error: $($_.Exception.Message)"
+  Write-Output $_.Exception.Message
 }
 
-Write-Host '→ local public-config'
+Write-Host "→ local public-config ($Base/api/public-config)"
 try {
-    $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/public-config' -Headers @{Accept='application/json'}
-    $content = $response.Content
-    $truncated = $content.Substring(0, [Math]::Min(200, $content.Length))
-    Write-Host $truncated
+  $resp = Invoke-WebRequest -Uri "$Base/api/public-config" -Headers @{Accept='application/json'}
+  $txt = $resp.Content
+  Write-Output $txt.Substring(0, [Math]::Min(200, $txt.Length))
 } catch {
-    Write-Host "Error: $($_.Exception.Message)"
+  Write-Output $_.Exception.Message
 }
 
-Write-Host '→ guard check (expect 403)'
+Write-Host "→ guard check (expect 403)"
 try {
-    $response = Invoke-WebRequest -Uri 'http://localhost:3001/api/dev-proxy/public-config' -Headers @{Host='example.com'}
-    Write-Host "Status: $($response.StatusCode)"
+  (Invoke-WebRequest -Uri "$Base/api/dev-proxy/public-config" -Headers @{Host='example.com'}).StatusCode
 } catch {
-    Write-Host "Status: $($_.Exception.Response.StatusCode)"
+  if ($_.Exception.Response) {
+    [int]$status = $_.Exception.Response.StatusCode.Value__
+    Write-Output $status
+  } else {
+    Write-Output "error"
+  }
 }

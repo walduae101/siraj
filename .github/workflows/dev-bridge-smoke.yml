@@ -1,0 +1,37 @@
+name: Dev Bridge Smoke
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch: {}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Use Node 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm build
+      - name: Start server on :3001
+        run: |
+          PORT=3001 pnpm start &> .next/server.log &
+          npx --yes wait-on http://127.0.0.1:3001/api/public-config
+      - name: Run smoke
+        run: |
+          export PORT=3001
+          bash scripts/smoke-dev-bridge.sh
+      - name: Upload server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-server-logs
+          path: .next/server.log
