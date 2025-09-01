@@ -35,11 +35,19 @@ export const env = createEnv({
       .default("AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4"),
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z
       .string()
-      .default("walduae-project-20250809071906.firebaseapp.com"),
+      .default("siraj.life"),
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: z
       .string()
       .default("walduae-project-20250809071906"),
-    NEXT_PUBLIC_FIREBASE_APP_ID: z.string().optional(),
+    NEXT_PUBLIC_FIREBASE_APP_ID: z
+      .string()
+      .default("1:207501673877:web:8c8265c153623cf14ae29c"),
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: z
+      .string()
+      .default("207501673877"),
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z
+      .string()
+      .default("walduae-project-20250809071906.firebasestorage.app"),
 
     // PayNow Points Mapping
     NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON: z
@@ -71,11 +79,15 @@ export const env = createEnv({
       "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
       process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
-      "walduae-project-20250809071906.firebaseapp.com",
+      "siraj.life",
     NEXT_PUBLIC_FIREBASE_PROJECT_ID:
       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
       "walduae-project-20250809071906",
-    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:207501673877:web:8c8265c153623cf14ae29c",
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:
+      process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "207501673877",
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "walduae-project-20250809071906.firebasestorage.app",
     NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON:
       process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON,
     NEXT_PUBLIC_SUB_PLAN_POINTS_JSON:
