@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { RiskEvent } from "~/server/services/riskManagement";
+import type { RiskEvent } from "~/types/risk";
 
 type RiskQueueProps = {};
 

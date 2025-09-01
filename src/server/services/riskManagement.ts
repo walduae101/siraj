@@ -1,25 +1,15 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { getConfig } from "~/server/config";
 import { getDb } from "~/server/firebase/admin-lazy";
+import type { RiskEvent as ClientRiskEvent } from "~/types/risk";
 
-export interface RiskEvent {
-  id: string;
-  uid: string;
-  eventType: "credit" | "promo_redeem" | "admin_adjust";
-  riskScore: number;
-  riskReasons: string[];
-  decision: "posted" | "hold" | "reversed";
-  metadata: {
-    amount?: number;
-    source?: string;
-    customerId?: string;
-    ip?: string;
-    accountAge?: number;
-  };
+// Re-export the client type for server use
+export type RiskEvent = ClientRiskEvent;
+
+// Server-specific interface that extends the client type
+export interface ServerRiskEvent extends Omit<ClientRiskEvent, 'createdAt' | 'resolvedAt'> {
   createdAt: Timestamp;
   resolvedAt?: Timestamp;
-  resolvedBy?: string;
-  resolutionReason?: string;
 }
 
 export interface VelocityCheck {
