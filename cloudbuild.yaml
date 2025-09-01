@@ -24,8 +24,9 @@ steps:
     args: ['push', 'gcr.io/$PROJECT_ID/siraj:latest']
 
   # Deploy to Cloud Run (US region) with Secret Manager
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
     args:
+      - gcloud
       - run
       - deploy
       - siraj
@@ -40,7 +41,7 @@ steps:
       - NEXT_PUBLIC_FIREBASE_PROJECT_ID=NEXT_PUBLIC_FIREBASE_PROJECT_ID:latest,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:latest,NEXT_PUBLIC_FIREBASE_API_KEY=NEXT_PUBLIC_FIREBASE_API_KEY:latest,NEXT_PUBLIC_WEBSITE_URL=NEXT_PUBLIC_WEBSITE_URL:latest,NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE=NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE:latest,NEXT_PUBLIC_DISCORD_INVITE_URL=NEXT_PUBLIC_DISCORD_INVITE_URL:latest,NEXT_PUBLIC_PAYNOW_STORE_ID=NEXT_PUBLIC_PAYNOW_STORE_ID:latest,NEXT_PUBLIC_BACKGROUND_IMAGE_URL=NEXT_PUBLIC_BACKGROUND_IMAGE_URL:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,PAYNOW_API_KEY=PAYNOW_API_KEY:latest,FIREBASE_PROJECT_ID=FIREBASE_PROJECT_ID:latest,PAYNOW_STORE_ID=PAYNOW_STORE_ID:latest,SIRAJ_CONFIG_JSON=SIRAJ_CONFIG_JSON:latest
 
   # Deploy EU to the same image (parity)
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
     id: deploy-eu-parity
     entrypoint: bash
     args:
@@ -52,7 +53,7 @@ steps:
         echo "✅ EU deployment complete"
 
   # Invalidate CDN cache
-  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
     id: invalidate-cdn
     entrypoint: bash
     args:
