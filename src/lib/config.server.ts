@@ -54,7 +54,7 @@ export async function loadPublicConfig(): Promise<{
       firebase: {
         apiKey: "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
         projectId: "walduae-project-20250809071906",
-        authDomain: "walduae-project-20250809071906.firebaseapp.com", // Use default Firebase domain for local dev
+        authDomain: "siraj.life", // Use custom domain for authentication
         appId: "1:207501673877:web:8c8265c153623cf14ae29c",
         messagingSenderId: "207501673877",
         storageBucket: "walduae-project-20250809071906.firebasestorage.app",

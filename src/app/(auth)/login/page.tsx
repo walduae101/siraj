@@ -1,5 +1,5 @@
 "use client";
-import { getFirebaseAuth, signInWithGoogle, handleRedirectResult } from "~/lib/firebase-auth";
+import { getFirebaseAuth, signInWithGoogle } from "~/lib/firebase-auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -13,29 +13,24 @@ export default function Page() {
     (async () => {
       try {
         await getFirebaseAuth(); // ensures runtime config + client init
-        
-        // Check for redirect result (user coming back from Google auth)
-        const user = await handleRedirectResult();
-        if (user) {
-          console.log("User signed in:", user.email);
-          router.push("/dashboard");
-          return;
-        }
-        
         setReady(true);
       } catch (e) {
         console.error("Auth initialization error:", e);
         setErr("تعذر تهيئة تسجيل الدخول حالياً");
       }
     })();
-  }, [router]);
+  }, []);
 
   const onClick = async () => {
     try { 
       setBusy(true); 
       await signInWithGoogle(); 
-      // signInWithRedirect will redirect the user to Google, then back to this page
-      // The useEffect above will handle the redirect result
+      // For local development, this will use popup and we can redirect directly
+      // For production, this will use redirect and handle the result
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        // Local development - redirect to dashboard after successful popup auth
+        router.push("/dashboard");
+      }
     }
     catch (e) { 
       console.error("Sign-in error:", e); 
@@ -60,7 +55,9 @@ export default function Page() {
         {busy ? "جاري التوجيه..." : "متابعة باستخدام Google"}
       </button>
       <p id="login-desc" className="mt-2 text-sm opacity-60">
-        سنعيد توجيهك إلى Google لتسجيل الدخول.
+        {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+          ? "سيتم فتح نافذة منبثقة لتسجيل الدخول."
+          : "سنعيد توجيهك إلى Google لتسجيل الدخول."}
       </p>
     </main>
   );

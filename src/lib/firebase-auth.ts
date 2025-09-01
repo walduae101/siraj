@@ -1,5 +1,5 @@
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, type User } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, type User } from "firebase/auth";
 import { getPublicConfig } from "./public-config.client";
 
 let appP: Promise<FirebaseApp> | null = null;
@@ -33,7 +33,13 @@ export async function getFirebaseAuth() {
 export async function signInWithGoogle(): Promise<void> {
   const auth = await getFirebaseAuth();
   const provider = new GoogleAuthProvider();
-  await signInWithRedirect(auth, provider);
+  
+  // Use popup for local development to avoid redirect issues
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    await signInWithPopup(auth, provider);
+  } else {
+    await signInWithRedirect(auth, provider);
+  }
 }
 
 export async function handleRedirectResult(): Promise<User | null> {
