@@ -46,23 +46,25 @@ export async function loadPublicConfig(): Promise<{
 
   // Development fallback: if no GSM secrets and we're in development, provide mock config
   if (miss.length > 0 && process.env.NODE_ENV === "development") {
-    console.warn("GSM secrets not available in development, using mock config");
+    console.warn("GSM secrets not available in development, using real Firebase config");
+    
+    // Use real Firebase config for the existing project
     return {
       ok: true,
       firebase: {
-        apiKey: "mock-api-key-for-development",
-        projectId: "mock-project-id",
-        authDomain: "mock-project-id.firebaseapp.com",
-        appId: "mock-app-id",
-        messagingSenderId: "123456789",
-        storageBucket: "mock-project-id.appspot.com",
+        apiKey: "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
+        projectId: "walduae-project-20250809071906",
+        authDomain: "walduae-project-20250809071906.firebaseapp.com",
+        appId: "1:207501673877:web:8c8265c153623cf14ae29c",
+        messagingSenderId: "207501673877",
+        storageBucket: "walduae-project-20250809071906.firebasestorage.app",
       },
       app: {
         websiteUrl: "http://localhost:3000",
-        paynowStoreId: "mock-store-id",
+        paynowStoreId: "local-dev-store",
         backgroundImageUrl: "https://via.placeholder.com/1920x1080",
-        discordInviteUrl: "https://discord.gg/mock",
-        gameserverConnectionMessage: "Mock connection message",
+        discordInviteUrl: "https://discord.gg/siraj",
+        gameserverConnectionMessage: "Local development mode",
       },
       features: {},
       missing: [], // Don't report missing in dev mode
