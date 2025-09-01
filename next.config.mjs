@@ -45,7 +45,7 @@ const nextConfig = {
           {
             key: "Content-Security-Policy-Report-Only",
             value:
-              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
+              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; frame-src 'self' https://siraj.life https://*.siraj.life https://*.firebaseapp.com https://*.googleapis.com; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
           },
           { key: "Vary", value: "Accept" },
         ],
@@ -72,7 +72,7 @@ const nextConfig = {
           {
             key: "Content-Security-Policy-Report-Only",
             value:
-              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
+              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; frame-src 'self' https://siraj.life https://*.siraj.life https://*.firebaseapp.com https://*.googleapis.com; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
           },
           { key: "Vary", value: "Accept" },
         ],
