@@ -1,15 +1,9 @@
 "use client";
 
-import {
-  GoogleAuthProvider,
-  getRedirectResult,
-  onAuthStateChanged,
-  signInWithPopup,
-  signInWithRedirect,
-} from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getFirebaseAuth } from "~/lib/firebase.client";
+import { getFirebaseAuth, signInWithGoogle, handleRedirectResult } from "~/lib/firebase.client";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Page() {
   const [busy, setBusy] = useState(false);
@@ -35,12 +29,11 @@ export default function Page() {
 
   // Handle redirect result when user comes back from Google auth
   useEffect(() => {
-    const handleRedirectResult = async () => {
+    const checkRedirectResult = async () => {
       try {
-        const auth = await getFirebaseAuth();
-        const result = await getRedirectResult(auth);
+        const user = await handleRedirectResult();
 
-        if (result?.user) {
+        if (user) {
           // User authenticated successfully via redirect
           router.replace("/dashboard");
         }
@@ -50,18 +43,16 @@ export default function Page() {
       }
     };
 
-    handleRedirectResult();
+    checkRedirectResult();
   }, [router]);
 
   async function login() {
     setBusy(true);
     setErr(null);
     try {
-      const auth = await getFirebaseAuth();
-      const provider = new GoogleAuthProvider();
-      // Use redirect-based auth to avoid COOP issues
-      await signInWithRedirect(auth, provider);
-      // The page will redirect and come back, so we don't need to handle the result here
+      await signInWithGoogle();
+      // signInWithRedirect will redirect the user to Google, then back to this page
+      // The useEffect above will handle the redirect result
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Sign-in failed");
       setBusy(false);
