@@ -17,21 +17,8 @@ async function fetchSecret(name: string): Promise<string | undefined> {
 
 export async function loadPublicConfig(): Promise<{
   ok: boolean;
-  firebase?: {
-    apiKey?: string;
-    projectId?: string;
-    authDomain?: string;
-    appId?: string;
-    messagingSenderId?: string;
-    storageBucket?: string;
-  };
-  app?: {
-    websiteUrl?: string;
-    paynowStoreId?: string;
-    backgroundImageUrl?: string;
-    discordInviteUrl?: string;
-    gameserverConnectionMessage?: string;
-  };
+  firebase?: { apiKey?: string; projectId?: string; authDomain?: string; appId?: string; messagingSenderId?: string; storageBucket?: string; };
+  app?: { websiteUrl?: string; paynowStoreId?: string; backgroundImageUrl?: string; discordInviteUrl?: string; gameserverConnectionMessage?: string; };
   features?: Record<string, unknown>;
   missing?: string[];
 }> {
@@ -53,8 +40,34 @@ export async function loadPublicConfig(): Promise<{
     cache.loaded = Object.fromEntries(entries);
     cache.at = Date.now();
   }
+
   const s = cache.loaded!;
   const miss = Object.entries(s).filter(([,v]) => !v).map(([k]) => k);
+
+  // Development fallback: if no GSM secrets and we're in development, provide mock config
+  if (miss.length > 0 && process.env.NODE_ENV === "development") {
+    console.warn("GSM secrets not available in development, using mock config");
+    return {
+      ok: true,
+      firebase: {
+        apiKey: "mock-api-key-for-development",
+        projectId: "mock-project-id",
+        authDomain: "mock-project-id.firebaseapp.com",
+        appId: "mock-app-id",
+        messagingSenderId: "123456789",
+        storageBucket: "mock-project-id.appspot.com",
+      },
+      app: {
+        websiteUrl: "http://localhost:3000",
+        paynowStoreId: "mock-store-id",
+        backgroundImageUrl: "https://via.placeholder.com/1920x1080",
+        discordInviteUrl: "https://discord.gg/mock",
+        gameserverConnectionMessage: "Mock connection message",
+      },
+      features: {},
+      missing: [], // Don't report missing in dev mode
+    };
+  }
 
   return {
     ok: miss.length === 0,
