@@ -34,12 +34,14 @@ export async function signInWithGoogle(): Promise<void> {
   const auth = await getFirebaseAuth();
   const provider = new GoogleAuthProvider();
   
-  // Use popup for local development to avoid redirect issues
+  // Set custom redirect URL for local development
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    await signInWithPopup(auth, provider);
-  } else {
-    await signInWithRedirect(auth, provider);
+    provider.setCustomParameters({
+      redirect_uri: 'http://localhost:3000/login'
+    });
   }
+  
+  await signInWithRedirect(auth, provider);
 }
 
 export async function handleRedirectResult(): Promise<User | null> {
