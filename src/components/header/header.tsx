@@ -19,22 +19,25 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "~/components/ui/sheet";
-import { clientEnv } from "~/env-client";
 import { useAuthDialog } from "~/stores/useAuthDialog";
 import { useCartSidebar } from "~/stores/useCartSidebar";
 import { api } from "~/trpc/react";
 
-const navItems = [
+interface HeaderProps {
+  discordInviteUrl?: string;
+}
+
+const navItems = (discordInviteUrl: string) => [
   { href: "/", icon: HouseIcon, label: "الرئيسية" },
   { href: "/tools", icon: HouseIcon, label: "الأدوات" },
   {
-    href: clientEnv.NEXT_PUBLIC_DISCORD_INVITE_URL,
+    href: discordInviteUrl,
     icon: DiscordLogoIcon,
     label: "ديسكورد",
   },
 ];
 
-export default function Header() {
+export default function Header({ discordInviteUrl = "https://discord.gg/siraj" }: HeaderProps) {
   const { data: auth } = api.paynow.getAuth.useQuery(undefined, {
     staleTime: 30_000, // Cache auth state for 30 seconds
   });
@@ -61,7 +64,7 @@ export default function Header() {
           className="hidden items-center gap-8 md:flex"
           aria-label="Main navigation"
         >
-          {navItems.map((item) => (
+          {navItems(discordInviteUrl).map((item) => (
             <Button key={item.href} variant="ghost" size="sm" asChild>
               <Link href={item.href} className="flex items-center gap-2">
                 <item.icon
@@ -148,7 +151,7 @@ export default function Header() {
                 className="mt-6 flex flex-col gap-4 px-4"
                 aria-label="Mobile navigation"
               >
-                {navItems.map((item) => (
+                {navItems(discordInviteUrl).map((item) => (
                   <Button
                     key={item.href}
                     variant="ghost"

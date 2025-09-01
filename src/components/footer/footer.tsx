@@ -1,12 +1,15 @@
 import { DiscordLogoIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Separator } from "~/components/ui/separator";
-import { clientEnv } from "~/env-client";
 
-const USEFUL_LINKS = [
+interface FooterProps {
+  discordInviteUrl?: string;
+}
+
+const USEFUL_LINKS = (discordInviteUrl: string) => [
   {
     name: "Discord",
-    href: clientEnv.NEXT_PUBLIC_DISCORD_INVITE_URL,
+    href: discordInviteUrl,
     target: "_blank",
     rel: "noreferrer",
   },
@@ -30,7 +33,7 @@ const USEFUL_LINKS = [
   },
 ];
 
-const Footer = () => {
+const Footer = ({ discordInviteUrl = "https://discord.gg/siraj" }: FooterProps) => {
   return (
     <div className="mt-32 flex flex-col border-t bg-card shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.5)]">
       <footer>
@@ -49,7 +52,7 @@ const Footer = () => {
               <h6>روابط مفيدة</h6>
 
               <ul className="mt-4 space-y-2 text-sm">
-                {USEFUL_LINKS.map((link) => (
+                {USEFUL_LINKS(discordInviteUrl).map((link) => (
                   <li key={link.name}>
                     <Link
                       href={link.href}
@@ -84,7 +87,7 @@ const Footer = () => {
 
             <div className="flex items-center gap-5 text-muted-foreground">
               <Link
-                href={clientEnv.NEXT_PUBLIC_DISCORD_INVITE_URL}
+                href={discordInviteUrl}
                 target="_blank"
               >
                 <DiscordLogoIcon className="h-5 w-5" />
