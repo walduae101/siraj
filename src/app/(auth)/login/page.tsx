@@ -1,5 +1,5 @@
 "use client";
-import { getFirebaseAuth, signInWithGoogle, handleRedirectResult } from "~/lib/firebase.client";
+import { getFirebaseAuth, signInWithGoogle, handleRedirectResult } from "~/lib/firebase-auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 

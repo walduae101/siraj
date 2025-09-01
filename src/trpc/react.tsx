@@ -6,7 +6,7 @@ import { createTRPCReact } from "@trpc/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import SuperJSON from "superjson";
-import { getFirebaseAuth } from "~/lib/firebase.client";
+import { getFirebaseAuth } from "~/lib/firebase-auth";
 
 import type { AppRouter } from "~/server/api/root";
 import { createQueryClient } from "./query-client";

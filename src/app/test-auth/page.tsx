@@ -2,7 +2,7 @@
 
 import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
-import { getFirebaseAuth } from "~/lib/firebase.client";
+import { getFirebaseAuth } from "~/lib/firebase-auth";
 
 export default function TestAuthPage() {
   const [authState, setAuthState] = useState<any>({

@@ -7,7 +7,6 @@ import {
 import {
   GoogleAuthProvider,
   getRedirectResult,
-  signInWithPopup,
   signInWithRedirect,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
@@ -20,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { getFirebaseAuth } from "~/lib/firebase.client";
+import { getFirebaseAuth } from "~/lib/firebase-auth";
 import { api } from "~/trpc/react";
 
 export default function AuthDialogGoogle({

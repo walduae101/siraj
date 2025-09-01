@@ -1,7 +1,7 @@
 "use client";
 
 import { type User, onAuthStateChanged } from "firebase/auth";
-import { getFirebaseAuth } from "~/lib/firebase.client";
+import { getFirebaseAuth } from "~/lib/firebase-auth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
