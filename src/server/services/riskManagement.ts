@@ -162,7 +162,7 @@ export class RiskManagementService {
     const db = await RiskManagementService.getDb();
     const riskEventRef = db.collection("riskEvents").doc();
 
-    const riskEvent: Omit<RiskEvent, "id"> = {
+    const riskEvent: Omit<ServerRiskEvent, "id"> = {
       uid,
       eventType,
       riskScore: velocityResult.riskScore,
