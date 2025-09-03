@@ -1,10 +1,12 @@
 "use client";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useState, useEffect } from "react";
+import { getFirebaseAuth } from "~/lib/firebase.client";
+import type { User } from "firebase/auth";
 import { WalletWidget } from "~/components/points/WalletWidget";
-import { getFirebaseAuth } from "~/lib/firebase-auth";
+import { doc, onSnapshot } from "firebase/firestore";
 
 function SuccessContent() {
   const params = useSearchParams();
@@ -151,16 +153,10 @@ function SuccessContent() {
 
 export default function Success() {
   return (
-    <Suspense
-      fallback={
-        <main className="container mx-auto max-w-2xl space-y-6 p-6">
-          <h1 className="font-semibold text-2xl">Purchase complete</h1>
-          <p>Loading...</p>
-        </main>
-      }
-    >
-      <SuccessContent />
-    </Suspense>
+    <main className="container mx-auto max-w-2xl space-y-6 p-6">
+      <h1 className="font-semibold text-2xl">Purchase complete</h1>
+      <p>Loading...</p>
+    </main>
   );
 }
 

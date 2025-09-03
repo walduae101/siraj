@@ -6,11 +6,11 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import {
   GoogleAuthProvider,
-  getRedirectResult,
-  signInWithRedirect,
+  signInWithPopup,
+  signOut,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -18,8 +18,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "~/components/ui/dialog";
-import { getFirebaseAuth } from "~/lib/firebase-auth";
+import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 import { api } from "~/trpc/react";
 
 export default function AuthDialogGoogle({
@@ -54,35 +56,20 @@ export default function AuthDialogGoogle({
       const auth = await getFirebaseAuth();
       const provider = new GoogleAuthProvider();
 
-      // Use redirect-based auth to avoid COOP issues
-      await signInWithRedirect(auth, provider);
-      // The page will redirect and come back, so we don't need to handle the result here
+      // Configure redirect behavior for custom domain
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+
+      // Use redirect-based auth for custom domain handler
+      await signInWithPopup(auth, provider);
+      // The page will redirect and come back to /__/auth/handler
+      // The auth handler will process the result and redirect to dashboard
     } catch (e) {
       console.error("Google auth failed", e);
       setLoading(false);
     }
   };
-
-  // Handle redirect result when user comes back from Google auth
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        const auth = await getFirebaseAuth();
-        const result = await getRedirectResult(auth);
-
-        if (result?.user) {
-          const idToken = await result.user.getIdToken(true);
-          await googleLogin.mutateAsync({ idToken });
-          setOpen(false);
-          router.push("/dashboard");
-        }
-      } catch (e) {
-        console.error("Redirect result error", e);
-      }
-    };
-
-    handleRedirectResult();
-  }, [googleLogin, setOpen, router]); // Run once on component mount
 
   useEffect(() => {
     if (open) {
@@ -105,7 +92,7 @@ export default function AuthDialogGoogle({
           {loading ? (
             <span className="flex items-center gap-2">
               <CircleNotchIcon className="animate-spin" />
-              جارٍ تسجيل الدخول...
+              جارٍ التوجيه...
             </span>
           ) : (
             "متابعة باستخدام حساب جوجل"

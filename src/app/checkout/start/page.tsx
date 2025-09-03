@@ -1,10 +1,12 @@
 "use client";
 import { getAuth } from "firebase/auth";
-import { useRouter, useSearchParams } from "next/navigation";
-import * as React from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { features } from "~/config/features";
-import { getFirebaseAuth } from "~/lib/firebase-auth";
+import { getFirebaseAuth } from "~/lib/firebase.client";
+import type { User } from "firebase/auth";
 import { api } from "~/trpc/react";
 
 export default function CheckoutStartPage() {
@@ -19,13 +21,13 @@ function CheckoutStartContent() {
   const sp = useSearchParams();
   const sku = sp.get("sku") as string | null;
   const qty = Number(sp.get("qty") ?? 1) || 1;
-  const nonce = React.useMemo(
+  const nonce = useMemo(
     () => crypto.randomUUID().replace(/-/g, "").slice(0, 8),
     [],
   );
-  const [uid, setUid] = React.useState<string>("");
+  const [uid, setUid] = useState<string>("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     const setupAuth = async () => {
       try {
         const auth = await getFirebaseAuth();

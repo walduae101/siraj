@@ -12,11 +12,8 @@ export const clientEnv = createEnv({
     NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE: z.string(),
     NEXT_PUBLIC_WEBSITE_URL: z.string(),
 
-    // Firebase Web SDK
-    NEXT_PUBLIC_FIREBASE_API_KEY: z.string(),
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z.string(),
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: z.string(),
-    NEXT_PUBLIC_FIREBASE_APP_ID: z.string().optional(),
+    // Firebase config is now loaded at runtime via /api/public-config
+    // No more NEXT_PUBLIC_FIREBASE_* variables needed
   },
 
   runtimeEnv: {
@@ -27,12 +24,9 @@ export const clientEnv = createEnv({
     NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE:
       process.env.NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE,
     NEXT_PUBLIC_WEBSITE_URL: process.env.NEXT_PUBLIC_WEBSITE_URL,
-    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
-      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID:
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    
+    // Firebase config is now loaded at runtime via /api/public-config
+    // No more NEXT_PUBLIC_FIREBASE_* variables needed
   },
 
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

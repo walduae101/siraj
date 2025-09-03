@@ -21,6 +21,59 @@ async function fetchJSON(url: string) {
 /** Load config with graceful fallbacks (local → proxy → remote direct). Caches on window. */
 export async function getPublicConfig(): Promise<PublicConfig> {
   const w = window as any;
+  
+  // Check if we're in local development mode
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log("🔧 Local development mode detected, using local Firebase config");
+    }
+    
+    // Force fresh config load for localhost (no caching)
+    try {
+      // Import local config dynamically to avoid SSR issues
+      const { getLocalDevConfig } = await import('./config.local');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("🔧 getLocalDevConfig function imported:", typeof getLocalDevConfig);
+      }
+      
+      const localConfig = getLocalDevConfig();
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("🔧 Local config loaded:", localConfig);
+        console.log("🔧 Local config auth domain:", localConfig.firebase?.authDomain);
+        console.log("🔧 Local config type:", typeof localConfig);
+        console.log("🔧 Local config keys:", Object.keys(localConfig));
+      }
+      
+      // Update cache
+      w.__PUBLIC_CONFIG__ = localConfig;
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("🔧 Config cached on window:", w.__PUBLIC_CONFIG__);
+        console.log("🔧 Cached config auth domain:", w.__PUBLIC_CONFIG__.firebase?.authDomain);
+      }
+      return localConfig;
+    } catch (error) {
+      console.error("❌ Failed to load local config:", error);
+      
+      // Fallback: try to fetch from API instead
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("🔄 Falling back to API config...");
+      }
+      try {
+        const apiConfig = await fetchJSON("/api/public-config");
+        if (process.env.NODE_ENV !== 'production') {
+          console.log("🔧 API config loaded as fallback:", apiConfig);
+          console.log("🔧 API config auth domain:", apiConfig.firebase?.authDomain);
+        }
+        w.__PUBLIC_CONFIG__ = apiConfig;
+        return apiConfig;
+      } catch (apiError) {
+        console.error("❌ API fallback also failed:", apiError);
+        throw error; // Throw original error
+      }
+    }
+  }
+  
+  // For non-localhost, use cached config if available
   if (w.__PUBLIC_CONFIG__) return w.__PUBLIC_CONFIG__;
   
   let lastError: Error | null = null;
@@ -57,16 +110,8 @@ export async function getPublicConfig(): Promise<PublicConfig> {
 
 To set up the remote backend with real Firebase config:
 
-1. Configure Google Secret Manager on the remote backend with these secrets:
-   - NEXT_PUBLIC_FIREBASE_API_KEY
-   - NEXT_PUBLIC_FIREBASE_PROJECT_ID  
-   - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-   - NEXT_PUBLIC_FIREBASE_APP_ID
-   - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-   - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-
+1. Configure Google Secret Manager on the remote backend with Firebase secrets
 2. Ensure the remote backend has the /api/public-config endpoint implemented
-
 3. Or use the mock config for local development (current fallback)
           `);
         }

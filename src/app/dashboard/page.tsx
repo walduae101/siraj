@@ -6,7 +6,7 @@ import DashboardCards from "~/components/dashboard/DashboardCards";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
 import { features } from "~/config/features";
-import { signOutAll } from "~/lib/firebase-auth";
+import { signOutUser } from "~/lib/firebase.client";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -76,7 +76,7 @@ export default function DashboardPage() {
           <Button
             variant="outline"
             onClick={async () => {
-              await signOutAll();
+              await signOutUser();
               router.push("/");
             }}
           >

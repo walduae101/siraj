@@ -1,12 +1,12 @@
 "use client";
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpLink, loggerLink } from "@trpc/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import SuperJSON from "superjson";
-import { getFirebaseAuth } from "~/lib/firebase-auth";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 
 import type { AppRouter } from "~/server/api/root";
 import { createQueryClient } from "./query-client";
@@ -40,7 +40,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
               window.location.hostname === "localhost") ||
             (op.direction === "down" && op.result instanceof Error),
         }),
-        httpLink({
+        httpBatchLink({
           transformer: SuperJSON,
           url: `${getBaseUrl()}/api/trpc`,
           headers: async () => {

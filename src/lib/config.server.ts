@@ -44,21 +44,21 @@ export async function loadPublicConfig(): Promise<{
   const s = cache.loaded!;
   const miss = Object.entries(s).filter(([,v]) => !v).map(([k]) => k);
 
-  // Development fallback: if no GSM secrets and we're in development, provide mock config
-  if (miss.length > 0 && process.env.NODE_ENV === "development") {
-    console.warn("GSM secrets not available in development, using real Firebase config");
-    
-    // Use real Firebase config for the existing project
-    return {
-      ok: true,
-      firebase: {
-        apiKey: "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
-        projectId: "walduae-project-20250809071906",
-        authDomain: "siraj.life", // Use custom domain for authentication
-        appId: "1:207501673877:web:8c8265c153623cf14ae29c",
-        messagingSenderId: "207501673877",
-        storageBucket: "walduae-project-20250809071906.firebasestorage.app",
-      },
+                    // Development fallback: if no GSM secrets and we're in development, provide mock config
+      if (miss.length > 0 && process.env.NODE_ENV === "development") {
+        console.warn("GSM secrets not available in development, using fallback Firebase config");
+        
+        // Use real Firebase config for the existing project
+        return {
+          ok: true,
+          firebase: {
+            apiKey: "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
+            projectId: "walduae-project-20250809071906",
+            authDomain: "siraj.life", // Use custom domain for authentication from GSM
+            appId: "1:207501673877:web:8c8265c153623cf14ae29c",
+            messagingSenderId: "207501673877",
+            storageBucket: "walduae-project-20250809071906.firebasestorage.app",
+          },
       app: {
         websiteUrl: "http://localhost:3000",
         paynowStoreId: "local-dev-store",
@@ -81,14 +81,14 @@ export async function loadPublicConfig(): Promise<{
       firebase: {
         apiKey: "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
         projectId: "walduae-project-20250809071906",
-        authDomain: "siraj.life", // Use custom domain for authentication
+        authDomain: "siraj.life", // Use custom domain for authentication from GSM
         appId: "1:207501673877:web:8c8265c153623cf14ae29c",
         messagingSenderId: "207501673877",
         storageBucket: "walduae-project-20250809071906.firebasestorage.app",
       },
       app: {
         websiteUrl: "https://siraj.life",
-        paynowStoreId: "321641745957789696",
+        paynowStoreId: "321641957789696",
         backgroundImageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2074&q=80",
         discordInviteUrl: "https://discord.gg/siraj",
         gameserverConnectionMessage: "Connecting to Siraj Game Server...",
