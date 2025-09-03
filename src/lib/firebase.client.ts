@@ -166,3 +166,22 @@ export async function completeServerSession() {
     return false;
   }
 }
+
+export async function logoutEverywhere() {
+  try {
+    const auth = await getFirebaseAuth();
+    // Clear server session cookie first
+    await fetch('/api/auth/session-logout', { method: 'POST' });
+    // Then sign out from Firebase
+    await signOut(auth);
+    // Redirect to login
+    location.href = '/login';
+  } catch (error) {
+    console.error("❌ Error during logout:", error);
+    // Even if Firebase logout fails, clear server session and redirect
+    try {
+      await fetch('/api/auth/session-logout', { method: 'POST' });
+    } catch {}
+    location.href = '/login';
+  }
+}
