@@ -116,8 +116,8 @@ export default {
             value: "max-age=31536000; includeSubDomains; preload",
           },
           ...security,
-          // Report-Only header during rollout
-          { key: "Content-Security-Policy-Report-Only", value: policy + "; report-uri /api/csp-violation;" },
+          // Enforce CSP header (no longer report-only)
+          { key: "Content-Security-Policy", value: policy + "; report-uri /api/csp-violation;" },
           { key: "Vary", value: "Accept" },
         ],
       },
@@ -133,8 +133,8 @@ export default {
             value: "max-age=31536000; includeSubDomains; preload",
           },
           ...security,
-          // Report-Only header during rollout
-          { key: "Content-Security-Policy-Report-Only", value: policy + "; report-uri /api/csp-violation;" },
+          // Enforce CSP header (no longer report-only)
+          { key: "Content-Security-Policy", value: policy + "; report-uri /api/csp-violation;" },
           { key: "Vary", value: "Accept" },
         ],
       },
