@@ -36,13 +36,13 @@ export default function Page() {
     try { 
       setBusy(true); 
       setErr(null);
-      const user = await signInWithGoogle({ redirectTo: "/dashboard" }); 
+      const user = await signInWithGoogle(); // Remove redirectTo to prevent premature redirect
       
       if (user) {
         // Create server session cookie
         await completeServerSession();
         console.log("Sign-in completed successfully for user:", user.email);
-        // Redirect to dashboard after successful popup auth
+        // Redirect to dashboard after successful popup auth and cookie creation
         router.push("/dashboard");
       } else {
         setErr("فشل في تسجيل الدخول. يرجى المحاولة مرة أخرى.");
