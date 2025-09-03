@@ -29,5 +29,17 @@ if ($firebaseEnvUsage) {
     exit 1
 }
 
+# Auth guards
+if (Get-ChildItem -Recurse -Include *.ts,*.tsx src | Select-String -Pattern 'lib\/firebase\/client(?!\.)') {
+    Write-Host 'ERROR: legacy firebase client import found' -ForegroundColor Red
+    exit 1
+}
+
+if (Get-ChildItem -Recurse -Include *.ts,*.tsx src | Select-String -Pattern 'process\.env\.NEXT_PUBLIC_|NEXT_PUBLIC_FIREBASE_') {
+    Write-Host 'ERROR: NEXT_PUBLIC_* found in client code' -ForegroundColor Red
+    exit 1
+}
+
 Write-Host "No legacy Firebase client imports found" -ForegroundColor Green
 Write-Host "No NEXT_PUBLIC_FIREBASE_* usage in client code" -ForegroundColor Green
+Write-Host "Auth guards passed" -ForegroundColor Green

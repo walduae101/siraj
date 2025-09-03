@@ -29,7 +29,9 @@ async function initializeFirebaseApp(): Promise<FirebaseApp> {
     appInstance = app;
     return app;
   } catch (error) {
-    console.error("❌ Firebase initialization failed:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("❌ Firebase initialization failed:", error);
+    }
     throw error;
   }
 }
@@ -75,7 +77,9 @@ export async function signInWithGoogle(opts: { redirectTo?: string } = {}) {
       if (res?.user && opts.redirectTo) location.href = opts.redirectTo;
       return res?.user ?? null;
     } catch (redirectErr) {
-      console.error("Redirect result failed:", redirectErr);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("Redirect result failed:", redirectErr);
+      }
     }
     return null;
   }
@@ -98,7 +102,9 @@ export async function getGoogleSignInRedirectResult() {
     }
     return result;
   } catch (error) {
-    console.error("❌ Failed to get redirect result:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("❌ Failed to get redirect result:", error);
+    }
     throw error;
   }
 }
@@ -112,7 +118,9 @@ export async function signOutUser() {
       console.log("✅ User signed out successfully");
     }
   } catch (error) {
-    console.error("❌ Sign out failed:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("❌ Sign out failed:", error);
+    }
     throw error;
   }
 }
@@ -123,7 +131,9 @@ export async function getCurrentUser(): Promise<User | null> {
     const auth = await getFirebaseAuth();
     return auth.currentUser;
   } catch (error) {
-    console.error("❌ Failed to get current user:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("❌ Failed to get current user:", error);
+    }
     return null;
   }
 }
@@ -134,7 +144,9 @@ export async function isUserAuthenticated(): Promise<boolean> {
     const user = await getCurrentUser();
     return user !== null;
   } catch (error) {
-    console.error("❌ Failed to check authentication status:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("❌ Failed to check authentication status:", error);
+    }
     return false;
   }
 }
@@ -158,11 +170,15 @@ export async function completeServerSession() {
       }
       return true;
     } else {
-      console.error("❌ Failed to create server session");
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("❌ Failed to create server session");
+      }
       return false;
     }
   } catch (error) {
-    console.error("❌ Error creating server session:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("❌ Error creating server session:", error);
+    }
     return false;
   }
 }
@@ -177,7 +193,9 @@ export async function logoutEverywhere() {
     // Redirect to login
     location.href = '/login';
   } catch (error) {
-    console.error("❌ Error during logout:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("❌ Error during logout:", error);
+    }
     // Even if Firebase logout fails, clear server session and redirect
     try {
       await fetch('/api/auth/session-logout', { method: 'POST' });

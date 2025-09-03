@@ -51,25 +51,29 @@ export async function getPublicConfig(): Promise<PublicConfig> {
         console.log("🔧 Cached config auth domain:", w.__PUBLIC_CONFIG__.firebase?.authDomain);
       }
       return localConfig;
-    } catch (error) {
-      console.error("❌ Failed to load local config:", error);
-      
-      // Fallback: try to fetch from API instead
-      if (process.env.NODE_ENV !== 'production') {
-        console.log("🔄 Falling back to API config...");
-      }
-      try {
-        const apiConfig = await fetchJSON("/api/public-config");
+          } catch (error) {
         if (process.env.NODE_ENV !== 'production') {
-          console.log("🔧 API config loaded as fallback:", apiConfig);
-          console.log("🔧 API config auth domain:", apiConfig.firebase?.authDomain);
+          console.error("❌ Failed to load local config:", error);
         }
-        w.__PUBLIC_CONFIG__ = apiConfig;
-        return apiConfig;
-      } catch (apiError) {
-        console.error("❌ API fallback also failed:", apiError);
-        throw error; // Throw original error
-      }
+        
+        // Fallback: try to fetch from API instead
+        if (process.env.NODE_ENV !== 'production') {
+          console.log("🔄 Falling back to API config...");
+        }
+        try {
+          const apiConfig = await fetchJSON("/api/public-config");
+          if (process.env.NODE_ENV !== 'production') {
+            console.log("🔧 API config loaded as fallback:", apiConfig);
+            console.log("🔧 API config auth domain:", apiConfig.firebase?.authDomain);
+          }
+          w.__PUBLIC_CONFIG__ = apiConfig;
+          return apiConfig;
+        } catch (apiError) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error("❌ API fallback also failed:", apiError);
+          }
+          throw error; // Throw original error
+        }
     }
   }
   
@@ -78,30 +82,36 @@ export async function getPublicConfig(): Promise<PublicConfig> {
   
   let lastError: Error | null = null;
   
-  try {
-    // Try local config first
-    const j = await fetchJSON("/api/public-config");
-    w.__PUBLIC_CONFIG__ = j; 
-    return j;
-  } catch (e) {
-    lastError = e as Error;
-    console.warn("Local config failed, trying proxy:", e);
-    
-    try {
-      // Fallback to remote via dev-proxy (works only on localhost)
-      const j = await fetchJSON("/api/dev-proxy/public-config");
+      try {
+      // Try local config first
+      const j = await fetchJSON("/api/public-config");
       w.__PUBLIC_CONFIG__ = j; 
       return j;
-    } catch (e2) {
-      console.warn("Proxy config failed, trying remote direct:", e2);
+    } catch (e) {
+      lastError = e as Error;
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn("Local config failed, trying proxy:", e);
+      }
       
       try {
-        // Final fallback: try remote backend directly
-        const j = await fetchJSON("https://siraj.life/api/public-config");
+        // Fallback to remote via dev-proxy (works only on localhost)
+        const j = await fetchJSON("/api/dev-proxy/public-config");
         w.__PUBLIC_CONFIG__ = j; 
         return j;
-      } catch (e3) {
-        console.error("All config sources failed:", { local: lastError, proxy: e2, remote: e3 });
+      } catch (e2) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn("Proxy config failed, trying remote direct:", e2);
+        }
+        
+        try {
+          // Final fallback: try remote backend directly
+          const j = await fetchJSON("https://siraj.life/api/public-config");
+          w.__PUBLIC_CONFIG__ = j; 
+          return j;
+        } catch (e3) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.error("All config sources failed:", { local: lastError, proxy: e2, remote: e3 });
+          }
         
         // Development mode: provide instructions for setting up remote backend
         if (process.env.NODE_ENV === "development") {
