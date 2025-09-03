@@ -39,14 +39,19 @@ export async function POST(req: Request) {
     const url = new URL(req.url);
     const isLocalDev = url.host.startsWith('localhost') || url.host.startsWith('127.0.0.1');
 
-    const r = NextResponse.json({ ok:true }, { status: 200 });
-    r.cookies.set('firebase-session', cookie, {
-      httpOnly: true,
-      secure: !isLocalDev, // must be false on localhost
-      sameSite: 'lax',
-      path: '/',
-      maxAge: Math.floor(expiresIn / 1000),
-    });
+            const r = NextResponse.json({ ok:true }, { status: 200 });
+        
+        const host = new URL(req.url).host;
+        const isProd = /\.siraj\.life$/.test(host);
+        
+        r.cookies.set('firebase-session', cookie, {
+          httpOnly: true,
+          secure: !isLocalDev, // must be false on localhost
+          sameSite: 'lax',
+          path: '/',
+          ...(isProd ? { domain: '.siraj.life' } : {}),
+          maxAge: Math.floor(expiresIn / 1000),
+        });
     return r;
   } catch (e: any) {
     // Surface root cause in console and response so we can fix ASAP
