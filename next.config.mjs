@@ -1,8 +1,89 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const isDev = process.env.NODE_ENV !== 'production';
+
+const SELF = "'self'";
+const DATA = "data:";
+const BLOB = "blob:";
+
+// Firebase/Google allowlist needed for Google Sign-In + Firebase Auth REST
+const GOOGLE_ACCOUNTS = "https://accounts.google.com";
+const GOOGLE_APIS     = "https://*.googleapis.com";
+const GOOGLE_STATIC   = "https://*.gstatic.com";
+const GOOGLE_TAG      = "https://www.googletagmanager.com"; // only if used; keep allowed for now
+const FIREBASEAPP     = "https://*.firebaseapp.com";
+const FIREBASEIO      = "https://*.firebaseio.com";
+const FIREBASE_INSTALL= "https://firebaseinstallations.googleapis.com";
+const SECURETOKEN     = "https://securetoken.googleapis.com";
+
+// Your origins
+const ORIGIN_SELF     = SELF;
+const ORIGIN_API      = "https://siraj.life"; // adjust if API on separate host
+
+function csp(dev) {
+  // Dev needs eval for Turbopack/HMR
+  const SCRIPT_SRC = [
+    SELF,
+    GOOGLE_ACCOUNTS, GOOGLE_STATIC, GOOGLE_APIS, GOOGLE_TAG,
+    dev ? "'unsafe-eval'" : null,
+  ].filter(Boolean).join(" ");
+
+  const STYLE_SRC = [
+    SELF,
+    // Tailwind doesn't need inline styles, but Next dev overlays might; allow in dev
+    dev ? "'unsafe-inline'" : null,
+    GOOGLE_STATIC,
+  ].filter(Boolean).join(" ");
+
+  const CONNECT_SRC = [
+    SELF,
+    ORIGIN_API,
+    GOOGLE_ACCOUNTS, GOOGLE_APIS, SECURETOKEN, FIREBASE_INSTALL, FIREBASEIO, FIREBASEAPP,
+    GOOGLE_STATIC,
+    dev ? "ws://localhost:3000" : null,
+    dev ? "http://localhost:3000" : null,
+  ].filter(Boolean).join(" ");
+
+  const IMG_SRC = [ SELF, DATA, BLOB, GOOGLE_STATIC, GOOGLE_ACCOUNTS, GOOGLE_APIS ].join(" ");
+  const FONT_SRC = [ SELF, DATA, GOOGLE_STATIC ].join(" ");
+
+  // If you embed any iframes, add their origins to frame-src. Google popup uses a browser window, not an iframe.
+  const FRAME_SRC = [ GOOGLE_ACCOUNTS ].join(" ");
+  const FRAME_ANCESTORS = [ "'none'" ].join(" "); // no embedding of your pages
+
+  // object-src must be none; base-uri self
+  const OBJECT_SRC = "'none'";
+  const BASE_URI = SELF;
+
+  // Build final policy
+  return [
+    `default-src ${SELF}`,
+    `script-src ${SCRIPT_SRC}`,
+    `style-src ${STYLE_SRC}`,
+    `img-src ${IMG_SRC}`,
+    `font-src ${FONT_SRC}`,
+    `connect-src ${CONNECT_SRC}`,
+    `frame-src ${FRAME_SRC}`,
+    `frame-ancestors ${FRAME_ANCESTORS}`,
+    `object-src ${OBJECT_SRC}`,
+    `base-uri ${BASE_URI}`,
+    // Trusted Types optional; keep report-only first
+    // `require-trusted-types-for 'script'`
+  ].join("; ");
+}
+
+export default {
   reactStrictMode: true,
 
   async headers() {
+    const policy = csp(isDev);
+    const security = [
+      { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Permissions-Policy", value: "browsing-topics=()" },
+    ];
+
     return [
       // ---- STATIC (immutable, no security headers) - MUST BE FIRST
       {
@@ -34,19 +115,9 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains; preload",
           },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value:
-              "accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), publickey-credentials-get=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()",
-          },
-          {
-            key: "Content-Security-Policy-Report-Only",
-            value:
-              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self' https://siraj.life https://*.siraj.life; frame-src 'self' https://siraj.life https://*.siraj.life https://*.firebaseapp.com https://*.googleapis.com; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
-          },
+          ...security,
+          // Report-Only header during rollout
+          { key: "Content-Security-Policy-Report-Only", value: policy + "; report-uri /api/csp-violation;" },
           { key: "Vary", value: "Accept" },
         ],
       },
@@ -61,28 +132,12 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains; preload",
           },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value:
-              "accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), publickey-credentials-get=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), browsing-topics=()",
-          },
-          {
-            key: "Cross-Origin-Opener-Policy",
-            value: "same-origin-allow-popups",
-          },
-          {
-            key: "Content-Security-Policy-Report-Only",
-            value:
-              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self' https://siraj.life https://*.siraj.life; frame-src 'self' https://siraj.life https://*.siraj.life https://*.firebaseapp.com https://*.googleapis.com; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
-          },
+          ...security,
+          // Report-Only header during rollout
+          { key: "Content-Security-Policy-Report-Only", value: policy + "; report-uri /api/csp-violation;" },
           { key: "Vary", value: "Accept" },
         ],
       },
     ];
   },
 };
-
-export default nextConfig;
