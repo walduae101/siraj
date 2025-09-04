@@ -19,8 +19,12 @@ export function buildCsp({ nonce, isDev }: { nonce: string; isDev: boolean }) {
     GOOGLE_ACCOUNTS, GOOGLE_APIS, GOOGLE_STATIC,
     FIREBASEAPP, FIREBASEIO, SECURETOKEN, FIREBASE_INSTALL,
     PAYNOW,
-    // Dev concessions (HMR etc.)
+    // Dev concessions (HMR, overlay)
     isDev ? "'unsafe-eval'" : null,
+    isDev ? "'unsafe-inline'" : null,
+    // Optional: strict-dynamic trusts nonce-bearing loader scripts
+    // NOTE: keeps hosts but modern browsers rely on nonce dyn loading
+    "'strict-dynamic'"
   ].filter(Boolean).join(" ");
 
   const STYLE_SRC = [

@@ -9,7 +9,8 @@ function admin() {
 }
 
 export async function getServerUser() {
-  const session = cookies().get('firebase-session')?.value;
+  const cookiesList = await cookies();
+  const session = cookiesList.get('firebase-session')?.value;
   if (!session) return null;
   const { auth } = admin();
   try {
