@@ -16,9 +16,10 @@ import Section from '~/components/dashboard/Section';
 import QuickActions from '~/components/dashboard/QuickActions';
 import UsageSnapshot from '~/components/dashboard/UsageSnapshot';
 import SkeletonCard from '~/components/dashboard/SkeletonCard';
+import EmptyState from '~/components/dashboard/EmptyState';
 
 // Icons
-import { User, Crown, Calendar, Bell, Settings, LogOut } from 'lucide-react';
+import { User, Crown, Calendar, Bell, Settings, LogOut, MessageSquare, Sparkles } from 'lucide-react';
 
 // Animation variants
 const containerVariants = {
@@ -133,26 +134,20 @@ function PlanCard() {
 
 // Notifications component
 function Notifications() {
-  const notifications = [
-    {
-      id: 1,
-      title: 'تم إنشاء مفتاح API جديد',
-      time: 'منذ ساعتين',
-      type: 'success',
-    },
-    {
-      id: 2,
-      title: 'تم تحديث الفاتورة',
-      time: 'منذ يوم',
-      type: 'info',
-    },
-    {
-      id: 3,
-      title: 'دعوة عضو جديد',
-      time: 'منذ 3 أيام',
-      type: 'warning',
-    },
-  ];
+  // Simulate empty state for demo - in real app, this would come from props or API
+  const notifications: any[] = [];
+
+  if (notifications.length === 0) {
+    return (
+      <Section title="الإشعارات">
+        <EmptyState
+          icon={<MessageSquare className="w-8 h-8" />}
+          title="لا توجد إشعارات بعد"
+          description="ستظهر هنا الإشعارات المهمة مثل تحديثات الحساب والأنشطة الجديدة"
+        />
+      </Section>
+    );
+  }
 
   return (
     <Section title="الإشعارات" badge={`${notifications.length} جديد`}>

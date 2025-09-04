@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 import { Cairo } from "next/font/google";
 import Script from "next/script";
 import NextTopLoader from "nextjs-toploader";
-import { Toaster } from "~/components/ui/sonner";
+import { ToastProvider } from "~/components/ui/Toast";
 import { TRPCReactProvider } from "~/trpc/react";
 import { headers } from 'next/headers';
 import { buildCsp } from "~/server/security/csp";
@@ -39,9 +39,9 @@ export default async function RootLayout({
       <body className="min-h-screen font-[family-name:var(--font-cairo)]">
         <NextTopLoader color="var(--primary)" />
 
-        <Toaster position="top-center" />
-
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <ToastProvider>
+          <TRPCReactProvider>{children}</TRPCReactProvider>
+        </ToastProvider>
 
         {/* Auto-recover from chunk loading failures */}
         <Script id="recover-chunk-failure" strategy="afterInteractive" {...(isDev ? {} : { nonce })}>{`

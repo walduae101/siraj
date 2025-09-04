@@ -7,7 +7,8 @@ import { toArabicDigits, isRTLLocale } from '../rtl';
 import StatCard from './StatCard';
 import ProgressBar from './ProgressBar';
 import SkeletonCard from './SkeletonCard';
-import { Zap, Code, FileSpreadsheet, Crown } from 'lucide-react';
+import { Zap, Code, FileSpreadsheet, Crown, TrendingUp } from 'lucide-react';
+import { track } from '~/lib/analytics';
 
 interface UsageData {
   plan: 'free' | 'pro' | 'org';
@@ -49,6 +50,7 @@ export default function UsageSnapshot() {
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nudgeShown, setNudgeShown] = useState(false);
   const isRTL = isRTLLocale();
 
   useEffect(() => {
@@ -58,6 +60,34 @@ export default function UsageSnapshot() {
         setError(null);
         const data = await getUsage();
         setUsageData(data);
+        
+        // Check if we should show usage nudge (only once per day)
+        const today = new Date().toDateString();
+        const lastNudgeDate = localStorage.getItem('usage-nudge-date');
+        
+        if (lastNudgeDate !== today) {
+          const { usage } = data;
+          const limits = planLimits[data.plan];
+          
+          // Check if any usage is nearing limit (< 15% remaining)
+          const isNearLimit = Object.keys(usage).some(key => {
+            const used = usage[key as keyof typeof usage].used;
+            const limit = limits[key as keyof typeof limits];
+            const remaining = limit - used;
+            return remaining < (limit * 0.15);
+          });
+          
+          if (isNearLimit) {
+            setNudgeShown(true);
+            localStorage.setItem('usage-nudge-date', today);
+            
+            // Fire analytics event
+            track('usage.nudge_shown', {
+              plan: data.plan,
+              usage: usage,
+            });
+          }
+        }
       } catch (err) {
         setError('فشل في تحميل بيانات الاستخدام');
         console.error('Usage fetch error:', err);
@@ -171,6 +201,27 @@ export default function UsageSnapshot() {
           );
         })}
       </div>
+
+      {/* Usage Nudge - shown when nearing limit */}
+      {nudgeShown && (
+        <div className="mt-4 p-4 rounded-xl border border-blue-500/20 bg-blue-500/5">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div className="flex-1">
+              <h4 className="text-blue-400 font-medium mb-1">أوشكت على النفاد</h4>
+              <p className="text-sm text-white/80">
+                اعرف خطط الترقية للحصول على المزيد من الاستخدام
+              </p>
+            </div>
+            <Link
+              href="/pricing"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+            >
+              عرض الخطط
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Upgrade CTA for high usage */}
       {needsUpgrade && (

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { cn } from '~/lib/utils';
 import { getRTLFlexAlign, isRTLLocale } from '../rtl';
 import { Wand2, FileDown, UserPlus, Loader2 } from 'lucide-react';
+import { useToast } from '~/components/ui/Toast';
 
 interface QuickActionsProps {
   onGenerate?: () => void;
@@ -22,6 +23,7 @@ export default function QuickActions({
   const isRTL = isRTLLocale();
   const flexAlign = getRTLFlexAlign(isRTL);
   const [isExporting, setIsExporting] = useState(false);
+  const toast = useToast();
 
   const handleExport = async () => {
     if (onExport) {
@@ -37,15 +39,30 @@ export default function QuickActions({
       });
 
       if (response.ok) {
-        // Show success toast (you can implement a toast system)
-        console.log('تم التصدير بنجاح');
+        toast.success('تم التصدير ✓', 'تم تصدير البيانات بنجاح');
       } else {
-        console.error('فشل في التصدير');
+        toast.error('فشل في التصدير', 'حدث خطأ أثناء تصدير البيانات');
       }
     } catch (error) {
-      console.error('خطأ في التصدير:', error);
+      toast.error('خطأ في التصدير', 'تحقق من اتصالك بالإنترنت');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleGenerate = () => {
+    if (onGenerate) {
+      onGenerate();
+    } else {
+      toast.info('انتقال إلى مولد المحتوى', 'سيتم توجيهك إلى صفحة إنشاء المحتوى');
+    }
+  };
+
+  const handleInvite = () => {
+    if (onInvite) {
+      onInvite();
+    } else {
+      toast.info('انتقال إلى دعوة الأعضاء', 'سيتم توجيهك إلى صفحة دعوة الأعضاء');
     }
   };
 
@@ -54,7 +71,7 @@ export default function QuickActions({
       label: 'إنشاء محتوى',
       icon: Wand2,
       href: '/tools/ai',
-      onClick: onGenerate,
+      onClick: handleGenerate,
       className: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700',
     },
     {
@@ -68,7 +85,7 @@ export default function QuickActions({
       label: 'دعوة عضو',
       icon: UserPlus,
       href: '/orgs/new',
-      onClick: onInvite,
+      onClick: handleInvite,
       className: 'bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700',
     },
   ];
