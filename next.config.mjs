@@ -18,8 +18,9 @@ export default {
   },
 
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production';
     const security = [
-      { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+      { key: "Cross-Origin-Opener-Policy", value: isDev ? "unsafe-none" : "same-origin-allow-popups" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "X-Frame-Options", value: "DENY" },
