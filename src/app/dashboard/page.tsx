@@ -17,6 +17,7 @@ import QuickActions from '~/components/dashboard/QuickActions';
 import UsageSnapshot from '~/components/dashboard/UsageSnapshot';
 import SkeletonCard from '~/components/dashboard/SkeletonCard';
 import EmptyState from '~/components/dashboard/EmptyState';
+import VerifiedBadge from '~/components/dashboard/VerifiedBadge';
 
 // Icons
 import { User, Crown, Calendar, Bell, Settings, LogOut, MessageSquare, Sparkles } from 'lucide-react';
@@ -67,6 +68,7 @@ function DashboardSkeleton() {
 // Profile card component
 function ProfileCard({ user }: { user: any }) {
   const isRTL = isRTLLocale();
+  const isEmailVerified = user.emailVerified || true; // Assume verified for demo
   
   return (
     <StatCard
@@ -74,19 +76,28 @@ function ProfileCard({ user }: { user: any }) {
       value={
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            {user.photoURL && (
+            {user.photoURL ? (
               <img
                 src={user.photoURL}
                 alt={user.displayName || user.email || "User"}
                 className="h-12 w-12 rounded-full border-2 border-white/20"
               />
+            ) : (
+              <div className="h-12 w-12 rounded-full border-2 border-white/20 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                {(user.displayName || user.email || 'U').charAt(0).toUpperCase()}
+              </div>
             )}
-            <div className="text-right">
+            <div className="text-right flex-1">
               <div className="font-semibold text-white">
                 {user.displayName || "غير محدد"}
               </div>
-              <div className="text-sm text-white/60">
-                {user.email}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-white/60">
+                  {user.email}
+                </span>
+                {isEmailVerified && (
+                  <VerifiedBadge type="verified" size="sm" />
+                )}
               </div>
             </div>
           </div>
@@ -115,7 +126,7 @@ function PlanCard() {
     <StatCard
       title="خطتي الحالية"
       value={
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Crown className="w-5 h-5 text-yellow-500" />
             <span className="text-xl font-bold text-white">احترافي</span>
@@ -123,11 +134,16 @@ function PlanCard() {
           <div className="text-sm text-white/60">
             التجديد: 15 يناير 2025
           </div>
+          <div className="flex items-center gap-2">
+            <VerifiedBadge type="secure" size="sm" />
+            <span className="text-xs text-white/50">مدعوم من PayNow</span>
+          </div>
         </div>
       }
       icon={<Crown className="w-5 h-5" />}
       intent="success"
       helper="خطة احترافية مع ميزات متقدمة"
+      className="border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-transparent"
     />
   );
 }
@@ -141,7 +157,7 @@ function Notifications() {
     return (
       <Section title="الإشعارات">
         <EmptyState
-          icon={<MessageSquare className="w-8 h-8" />}
+          type="notifications"
           title="لا توجد إشعارات بعد"
           description="ستظهر هنا الإشعارات المهمة مثل تحديثات الحساب والأنشطة الجديدة"
         />
@@ -196,7 +212,7 @@ export default function DashboardPage() {
 
   return (
     <motion.div
-      className="container mx-auto px-4 py-8 space-y-8"
+      className="container mx-auto px-4 py-8 pb-24 lg:pb-8 space-y-8"
       dir="rtl"
       variants={containerVariants}
       initial="hidden"
@@ -250,8 +266,8 @@ export default function DashboardPage() {
             <PlanCard />
           </motion.div>
 
-          {/* Quick Actions */}
-          <motion.div variants={itemVariants}>
+          {/* Quick Actions - Hidden on mobile (shown in sticky bar) */}
+          <motion.div variants={itemVariants} className="hidden lg:block">
             <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
               <QuickActions />
             </div>
@@ -277,6 +293,16 @@ export default function DashboardPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Mobile Sticky Quick Actions Bar */}
+      <motion.div 
+        variants={itemVariants}
+        className="lg:hidden fixed bottom-4 left-4 right-4 z-40"
+      >
+        <div className="rounded-2xl border border-white/20 bg-black/40 backdrop-blur-md p-4 shadow-2xl">
+          <QuickActions />
+        </div>
+      </motion.div>
 
       {/* AI Tools Section */}
       <motion.div variants={itemVariants}>

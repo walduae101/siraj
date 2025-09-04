@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '~/lib/utils';
 import { getRTLTextAlign, isRTLLocale } from '../rtl';
 
@@ -29,9 +31,10 @@ export default function StatCard({
 }: StatCardProps) {
   const isRTL = isRTLLocale();
   const textAlign = getRTLTextAlign(isRTL);
+  const [isPressed, setIsPressed] = useState(false);
 
   return (
-    <div
+    <motion.div
       className={cn(
         'group relative rounded-2xl border backdrop-blur-sm transition-all duration-200',
         'hover:border-white/20 hover:shadow-lg hover:shadow-black/10',
@@ -39,6 +42,17 @@ export default function StatCard({
         intentStyles[intent],
         className
       )}
+      whileHover={{ 
+        scale: 1.02,
+        transition: { duration: 0.2, ease: 'easeOut' }
+      }}
+      whileTap={{ 
+        scale: 0.98,
+        transition: { duration: 0.1 }
+      }}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onMouseLeave={() => setIsPressed(false)}
     >
       <div className="p-6">
         {/* Header with icon and title */}
@@ -70,6 +84,16 @@ export default function StatCard({
 
       {/* Subtle gradient overlay on hover */}
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-    </div>
+      
+      {/* Ripple effect on press */}
+      {isPressed && (
+        <motion.div
+          className="absolute inset-0 rounded-2xl bg-white/10"
+          initial={{ scale: 0, opacity: 0.5 }}
+          animate={{ scale: 1, opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        />
+      )}
+    </motion.div>
   );
 }

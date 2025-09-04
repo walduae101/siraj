@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { cn } from '~/lib/utils';
 import { getRTLFlexAlign, isRTLLocale } from '../rtl';
 import { Wand2, FileDown, UserPlus, Loader2 } from 'lucide-react';
@@ -66,6 +67,10 @@ export default function QuickActions({
     }
   };
 
+  const handleActionClick = (action: () => void) => {
+    action();
+  };
+
   const actions = [
     {
       label: 'إنشاء محتوى',
@@ -99,31 +104,49 @@ export default function QuickActions({
           const isDisabled = action.disabled || isExporting;
 
           const buttonContent = (
-            <button
-              onClick={action.onClick}
+            <motion.button
+              onClick={() => handleActionClick(action.onClick!)}
               disabled={isDisabled}
               className={cn(
                 'group relative flex items-center gap-3 w-full px-4 py-3 rounded-xl',
                 'text-white font-medium transition-all duration-200',
-                'hover:scale-[1.02] hover:shadow-lg hover:shadow-black/20',
                 'focus:outline-none focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-black',
-                'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
                 action.className,
                 isRTL ? 'flex-row-reverse' : 'flex-row'
               )}
+              whileHover={{ 
+                scale: 1.02,
+                transition: { duration: 0.2, ease: 'easeOut' }
+              }}
+              whileTap={{ 
+                scale: 0.95,
+                transition: { duration: 0.1 }
+              }}
+              animate={action.label === 'دعوة عضو' ? {
+                rotate: [0, -5, 5, -5, 0],
+                transition: { duration: 0.5, ease: 'easeInOut' }
+              } : {}}
               aria-label={action.label}
             >
-              <Icon 
-                className={cn(
-                  'w-5 h-5 flex-shrink-0',
-                  isExporting && action.label === 'تصدير CSV' && 'animate-spin'
-                )} 
-              />
+              <motion.div
+                animate={action.label === 'دعوة عضو' ? {
+                  rotate: [0, 10, -10, 10, 0],
+                  transition: { duration: 0.5, ease: 'easeInOut' }
+                } : {}}
+              >
+                <Icon 
+                  className={cn(
+                    'w-5 h-5 flex-shrink-0',
+                    isExporting && action.label === 'تصدير CSV' && 'animate-spin'
+                  )} 
+                />
+              </motion.div>
               <span className="flex-1 text-right">{action.label}</span>
               
               {/* Hover effect overlay */}
               <div className="absolute inset-0 rounded-xl bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
+            </motion.button>
           );
 
           if (action.href && !isDisabled) {

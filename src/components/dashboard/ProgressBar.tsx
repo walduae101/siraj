@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '~/lib/utils';
 import { toArabicDigits, getRTLTextAlign, isRTLLocale } from '../rtl';
 
@@ -29,6 +31,15 @@ export default function ProgressBar({
   const isRTL = isRTLLocale();
   const textAlign = getRTLTextAlign(isRTL);
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+  const [animatedPercentage, setAnimatedPercentage] = useState(0);
+  
+  // Animate progress bar fill on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedPercentage(percentage);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [percentage]);
   
   // Determine color based on usage percentage
   const getProgressColor = () => {
@@ -67,13 +78,17 @@ export default function ProgressBar({
           sizeStyles[size]
         )}
       >
-        <div
+        <motion.div
           className={cn(
-            'h-full rounded-full transition-all duration-500 ease-out',
+            'h-full rounded-full transition-colors duration-500 ease-out',
             getProgressColor()
           )}
+          initial={{ width: '0%' }}
+          animate={{ 
+            width: `${animatedPercentage}%`,
+            transition: { duration: 1, ease: 'easeOut' }
+          }}
           style={{
-            width: `${percentage}%`,
             transform: isRTL ? 'scaleX(-1)' : 'none',
             transformOrigin: isRTL ? 'right' : 'left',
           }}
@@ -81,7 +96,13 @@ export default function ProgressBar({
         
         {/* Shimmer effect for high usage */}
         {percentage > 80 && (
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+          <motion.div 
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+            animate={{ 
+              x: ['-100%', '100%'],
+              transition: { duration: 2, repeat: Infinity, ease: 'linear' }
+            }}
+          />
         )}
       </div>
 
