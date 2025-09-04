@@ -16,7 +16,8 @@ export const metadata = { title: "Siraj", description: "AI tools" };
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const nonce = headers().get('x-nonce') ?? crypto.randomUUID();
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce') ?? crypto.randomUUID();
   
   // CSP with hashes for Next.js inline scripts
   const isDev = process.env.NODE_ENV !== 'production';
@@ -45,6 +46,33 @@ export default async function RootLayout({
     "'sha256-Kg0tRgS4JeGg0H8l63R5wivnF/P7FGpz5CZLDZ32SFQ='",
     "'sha256-PDMh4Q7juhHHrT0OzEUIVqSxNfJWo0qBuOekj12doeA='",
     "'sha256-x/PUBjJwebM4PPpjyGFdRTUAihcSHYG7GUhQA4A/1sw='",
+    // Next.js 15 new hashes from CSP violations
+    "'sha256-OBTN3RiyCV4Bq7dFqZ5a2pAXjnCcCYeTJMO2I/LYKeo='",
+    "'sha256-6JFVn53eP2y6uu4ED8N3Fluvs1cC6thXLVByrR29HdI='",
+    "'sha256-sgGmtMyuU8l1b62k/WYaH+61s6webzD1R6EYaf7VNrk='",
+    "'sha256-zrApckK9haEMsN2VtfUe5SRgyViomeV0lkbphVN610o='",
+    "'sha256-GfpuOQIYdOQhDh1vPRnd0qBZLboXJEEI1j0GGZ8HSm8='",
+    "'sha256-iNvXTpkS96fVlLyrSDeg8ZYiQZohI8FsYhgqhslIuLw='",
+    "'sha256-7qizNy3jwpibv+xYr7yWqWH2ifUTm8dFzy6iXmReyG0='",
+    "'sha256-cVksAsCQvKE5cYAe2Z+/rthIT4k0f6yc8P4j8offdTY='",
+    "'sha256-MB11q1OXU5WmWDfWUAUIh/k9h8w2iMuK3VvXXeNpHSQ='",
+    "'sha256-yudJhERqBF2msXVfeTC2/b5fU0A48q7d8melYHrrVlk='",
+    "'sha256-Dc5zF9AxsEZCg9yTSKGEO2Gs8+Y+lg2KYjsqWD5808o='",
+    "'sha256-VxNQWKNqYyId1F2uUDuUWjjcH8F3suJ4cg5IN8lXfIU='",
+    "'sha256-zIY8Y820h8XosVidQ3abkK/n0eAxtiE9t3G9TbKLLiU='",
+    "'sha256-+VXumNH1oYBUVo9H/3aqsjc5Jgrwam7lmapyZ9g7Nkc='",
+    "'sha256-7MI30Py7/yVKmtM9I6yYAVwaqYBuhtK+DG60v5/2ZyQ='",
+    "'sha256-4CCc8AlLVRg4eCaLPCdauOnyMDdPZxneK3fKoJ4/RAo='",
+    "'sha256-rwz6eh5qG7gbxD+5Zbgv0Dq4WpP1onygK7G8V5uNOYc='",
+    "'sha256-el4hxfZM0b/njcZF7tMC6O/MPJtR3zDpxGvXwuBhc7A='",
+    "'sha256-tZiGzz0Z+Cx3ROWpOYLtS6RKCNrR6V31lQLrDSvD1tY='",
+    "'sha256-1Eafl0sn76R7lKYrkaRuSDhD+cq92dbgm3uTA5ch94Y='",
+    "'sha256-EJAIpZdotRTiejWk0EyOHa4Dw8v1YT2uq0bQCKScwD0='",
+    "'sha256-ChGON4fOQhW0A095AlLc0XHJtLhJnKRfIECNOtGFEro='",
+    "'sha256-9RLQAGUS8fcPPqYckAolDv4i71bQUOYMz7pbC5O7ZgE='",
+    "'sha256-HuhXXJ1Sn0miAWxvMDfYJqJlYEhWXDzmH/0ExSHduCw='",
+    "'sha256-NmrindTR1E8YVtXFULbkHhg42WZ1zzoVB1T5ptDquV0='",
+    "'sha256-AQMglgy6Cg6ACZUxCFJ1H0O9LZ0IOrGPS6/tcnSp2EU='",
   ];
 
   const SCRIPT_SRC = [

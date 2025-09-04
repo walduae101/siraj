@@ -5,16 +5,14 @@ export default {
   reactStrictMode: true,
   
   // Turbopack configuration to fix connection issues
-  experimental: {
-    turbo: {
-      // Reduce memory usage and improve stability
-      memoryLimit: 4096,
-      // Disable some experimental features that might cause connection issues
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  turbopack: {
+    // Reduce memory usage and improve stability
+    memoryLimit: 4096,
+    // Disable some experimental features that might cause connection issues
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
