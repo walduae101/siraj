@@ -40,6 +40,11 @@ export default async function RootLayout({
     "'sha256-XBtxbfc8eZtK65hFyfpsLrqThspWzHp7hbZgiYaJwWg='",
     "'sha256-gxHZhsP4R8rezV8yEvWBVQ4xTW8NdEcjmVtgQtpRWNk='",
     "'sha256-WPp7CjV3Cb1Sp3foXKpsNQcKmC+v6EGaRPJdkEPD7sA='",
+    // Additional hashes from current violations
+    "'sha256-S71R71kNuNO/ECzgeATpxjNo+z5pdtE2Qw9mYRizrr8='",
+    "'sha256-Kg0tRgS4JeGg0H8l63R5wivnF/P7FGpz5CZLDZ32SFQ='",
+    "'sha256-PDMh4Q7juhHHrT0OzEUIVqSxNfJWo0qBuOekj12doeA='",
+    "'sha256-x/PUBjJwebM4PPpjyGFdRTUAihcSHYG7GUhQA4A/1sw='",
   ];
 
   const SCRIPT_SRC = [
