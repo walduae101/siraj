@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
     const user = await getServerUser();
@@ -17,9 +17,10 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    const { orgId } = await params;
     const db = await getDb();
     const invitesSnapshot = await db.collection('orgs')
-      .doc(params.orgId)
+      .doc(orgId)
       .collection('invites')
       .orderBy('invitedAt', 'desc')
       .get();

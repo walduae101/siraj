@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerUser } from '~/server/auth/getServerUser';
-import { getDb } from '~/server/firebase/admin';
-import { serverOnly } from '~/lib/server-only';
+import { getDb } from '~/server/firebase/admin-lazy';
 
-serverOnly();
 
 export const runtime = 'nodejs';
 

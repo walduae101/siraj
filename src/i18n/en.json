@@ -1,0 +1,80 @@
+{
+  "onboarding": {
+    "title": "Onboarding",
+    "subtitle": "Complete the steps below to get the most out of Siraj.",
+    "progress": "Progress Overview",
+    "completed": "completed",
+    "done": "Done",
+    "mark": "Mark Done",
+    "marking": "Marking...",
+    "complete": "Onboarding Complete!",
+    "congratulations": "You've successfully completed all onboarding steps. You're now ready to make the most of Siraj!",
+    "go_to_dashboard": "Go to Dashboard",
+    "view_api_docs": "View API Docs",
+    "items": {
+      "create_api_key": {
+        "title": "Create an API key",
+        "description": "Generate your first API key to start using the Siraj API"
+      },
+      "call_ping": {
+        "title": "Make your first API call",
+        "description": "Test your API key with a simple ping request"
+      },
+      "upgrade_plan": {
+        "title": "Upgrade to Pro",
+        "description": "Unlock advanced features and higher rate limits"
+      },
+      "invite_member": {
+        "title": "Invite a teammate",
+        "description": "Create an organization and invite team members"
+      },
+      "enable_2fa": {
+        "title": "Enable 2FA",
+        "description": "Secure your account with two-factor authentication"
+      }
+    },
+    "actions": {
+      "open_api_keys": "Open API Keys",
+      "view_plans": "View Plans",
+      "create_organization": "Create Organization",
+      "coming_soon": "Coming soon"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "reset": "Reset"
+  },
+  "auth": {
+    "sign_in": "Sign In",
+    "sign_up": "Sign Up",
+    "sign_out": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "forgot_password": "Forgot Password?",
+    "remember_me": "Remember me"
+  },
+  "api": {
+    "title": "Developer Portal",
+    "subtitle": "Manage your API keys and access the Siraj API",
+    "create_key": "Create Key",
+    "key_name": "Key Name",
+    "expiration": "Expiration Date (Optional)",
+    "status": {
+      "active": "Active",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    }
+  }
+}

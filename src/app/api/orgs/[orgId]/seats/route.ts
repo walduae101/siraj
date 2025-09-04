@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
     const user = await getServerUser();
@@ -17,6 +17,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    const { orgId } = await params;
     const body = await request.json();
     const { seats } = body;
 
@@ -25,7 +26,7 @@ export async function PUT(
     }
 
     await setOrgSeats({
-      orgId: params.orgId,
+      orgId,
       seats,
       updatedBy: user.uid,
     });

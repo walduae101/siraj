@@ -209,7 +209,7 @@ export class PlaywrightInvoiceGenerator {
                   <td>${item.description}</td>
                   <td class="text-right">${item.quantity}</td>
                   <td class="text-right">${formatCurrency(item.unitPrice)}</td>
-                  <td class="text-right">${formatCurrency(item.amount)}</td>
+                  <td class="text-right">${formatCurrency(item.total)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -221,10 +221,10 @@ export class PlaywrightInvoiceGenerator {
                 <td class="label">Subtotal:</td>
                 <td class="amount">${formatCurrency(invoice.subtotal)}</td>
               </tr>
-              ${invoice.vat ? `
+              ${invoice.taxRate > 0 ? `
                 <tr>
-                  <td class="label">VAT (${invoice.vat.rate}%):</td>
-                  <td class="amount">${formatCurrency(invoice.vat.amount)}</td>
+                  <td class="label">VAT (${(invoice.taxRate * 100).toFixed(1)}%):</td>
+                  <td class="amount">${formatCurrency(invoice.taxAmount)}</td>
                 </tr>
               ` : ''}
               <tr class="total-row">

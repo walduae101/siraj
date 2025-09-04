@@ -1,0 +1,249 @@
+# Siraj API Documentation
+
+Welcome to the Siraj API! This documentation will help you integrate with our AI tools and services.
+
+## Authentication
+
+All API requests require authentication using an API key. Include your API key in the `x-api-key` header:
+
+```bash
+curl -H "x-api-key: siraj_live_your_key_here" https://siraj.life/api/ping
+```
+
+### Getting an API Key
+
+1. Sign in to your Siraj account
+2. Go to [Account → API Keys](/account/api)
+3. Create a new API key
+4. Copy the key immediately (it's only shown once)
+
+## Base URL
+
+```
+https://siraj.life/api
+```
+
+## Rate Limits
+
+Rate limits are applied per API key and depend on your plan:
+
+| Plan | Per Minute | Per Day |
+|------|------------|---------|
+| Free | 10 | 1,000 |
+| Pro | 100 | 10,000 |
+| Organization | 500 | 50,000 |
+
+When rate limits are exceeded, you'll receive a `429 Too Many Requests` response with retry information.
+
+## Endpoints
+
+### Ping
+
+Test your API key and check rate limits.
+
+**Endpoint:** `GET /api/ping`
+
+**Headers:**
+- `x-api-key`: Your API key
+
+**Response:**
+```json
+{
+  "ok": true,
+  "keyId": "abc123def456",
+  "uid": "user_123",
+  "plan": "pro",
+  "timestamp": "2025-01-10T10:30:00.000Z",
+  "rateLimit": {
+    "remaining": 95,
+    "resetTime": "2025-01-10T10:31:00.000Z"
+  }
+}
+```
+
+**Example:**
+```bash
+curl -H "x-api-key: siraj_live_abc123def456.your_secret_here" \
+     https://siraj.life/api/ping
+```
+
+### AI Generation
+
+Generate AI content using various models.
+
+**Endpoint:** `POST /api/ai/generate`
+
+**Headers:**
+- `x-api-key`: Your API key
+- `Content-Type`: application/json
+
+**Request Body:**
+```json
+{
+  "prompt": "Write a short story about a robot",
+  "type": "text",
+  "model": "gpt-4",
+  "maxTokens": 500
+}
+```
+
+**Response:**
+```json
+{
+  "id": "gen_123456789",
+  "type": "text",
+  "prompt": "Write a short story about a robot",
+  "result": "Once upon a time, in a world where...",
+  "timestamp": "2025-01-10T10:30:00.000Z",
+  "usage": {
+    "tokens": 150,
+    "cost": 0.03
+  }
+}
+```
+
+**Example:**
+```bash
+curl -X POST \
+     -H "x-api-key: siraj_live_abc123def456.your_secret_here" \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "Write a haiku about coding", "type": "text"}' \
+     https://siraj.life/api/ai/generate
+```
+
+## Error Responses
+
+### 401 Unauthorized
+```json
+{
+  "error": "Invalid or missing API key",
+  "code": "INVALID_API_KEY"
+}
+```
+
+### 429 Too Many Requests
+```json
+{
+  "error": "Rate limit exceeded",
+  "code": "RATE_LIMIT_EXCEEDED",
+  "retryAfter": 60,
+  "resetTime": "2025-01-10T10:31:00.000Z"
+}
+```
+
+### 500 Internal Server Error
+```json
+{
+  "error": "Internal server error"
+}
+```
+
+## SDK Examples
+
+### JavaScript/Node.js
+
+```javascript
+const API_KEY = 'siraj_live_abc123def456.your_secret_here';
+const BASE_URL = 'https://siraj.life/api';
+
+async function callSirajAPI(endpoint, data = null) {
+  const options = {
+    method: data ? 'POST' : 'GET',
+    headers: {
+      'x-api-key': API_KEY,
+      'Content-Type': 'application/json',
+    },
+  };
+
+  if (data) {
+    options.body = JSON.stringify(data);
+  }
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, options);
+  
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Test your API key
+const ping = await callSirajAPI('/ping');
+console.log('API Key valid:', ping.ok);
+
+// Generate AI content
+const result = await callSirajAPI('/ai/generate', {
+  prompt: 'Write a haiku about programming',
+  type: 'text'
+});
+console.log('Generated:', result.result);
+```
+
+### Python
+
+```python
+import requests
+import json
+
+API_KEY = 'siraj_live_abc123def456.your_secret_here'
+BASE_URL = 'https://siraj.life/api'
+
+def call_siraj_api(endpoint, data=None):
+    headers = {
+        'x-api-key': API_KEY,
+        'Content-Type': 'application/json'
+    }
+    
+    if data:
+        response = requests.post(f'{BASE_URL}{endpoint}', 
+                               headers=headers, 
+                               json=data)
+    else:
+        response = requests.get(f'{BASE_URL}{endpoint}', 
+                              headers=headers)
+    
+    response.raise_for_status()
+    return response.json()
+
+# Test your API key
+ping = call_siraj_api('/ping')
+print('API Key valid:', ping['ok'])
+
+# Generate AI content
+result = call_siraj_api('/ai/generate', {
+    'prompt': 'Write a haiku about programming',
+    'type': 'text'
+})
+print('Generated:', result['result'])
+```
+
+### cURL
+
+```bash
+# Test API key
+curl -H "x-api-key: siraj_live_abc123def456.your_secret_here" \
+     https://siraj.life/api/ping
+
+# Generate AI content
+curl -X POST \
+     -H "x-api-key: siraj_live_abc123def456.your_secret_here" \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "Write a haiku about programming", "type": "text"}' \
+     https://siraj.life/api/ai/generate
+```
+
+## Best Practices
+
+1. **Keep your API keys secure** - Never commit them to version control
+2. **Use environment variables** - Store API keys in environment variables
+3. **Handle rate limits** - Implement exponential backoff when you hit rate limits
+4. **Monitor usage** - Keep track of your API usage to avoid unexpected charges
+5. **Rotate keys regularly** - Rotate your API keys periodically for security
+
+## Support
+
+- **Documentation**: [https://siraj.life/docs/api](/docs/api)
+- **API Keys**: [https://siraj.life/account/api](/account/api)
+- **Support**: [support@siraj.life](mailto:support@siraj.life)
+- **Status**: [https://status.siraj.life](https://status.siraj.life)

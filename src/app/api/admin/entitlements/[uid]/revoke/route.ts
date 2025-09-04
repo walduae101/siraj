@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { uid: string } }
+  { params }: { params: Promise<{ uid: string }> }
 ) {
   try {
     const user = await getServerUser();
@@ -26,8 +26,9 @@ export async function POST(
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
+    const { uid } = await params;
     const db = await getDb();
-    const entitlementRef = db.collection('entitlements').doc(params.uid);
+    const entitlementRef = db.collection('entitlements').doc(uid);
     
     // Get current entitlement
     const entitlementDoc = await entitlementRef.get();
@@ -49,7 +50,7 @@ export async function POST(
       actorUid: user.uid,
       type: 'admin.revoke_entitlement',
       meta: {
-        targetUid: params.uid,
+        targetUid: uid,
         previousPlan: entitlement?.plan,
         previousStatus: entitlement?.status,
       },

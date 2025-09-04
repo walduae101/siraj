@@ -1,0 +1,28 @@
+
+Payment Overdue
+
+Dear Demo Organization,
+
+Your payment is now overdue. Please make payment as soon as possible to avoid any service interruptions.
+
+Invoice Details:
+- Invoice Number: INV-2025-0004
+- Issue Date: August 30, 2025
+- Due Date: September 29, 2025
+- Amount Due: USD 125.99
+- VAT: USD 6.00
+
+Please make payment as soon as possible to avoid any late fees or service interruptions.
+
+Pay Now: undefined/account/billing/pay/BWSGj7Hnr16WjHd3Y4wE
+
+If you have already made this payment, please disregard this notice. If you have any questions or need assistance, please contact our support team.
+
+Thank you for your business.
+
+Best regards,
+Siraj Team
+
+---
+This is an automated message. Please do not reply to this email.
+For support, contact us at support@siraj.life

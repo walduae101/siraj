@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
     const user = await getServerUser();
@@ -17,7 +17,8 @@ export async function GET(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const org = await getOrg(params.orgId);
+    const { orgId } = await params;
+    const org = await getOrg(orgId);
     if (!org) {
       return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
     }
