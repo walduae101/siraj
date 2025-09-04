@@ -48,7 +48,11 @@ export async function track(
     // Check for user consent (you can implement your own consent logic)
     const consent = options?.consent ?? true; // Default to true, implement consent management
 
-    await fetch('/api/analytics/track', {
+    // Use absolute URL for server-side fetch
+    const baseUrl = typeof window !== 'undefined' ? '' : process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const url = `${baseUrl}/api/analytics/track`;
+    
+    await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
