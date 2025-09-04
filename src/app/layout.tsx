@@ -22,7 +22,14 @@ export default async function RootLayout({
   
   // CSP with dev/prod differentiation
   const isDev = process.env.NODE_ENV !== 'production';
-  const csp = `default-src 'self'; script-src 'self' 'nonce-${nonce}' ${isDev ? "'unsafe-inline' 'unsafe-eval'" : ""} https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseapp.com https://*.firebaseio.com https://firebaseinstallations.googleapis.com https://securetoken.googleapis.com; style-src 'self' ${isDev ? "'unsafe-inline'" : ""} https://*.gstatic.com; connect-src 'self' https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseapp.com https://*.firebaseio.com https://firebaseinstallations.googleapis.com https://securetoken.googleapis.com ${isDev ? "ws://localhost:3000 http://localhost:3000" : ""}; img-src 'self' data: blob: https://*.gstatic.com https://accounts.google.com https://*.googleapis.com; font-src 'self' data: https://*.gstatic.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'`;
+  
+  // In development: use 'unsafe-inline' (no nonce to avoid conflict)
+  // In production: use nonce-based CSP (strict security)
+  const scriptSrc = isDev 
+    ? `'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseapp.com https://*.firebaseio.com https://firebaseinstallations.googleapis.com https://securetoken.googleapis.com`
+    : `'self' 'nonce-${nonce}' https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseapp.com https://*.firebaseio.com https://firebaseinstallations.googleapis.com https://securetoken.googleapis.com`;
+  
+  const csp = `default-src 'self'; script-src ${scriptSrc}; style-src 'self' ${isDev ? "'unsafe-inline'" : ""} https://*.gstatic.com; connect-src 'self' https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://*.firebaseapp.com https://*.firebaseio.com https://firebaseinstallations.googleapis.com https://securetoken.googleapis.com ${isDev ? "ws://localhost:3000 http://localhost:3000" : ""}; img-src 'self' data: blob: https://*.gstatic.com https://accounts.google.com https://*.googleapis.com; font-src 'self' data: https://*.gstatic.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'`;
   
   return (
     <html lang="ar" dir="rtl" className={`${cairo.variable}`} suppressHydrationWarning>
@@ -37,7 +44,7 @@ export default async function RootLayout({
         <TRPCReactProvider>{children}</TRPCReactProvider>
 
         {/* Auto-recover from chunk loading failures */}
-        <Script id="recover-chunk-failure" strategy="afterInteractive" nonce={nonce}>{`
+        <Script id="recover-chunk-failure" strategy="afterInteractive" {...(isDev ? {} : { nonce })}>{`
           window.addEventListener('error', function (e) {
             if (e && e.message && /Loading chunk .* failed/i.test(e.message)) {
               location.reload();
