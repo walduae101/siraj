@@ -77,8 +77,14 @@ export default async function RootLayout({
     "https://*.firebaseio.com",
     "https://firebaseinstallations.googleapis.com",
     "https://securetoken.googleapis.com",
+    // Enhanced WebSocket support for development
     isDev ? "ws://localhost:3000" : null,
+    isDev ? "wss://localhost:3000" : null,
     isDev ? "http://localhost:3000" : null,
+    isDev ? "https://localhost:3000" : null,
+    // Additional WebSocket patterns for Turbopack
+    isDev ? "ws://localhost:*" : null,
+    isDev ? "wss://localhost:*" : null,
   ].filter(Boolean).join(" ");
 
   const IMG_SRC = "'self' data: blob: https://*.gstatic.com https://accounts.google.com https://*.googleapis.com";
