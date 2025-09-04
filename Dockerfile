@@ -1,40 +1,32 @@
-# ---------- Build ----------
-FROM node:20-slim AS build
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-
-# Build-time public env (Firebase) – never put secrets here
-ARG NEXT_PUBLIC_FIREBASE_API_KEY
-ARG NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-ARG NEXT_PUBLIC_FIREBASE_PROJECT_ID
-ARG NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-ARG NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-ARG NEXT_PUBLIC_FIREBASE_APP_ID
-ARG NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY
-ENV NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=$NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-ENV NEXT_PUBLIC_FIREBASE_PROJECT_ID=$NEXT_PUBLIC_FIREBASE_PROJECT_ID
-ENV NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=$NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
-ENV NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-ENV NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
-ENV NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=$NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-
-COPY . .
-ENV SKIP_ENV_VALIDATION=true
-RUN npm run build
-
-# ---------- Runtime ----------
+# syntax=docker/dockerfile:1
 FROM node:20-slim
-ENV NODE_ENV=production
+
 WORKDIR /app
-COPY --from=build /app/package.json /app/package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy built app + static + public
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/public ./public
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
 
-EXPOSE 8080
+# Enable pnpm and install ALL dependencies (including devDependencies for build)
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate && pnpm fetch
+
+# Copy source code
+COPY . .
+
+# Install all dependencies (including devDependencies for build)
+RUN pnpm install --offline
+
+# Build the application (NODE_ENV will be set by Next.js)
+RUN pnpm build
+
+# Remove devDependencies after build
+RUN pnpm prune --prod
+
+# Set production environment after build
+ENV NODE_ENV=production
 ENV PORT=8080
-CMD ["npx","next","start","-p","8080"]
+
+# Expose port
+EXPOSE 8080
+
+# Start the application
+CMD ["pnpm", "start"]

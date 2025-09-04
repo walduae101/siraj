@@ -1,162 +1,153 @@
 "use client";
-import { onAuthStateChanged } from "firebase/auth";
+
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { getFirebaseAuth } from "~/lib/firebase.client";
-import type { User } from "firebase/auth";
-import { WalletWidget } from "~/components/points/WalletWidget";
-import { doc, onSnapshot } from "firebase/firestore";
+import { CheckCircle, Loader2 } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import { Badge } from "~/components/ui/badge";
 
-function SuccessContent() {
-  const params = useSearchParams();
-  const orderId = params.get("order_id") || "";
-  const checkoutId = params.get("checkout_id") || "";
-  const [initialBalance, setInitialBalance] = useState<number | null>(null);
-  const [currentBalance, setCurrentBalance] = useState<number | null>(null);
-  const [credited, setCredited] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
+interface CheckoutSuccessResponse {
+  ok: boolean;
+  entitlementId: string;
+  message?: string;
+}
 
-  // Load Firebase config and get current user
+export default function CheckoutSuccessPage() {
+  const searchParams = useSearchParams();
+  const ref = searchParams.get('ref');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [entitlementId, setEntitlementId] = useState<string>('');
+  const [error, setError] = useState<string>('');
+
   useEffect(() => {
-    const loadFirebaseConfig = async () => {
+    if (!ref) {
+      setError('No reference provided');
+      setStatus('error');
+      return;
+    }
+
+    const completeCheckout = async () => {
       try {
-        // Get Firebase auth directly
-        const auth = await getFirebaseAuth();
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-          setUserId(user?.uid || null);
-        });
-        return () => unsubscribe();
-      } catch (error) {
-        console.error("[checkout/success] Firebase auth error:", error);
-        // Firebase might not be initialized properly, but we can still try to complete the order
+        const response = await fetch(`/api/checkout/complete?ref=${ref}`);
+        const data: CheckoutSuccessResponse = await response.json();
+
+        if (data.ok) {
+          setEntitlementId(data.entitlementId);
+          setStatus('success');
+        } else {
+          setError(data.message || 'Checkout completion failed');
+          setStatus('error');
+        }
+      } catch (err) {
+        setError('Failed to complete checkout');
+        setStatus('error');
       }
     };
 
-    loadFirebaseConfig();
-  }, []);
+    completeCheckout();
+  }, [ref]);
 
-  // Auto-process order when page loads
-  useEffect(() => {
-    const autoProcessOrder = async () => {
-      if (!orderId && !checkoutId) return;
-
-      // Wait a bit for Firebase to initialize
-      setTimeout(async () => {
-        try {
-          // Try to get user ID from Firebase first
-          let uid = userId;
-
-          // If no Firebase user, try to get from URL
-          if (!uid) {
-            const urlParams = new URLSearchParams(window.location.search);
-            uid = urlParams.get("uid");
-          }
-
-          if (!uid) {
-            console.log(
-              "[checkout/success] No user ID available for auto-processing",
-            );
-            return;
-          }
-
-          console.log(
-            "[checkout/success] Auto-processing order for user:",
-            uid,
-          );
-
-          const response = await fetch("/api/paynow/process-order", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              orderId: orderId || checkoutId,
-              userId: uid,
-            }),
-          });
-
-          const result = await response.json();
-
-          if (response.ok && result.credited > 0) {
-            console.log(
-              "[checkout/success] Auto-processed order, credited:",
-              result.credited,
-            );
-            setCredited(true);
-          } else {
-            console.log(
-              "[checkout/success] Auto-process failed or no points credited:",
-              result,
-            );
-          }
-        } catch (error) {
-          console.error("[checkout/success] Auto-process error:", error);
-        }
-      }, 2000); // Wait 2 seconds for Firebase to initialize
-    };
-
-    autoProcessOrder();
-  }, [orderId, checkoutId, userId]);
-
-  // Watch wallet balance - simplified to avoid Firestore permission issues
-  useEffect(() => {
-    if (!userId) return;
-
-    // Instead of watching Firestore directly, we'll rely on the auto-processing
-    // to update the UI when points are credited
-    console.log(
-      "[checkout/success] User authenticated, auto-processing will handle balance updates",
-    );
-  }, [userId]);
-
-  // Show loading while webhook processes
-  if (!credited) {
+  if (status === 'loading') {
     return (
-      <main className="container mx-auto max-w-2xl space-y-6 p-6">
-        <h1 className="font-semibold text-2xl">Purchase complete</h1>
-        <p>Processing your payment...</p>
-        <div className="h-4 animate-pulse rounded bg-gray-200" />
-        <p className="text-gray-500 text-sm">
-          Your points will appear shortly. Order: {orderId || checkoutId}
-        </p>
-
-        {/* Automatic processing indicator */}
-        <div className="mt-8 rounded border border-gray-200 p-4">
-          <p className="mb-2 text-gray-600 text-sm">
-            Processing your order automatically...
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-md mx-auto text-center">
+          <Loader2 className="w-16 h-16 text-blue-500 animate-spin mx-auto mb-6" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Completing your purchase...
+          </h1>
+          <p className="text-gray-600">
+            Please wait while we finalize your subscription.
           </p>
-          <div className="flex items-center space-x-2">
-            <div className="h-4 w-4 animate-spin rounded-full border-blue-500 border-b-2" />
-            <span className="text-gray-600 text-sm">
-              Please wait while we credit your points...
-            </span>
-          </div>
         </div>
-      </main>
+      </div>
     );
   }
 
-  // Show success when points are credited
-  return (
-    <main className="container mx-auto max-w-2xl space-y-6 p-6">
-      <h1 className="font-semibold text-2xl">Purchase complete</h1>
-      <p className="text-green-600">
-        Your points have been credited successfully! Thank you for your
-        purchase.
-      </p>
-      <WalletWidget />
-      <a href="/account/points" className="mt-4 inline-block underline">
-        View full history
-      </a>
-    </main>
-  );
-}
+  if (status === 'error') {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-md mx-auto text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-2xl">❌</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Something went wrong
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {error}
+          </p>
+          <div className="space-y-3">
+            <Button asChild>
+              <a href="/pricing">Try Again</a>
+            </Button>
+            <Button variant="outline" asChild>
+              <a href="/support">Contact Support</a>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-export default function Success() {
   return (
-    <main className="container mx-auto max-w-2xl space-y-6 p-6">
-      <h1 className="font-semibold text-2xl">Purchase complete</h1>
-      <p>Loading...</p>
-    </main>
+    <div className="container mx-auto px-4 py-16">
+      <div className="max-w-md mx-auto text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-8 h-8 text-green-600" />
+        </div>
+        
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          Welcome to Siraj Pro! 🎉
+        </h1>
+        
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Your subscription is active</CardTitle>
+            <CardDescription>
+              You now have access to all Pro features
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-gray-600 space-y-2">
+              <div className="flex justify-between">
+                <span>Entitlement ID:</span>
+                <Badge variant="outline" className="font-mono text-xs">
+                  {entitlementId.slice(0, 8)}...
+                </Badge>
+              </div>
+              <div className="flex justify-between">
+                <span>Status:</span>
+                <Badge className="bg-green-100 text-green-800">
+                  Active
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-3">
+          <Button asChild className="w-full">
+            <a href="/dashboard">
+              Go to Dashboard
+            </a>
+          </Button>
+          
+          <Button variant="outline" asChild className="w-full">
+            <a href="/account/plan">
+              Manage Subscription
+            </a>
+          </Button>
+        </div>
+
+        <div className="mt-8 text-sm text-gray-500">
+          <p>You'll receive a confirmation email shortly.</p>
+          <p className="mt-2">
+            Need help? <a href="/support" className="text-blue-600 hover:underline">Contact support</a>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
