@@ -1,25 +1,197 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
-import DashboardCards from "~/components/dashboard/DashboardCards";
-import { WalletWidget } from "~/components/points/WalletWidget";
-import { Button } from "~/components/ui/button";
-import { features } from "~/config/features";
-import { logoutEverywhere } from "~/lib/firebase.client";
+import { Suspense } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { useFirebaseUser } from '~/components/auth/useFirebaseUser';
+import { WalletWidget } from '~/components/points/WalletWidget';
+import { Button } from '~/components/ui/button';
+import { features } from '~/config/features';
+import { logoutEverywhere } from '~/lib/firebase.client';
+import { isRTLLocale } from '~/components/rtl';
+
+// Dashboard Components
+import StatCard from '~/components/dashboard/StatCard';
+import Section from '~/components/dashboard/Section';
+import QuickActions from '~/components/dashboard/QuickActions';
+import UsageSnapshot from '~/components/dashboard/UsageSnapshot';
+import SkeletonCard from '~/components/dashboard/SkeletonCard';
+
+// Icons
+import { User, Crown, Calendar, Bell, Settings, LogOut } from 'lucide-react';
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: 'easeOut',
+    },
+  },
+};
+
+// Loading skeleton for the entire dashboard
+function DashboardSkeleton() {
+  return (
+    <div className="container mx-auto px-4 py-8 space-y-8" dir="rtl">
+      <div className="h-8 bg-white/10 rounded w-48 animate-pulse" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+        <div className="space-y-6">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Profile card component
+function ProfileCard({ user }: { user: any }) {
+  const isRTL = isRTLLocale();
+  
+  return (
+    <StatCard
+      title="معلومات حساب جوجل"
+      value={
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            {user.photoURL && (
+              <img
+                src={user.photoURL}
+                alt={user.displayName || user.email || "User"}
+                className="h-12 w-12 rounded-full border-2 border-white/20"
+              />
+            )}
+            <div className="text-right">
+              <div className="font-semibold text-white">
+                {user.displayName || "غير محدد"}
+              </div>
+              <div className="text-sm text-white/60">
+                {user.email}
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => logoutEverywhere()}
+            className="w-full border-white/20 text-white hover:bg-white/10"
+          >
+            <LogOut className="w-4 h-4 ml-2" />
+            تسجيل الخروج
+          </Button>
+        </div>
+      }
+      icon={<User className="w-5 h-5" />}
+      intent="neutral"
+    />
+  );
+}
+
+// Plan card component
+function PlanCard() {
+  const isRTL = isRTLLocale();
+  
+  return (
+    <StatCard
+      title="خطتي الحالية"
+      value={
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Crown className="w-5 h-5 text-yellow-500" />
+            <span className="text-xl font-bold text-white">احترافي</span>
+          </div>
+          <div className="text-sm text-white/60">
+            التجديد: 15 يناير 2025
+          </div>
+        </div>
+      }
+      icon={<Crown className="w-5 h-5" />}
+      intent="success"
+      helper="خطة احترافية مع ميزات متقدمة"
+    />
+  );
+}
+
+// Notifications component
+function Notifications() {
+  const notifications = [
+    {
+      id: 1,
+      title: 'تم إنشاء مفتاح API جديد',
+      time: 'منذ ساعتين',
+      type: 'success',
+    },
+    {
+      id: 2,
+      title: 'تم تحديث الفاتورة',
+      time: 'منذ يوم',
+      type: 'info',
+    },
+    {
+      id: 3,
+      title: 'دعوة عضو جديد',
+      time: 'منذ 3 أيام',
+      type: 'warning',
+    },
+  ];
+
+  return (
+    <Section title="الإشعارات" badge={`${notifications.length} جديد`}>
+      <div className="space-y-3">
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className="flex items-center gap-3 p-3 rounded-lg border border-white/10 bg-black/20 hover:bg-black/30 transition-colors"
+          >
+            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+            <div className="flex-1">
+              <div className="text-sm text-white font-medium">
+                {notification.title}
+              </div>
+              <div className="text-xs text-white/60">
+                {notification.time}
+              </div>
+            </div>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full border-white/20 text-white hover:bg-white/10"
+        >
+          عرض جميع الإشعارات
+        </Button>
+      </div>
+    </Section>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: userLoading } = useFirebaseUser();
+  const isRTL = isRTLLocale();
 
   if (userLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center">
-          <div className="text-lg">جارٍ التحميل...</div>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!user) {
@@ -28,113 +200,153 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8" dir="rtl">
-      <h1 className="mb-8 font-bold text-3xl">لوحة التحكم</h1>
-
-      {/* Dashboard Cards */}
-      <div className="mb-8">
-        <DashboardCards />
-      </div>
+    <motion.div
+      className="container mx-auto px-4 py-8 space-y-8"
+      dir="rtl"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Page Header */}
+      <motion.div variants={itemVariants}>
+        <h1 className="text-3xl font-bold text-white mb-2">لوحة التحكم</h1>
+        <p className="text-white/60">
+          مرحباً بك، {user.displayName || user.email}. إليك نظرة عامة على حسابك.
+        </p>
+      </motion.div>
 
       {/* Points/Wallet Section */}
       {features.pointsClient && (
-        <div className="mb-6 rounded-lg border bg-card p-6">
-          <h2 className="mb-4 font-semibold text-2xl">النقاط · Points</h2>
-          <WalletWidget locale="ar" />
-          <div className="mt-4 flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/account/points")}
-              className="flex-1"
-            >
-              عرض السجل الكامل
-            </Button>
-            <Button onClick={() => router.push("/paywall")} className="flex-1">
-              شراء نقاط
-            </Button>
-          </div>
-        </div>
+        <motion.div variants={itemVariants}>
+          <Section title="النقاط · Points">
+            <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
+              <WalletWidget locale="ar" />
+              <div className="mt-4 flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push("/account/points")}
+                  className="flex-1 border-white/20 text-white hover:bg-white/10"
+                >
+                  عرض السجل الكامل
+                </Button>
+                <Button 
+                  onClick={() => router.push("/paywall")} 
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  شراء نقاط
+                </Button>
+              </div>
+            </div>
+          </Section>
+        </motion.div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Firebase Profile Section */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 font-semibold text-2xl">معلومات حساب جوجل</h2>
-          <div className="mb-4 flex items-center gap-4">
-            {user.photoURL && (
-              <img
-                src={user.photoURL}
-                alt={user.displayName || user.email || "User"}
-                className="h-16 w-16 rounded-full border"
-              />
-            )}
-            <div>
-              <p className="font-bold">{user.displayName || "غير محدد"}</p>
-              <p className="text-muted-foreground">{user.email}</p>
+      {/* Main Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Profile Card */}
+          <motion.div variants={itemVariants}>
+            <ProfileCard user={user} />
+          </motion.div>
+
+          {/* Plan Card */}
+          <motion.div variants={itemVariants}>
+            <PlanCard />
+          </motion.div>
+
+          {/* Quick Actions */}
+          <motion.div variants={itemVariants}>
+            <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
+              <QuickActions />
             </div>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => logoutEverywhere()}
-          >
-            تسجيل الخروج
-          </Button>
+          </motion.div>
         </div>
 
-        {/* Profile Section */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 font-semibold text-2xl">الملف الشخصي</h2>
-          <div className="space-y-2 text-sm">
-            <p>
-              <strong>الاسم:</strong> {user.displayName || "غير محدد"}
-            </p>
-            <p>
-              <strong>معرف Firebase:</strong> {user.uid}
-            </p>
-            <p>
-              <strong>البريد الإلكتروني:</strong> {user.email}
-            </p>
-          </div>
-        </div>
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Usage Snapshot */}
+          <motion.div variants={itemVariants}>
+            <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
+              <Suspense fallback={<SkeletonCard />}>
+                <UsageSnapshot />
+              </Suspense>
+            </div>
+          </motion.div>
 
-        {/* AI Tools Section */}
-        <div className="rounded-lg border bg-card p-6 md:col-span-2">
-          <h2 className="mb-4 font-semibold text-2xl">الأدوات الذكية</h2>
-          <div className="space-y-3">
-            <Button
-              variant="outline"
-              onClick={() => router.push("/tools")}
-              className="w-full justify-start"
-            >
-              نور على نور - مفسر القرآن الكريم
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => router.push("/tools")}
-              className="w-full justify-start"
-            >
-              مفسر الأحلام
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => router.push("/tools")}
-              className="w-full justify-start"
-            >
-              مدقق الحقائق
-            </Button>
-          </div>
-        </div>
-
-        {/* Account Settings */}
-        <div className="rounded-lg border bg-card p-6 md:col-span-2">
-          <h2 className="mb-4 font-semibold text-2xl">إعدادات الحساب</h2>
-          <p className="mb-4 text-muted-foreground">
-            يمكنك إدارة حسابك وتفضيلاتك من هنا.
-          </p>
-          <Button variant="outline">تحديث الملف الشخصي</Button>
+          {/* Notifications */}
+          <motion.div variants={itemVariants}>
+            <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
+              <Notifications />
+            </div>
+          </motion.div>
         </div>
       </div>
-    </div>
+
+      {/* AI Tools Section */}
+      <motion.div variants={itemVariants}>
+        <Section title="الأدوات الذكية" badge="متاحة الآن">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/tools")}
+              className="h-auto p-4 border-white/20 text-white hover:bg-white/10 flex-col gap-2"
+            >
+              <div className="text-lg">📖</div>
+              <div className="font-medium">نور على نور</div>
+              <div className="text-xs text-white/60">مفسر القرآن الكريم</div>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/tools")}
+              className="h-auto p-4 border-white/20 text-white hover:bg-white/10 flex-col gap-2"
+            >
+              <div className="text-lg">💭</div>
+              <div className="font-medium">مفسر الأحلام</div>
+              <div className="text-xs text-white/60">تفسير الأحلام الإسلامية</div>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/tools")}
+              className="h-auto p-4 border-white/20 text-white hover:bg-white/10 flex-col gap-2"
+            >
+              <div className="text-lg">✅</div>
+              <div className="font-medium">مدقق الحقائق</div>
+              <div className="text-xs text-white/60">التحقق من المعلومات</div>
+            </Button>
+          </div>
+        </Section>
+      </motion.div>
+
+      {/* Account Settings */}
+      <motion.div variants={itemVariants}>
+        <Section title="إعدادات الحساب">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/account")}
+              className="h-auto p-4 border-white/20 text-white hover:bg-white/10 flex items-center gap-3"
+            >
+              <Settings className="w-5 h-5" />
+              <div className="text-right">
+                <div className="font-medium">إعدادات الحساب</div>
+                <div className="text-xs text-white/60">إدارة الملف الشخصي</div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/account/api")}
+              className="h-auto p-4 border-white/20 text-white hover:bg-white/10 flex items-center gap-3"
+            >
+              <div className="w-5 h-5">🔑</div>
+              <div className="text-right">
+                <div className="font-medium">مفاتيح API</div>
+                <div className="text-xs text-white/60">إدارة المفاتيح</div>
+              </div>
+            </Button>
+          </div>
+        </Section>
+      </motion.div>
+    </motion.div>
   );
 }
-
