@@ -18,6 +18,7 @@ import UsageSnapshot from '~/components/dashboard/UsageSnapshot';
 import SkeletonCard from '~/components/dashboard/SkeletonCard';
 import EmptyState from '~/components/dashboard/EmptyState';
 import VerifiedBadge from '~/components/dashboard/VerifiedBadge';
+import ErrorBoundary from '~/components/common/ErrorBoundary';
 
 // Icons
 import { User, Crown, Calendar, Bell, Settings, LogOut, MessageSquare, Sparkles } from 'lucide-react';
@@ -279,16 +280,20 @@ export default function DashboardPage() {
           {/* Usage Snapshot */}
           <motion.div variants={itemVariants}>
             <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
-              <Suspense fallback={<SkeletonCard />}>
-                <UsageSnapshot />
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<SkeletonCard />}>
+                  <UsageSnapshot />
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </motion.div>
 
           {/* Notifications */}
           <motion.div variants={itemVariants}>
             <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
-              <Notifications />
+              <ErrorBoundary>
+                <Notifications />
+              </ErrorBoundary>
             </div>
           </motion.div>
         </div>

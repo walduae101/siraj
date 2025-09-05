@@ -21,8 +21,22 @@ interface UsageData {
 
 // Mock usage data - replace with real API calls
 const getUsage = async (): Promise<UsageData> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  // Check for mock mode
+  const isMockMode = process.env.NODE_ENV === 'development' && 
+    (process.env.DASHBOARD_MOCK === '1' || process.env.NEXT_PUBLIC_DASHBOARD_MOCK === '1');
+  
+  if (isMockMode) {
+    // Simulate slow API delay for testing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  } else {
+    // Normal delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  // Simulate network error in mock mode
+  if (isMockMode && Math.random() < 0.1) { // 10% chance of error
+    throw new Error('Network error: Failed to fetch usage data');
+  }
   
   return {
     plan: 'pro',
@@ -53,49 +67,74 @@ export default function UsageSnapshot() {
   const [nudgeShown, setNudgeShown] = useState(false);
   const isRTL = isRTLLocale();
 
-  useEffect(() => {
-    const fetchUsage = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getUsage();
-        setUsageData(data);
+  const fetchUsage = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Performance timing
+      const startTime = performance.now();
+      performance.mark('usage-fetch-start');
+      
+      const data = await getUsage();
+      setUsageData(data);
+      
+      // Track time to usage render
+      const endTime = performance.now();
+      const renderTime = endTime - startTime;
+      performance.mark('usage-fetch-end');
+      performance.measure('usage-fetch-duration', 'usage-fetch-start', 'usage-fetch-end');
+      
+      // Send telemetry
+      track('ux.time_to_usage', {
+        duration: Math.round(renderTime),
+        plan: data.plan,
+        success: true,
+      });
+      
+      // Check if we should show usage nudge (only once per day)
+      const today = new Date().toDateString();
+      const lastNudgeDate = localStorage.getItem('usage-nudge-date');
+      
+      if (lastNudgeDate !== today) {
+        const { usage } = data;
+        const limits = planLimits[data.plan];
         
-        // Check if we should show usage nudge (only once per day)
-        const today = new Date().toDateString();
-        const lastNudgeDate = localStorage.getItem('usage-nudge-date');
+        // Check if any usage is nearing limit (< 15% remaining)
+        const isNearLimit = Object.keys(usage).some(key => {
+          const used = usage[key as keyof typeof usage].used;
+          const limit = limits[key as keyof typeof limits];
+          const remaining = limit - used;
+          return remaining < (limit * 0.15);
+        });
         
-        if (lastNudgeDate !== today) {
-          const { usage } = data;
-          const limits = planLimits[data.plan];
+        if (isNearLimit) {
+          setNudgeShown(true);
+          localStorage.setItem('usage-nudge-date', today);
           
-          // Check if any usage is nearing limit (< 15% remaining)
-          const isNearLimit = Object.keys(usage).some(key => {
-            const used = usage[key as keyof typeof usage].used;
-            const limit = limits[key as keyof typeof limits];
-            const remaining = limit - used;
-            return remaining < (limit * 0.15);
+          // Fire analytics event
+          track('usage.nudge_shown', {
+            plan: data.plan,
+            usage: usage,
           });
-          
-          if (isNearLimit) {
-            setNudgeShown(true);
-            localStorage.setItem('usage-nudge-date', today);
-            
-            // Fire analytics event
-            track('usage.nudge_shown', {
-              plan: data.plan,
-              usage: usage,
-            });
-          }
         }
-      } catch (err) {
-        setError('فشل في تحميل بيانات الاستخدام');
-        console.error('Usage fetch error:', err);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      setError('فشل في تحميل بيانات الاستخدام');
+      console.error('Usage fetch error:', err);
+      
+      // Track error telemetry
+      track('ux.time_to_usage', {
+        duration: Math.round(performance.now() - performance.getEntriesByName('usage-fetch-start')[0]?.startTime || 0),
+        success: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchUsage();
   }, []);
 
@@ -119,10 +158,11 @@ export default function UsageSnapshot() {
         <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
           <p className="text-red-400 mb-4">{error || 'خطأ في تحميل البيانات'}</p>
           <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+            onClick={fetchUsage}
+            disabled={loading}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg transition-colors"
           >
-            حاول مرة أخرى
+            {loading ? 'جاري المحاولة...' : 'حاول مرة أخرى'}
           </button>
         </div>
       </div>

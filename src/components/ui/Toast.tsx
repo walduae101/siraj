@@ -55,6 +55,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
     setToasts(prev => [...prev, newToast]);
 
+    // Track toast telemetry
+    if (typeof window !== 'undefined') {
+      // Import analytics dynamically to avoid SSR issues
+      import('~/lib/analytics').then(({ track }) => {
+        track('ux.toast_shown', {
+          type: toast.type,
+          title: toast.title,
+          hasDescription: !!toast.description,
+        });
+      });
+    }
+
     // Auto remove after duration
     if (newToast.duration && newToast.duration > 0) {
       setTimeout(() => {
