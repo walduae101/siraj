@@ -6,3 +6,4 @@ export default function ClientWallet({
 }: { locale?: "en" | "ar" }) {
   return <WalletWidget locale={locale} />;
 }
+

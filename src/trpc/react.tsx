@@ -1,12 +1,12 @@
 "use client";
 
-import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpLink, loggerLink } from "@trpc/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useState } from "react";
 import SuperJSON from "superjson";
-import { getFirebaseAuth } from "~/lib/firebase/client";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 
 import type { AppRouter } from "~/server/api/root";
 import { createQueryClient } from "./query-client";
@@ -40,7 +40,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
               window.location.hostname === "localhost") ||
             (op.direction === "down" && op.result instanceof Error),
         }),
-        httpLink({
+        httpBatchLink({
           transformer: SuperJSON,
           url: `${getBaseUrl()}/api/trpc`,
           headers: async () => {
@@ -49,13 +49,11 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 
             // Add Firebase auth token if user is authenticated
             try {
-              const auth = getFirebaseAuth();
-              if (auth) {
-                const user = auth.currentUser;
-                if (user) {
-                  const token = await user.getIdToken();
-                  headers.set("authorization", `Bearer ${token}`);
-                }
+              const auth = await getFirebaseAuth();
+              const user = auth.currentUser;
+              if (user) {
+                const token = await user.getIdToken();
+                headers.set("authorization", `Bearer ${token}`);
               }
             } catch (error) {
               console.warn("Failed to get Firebase auth token:", error);
@@ -82,10 +80,7 @@ function getBaseUrl() {
     return window.location.origin;
   }
 
-  // SSR: use build-time env or fallback
-  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
-  }
-
+  // SSR: use fallback for localhost
   return "http://localhost:3000";
 }
+

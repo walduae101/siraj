@@ -1,0 +1,174 @@
+# =============================================================================
+# ENTERPRISE NEXT.JS APP TEMPLATE - ENVIRONMENT CONFIGURATION
+# =============================================================================
+# 
+# This file contains all the environment variables needed for your app.
+# Copy this to .env.local and fill in your actual values.
+#
+# IMPORTANT: Never commit .env.local to version control!
+# =============================================================================
+
+# =============================================================================
+# APP IDENTITY & METADATA
+# =============================================================================
+NEXT_PUBLIC_APP_NAME="{{APP_NAME}}"
+NEXT_PUBLIC_APP_DESCRIPTION="{{APP_DESCRIPTION}}"
+NEXT_PUBLIC_APP_VERSION="1.0.0"
+NEXT_PUBLIC_WEBSITE_URL="{{WEBSITE_URL}}"
+NEXT_PUBLIC_APP_URL="{{APP_URL}}"
+
+# =============================================================================
+# FIREBASE CONFIGURATION
+# =============================================================================
+# Get these values from your Firebase project console
+NEXT_PUBLIC_FIREBASE_API_KEY="{{FIREBASE_API_KEY}}"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="{{FIREBASE_AUTH_DOMAIN}}"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="{{FIREBASE_PROJECT_ID}}"
+NEXT_PUBLIC_FIREBASE_APP_ID="{{FIREBASE_APP_ID}}"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="{{FIREBASE_MESSAGING_SENDER_ID}}"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="{{FIREBASE_STORAGE_BUCKET}}"
+
+# Firebase Admin SDK (server-side only)
+FIREBASE_PROJECT_ID="{{FIREBASE_PROJECT_ID}}"
+FIREBASE_PRIVATE_KEY="{{FIREBASE_PRIVATE_KEY}}"
+FIREBASE_CLIENT_EMAIL="{{FIREBASE_CLIENT_EMAIL}}"
+
+# =============================================================================
+# AUTHENTICATION & SECURITY
+# =============================================================================
+# JWT secret for session management
+JWT_SECRET="{{JWT_SECRET}}"
+
+# OAuth providers (optional)
+GOOGLE_CLIENT_ID="{{GOOGLE_CLIENT_ID}}"
+GOOGLE_CLIENT_SECRET="{{GOOGLE_CLIENT_SECRET}}"
+
+# =============================================================================
+# DATABASE & STORAGE
+# =============================================================================
+# Database connection (if using external DB)
+DATABASE_URL="{{DATABASE_URL}}"
+
+# Cloud Storage
+GOOGLE_CLOUD_PROJECT_ID="{{GOOGLE_CLOUD_PROJECT_ID}}"
+GOOGLE_CLOUD_STORAGE_BUCKET="{{GOOGLE_CLOUD_STORAGE_BUCKET}}"
+
+# =============================================================================
+# PAYMENT INTEGRATION (OPTIONAL)
+# =============================================================================
+# Stripe (recommended for most apps)
+STRIPE_PUBLISHABLE_KEY="{{STRIPE_PUBLISHABLE_KEY}}"
+STRIPE_SECRET_KEY="{{STRIPE_SECRET_KEY}}"
+STRIPE_WEBHOOK_SECRET="{{STRIPE_WEBHOOK_SECRET}}"
+
+# PayNow (alternative payment provider)
+PAYNOW_API_KEY="{{PAYNOW_API_KEY}}"
+PAYNOW_STORE_ID="{{PAYNOW_STORE_ID}}"
+NEXT_PUBLIC_PAYNOW_STORE_ID="{{PAYNOW_STORE_ID}}"
+
+# =============================================================================
+# AI & EXTERNAL SERVICES (OPTIONAL)
+# =============================================================================
+# OpenAI
+OPENAI_API_KEY="{{OPENAI_API_KEY}}"
+
+# Google AI
+GOOGLE_AI_API_KEY="{{GOOGLE_AI_API_KEY}}"
+
+# Anthropic Claude
+ANTHROPIC_API_KEY="{{ANTHROPIC_API_KEY}}"
+
+# =============================================================================
+# MONITORING & ANALYTICS
+# =============================================================================
+# Google Analytics
+NEXT_PUBLIC_GA_MEASUREMENT_ID="{{GA_MEASUREMENT_ID}}"
+
+# Sentry (error tracking)
+SENTRY_DSN="{{SENTRY_DSN}}"
+SENTRY_ORG="{{SENTRY_ORG}}"
+SENTRY_PROJECT="{{SENTRY_PROJECT}}"
+
+# Logging
+LOG_LEVEL="info"
+LOG_FORMAT="json"
+
+# =============================================================================
+# EMAIL & NOTIFICATIONS
+# =============================================================================
+# SendGrid
+SENDGRID_API_KEY="{{SENDGRID_API_KEY}}"
+SENDGRID_FROM_EMAIL="{{SENDGRID_FROM_EMAIL}}"
+
+# Resend (alternative)
+RESEND_API_KEY="{{RESEND_API_KEY}}"
+
+# =============================================================================
+# CDN & PERFORMANCE
+# =============================================================================
+# Cloudflare
+CLOUDFLARE_API_TOKEN="{{CLOUDFLARE_API_TOKEN}}"
+CLOUDFLARE_ZONE_ID="{{CLOUDFLARE_ZONE_ID}}"
+
+# AWS CloudFront
+AWS_ACCESS_KEY_ID="{{AWS_ACCESS_KEY_ID}}"
+AWS_SECRET_ACCESS_KEY="{{AWS_SECRET_ACCESS_KEY}}"
+AWS_REGION="{{AWS_REGION}}"
+AWS_CLOUDFRONT_DISTRIBUTION_ID="{{AWS_CLOUDFRONT_DISTRIBUTION_ID}}"
+
+# =============================================================================
+# DEVELOPMENT & TESTING
+# =============================================================================
+# Development flags
+NODE_ENV="development"
+NEXT_PUBLIC_APP_ENV="development"
+
+# Testing
+TEST_DATABASE_URL="{{TEST_DATABASE_URL}}"
+TEST_FIREBASE_PROJECT_ID="{{TEST_FIREBASE_PROJECT_ID}}"
+
+# =============================================================================
+# DEPLOYMENT & CI/CD
+# =============================================================================
+# Build configuration
+SKIP_ENV_VALIDATION="false"
+NEXT_TELEMETRY_DISABLED="1"
+
+# Docker
+DOCKER_IMAGE_NAME="{{DOCKER_IMAGE_NAME}}"
+DOCKER_REGISTRY="{{DOCKER_REGISTRY}}"
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+# Enable/disable features
+ENABLE_ANALYTICS="true"
+ENABLE_MONITORING="true"
+ENABLE_PAYMENTS="true"
+ENABLE_AI_FEATURES="false"
+ENABLE_MULTI_REGION="false"
+
+# =============================================================================
+# CUSTOMIZATION POINTS
+# =============================================================================
+# Add your custom environment variables below
+# CUSTOM_API_KEY="{{CUSTOM_API_KEY}}"
+# CUSTOM_SERVICE_URL="{{CUSTOM_SERVICE_URL}}"
+
+# =============================================================================
+# TEMPLATE NOTES
+# =============================================================================
+# 
+# 1. Replace all {{PLACEHOLDER}} values with your actual values
+# 2. Remove unused sections (e.g., if not using payments)
+# 3. Add your custom variables at the bottom
+# 4. Test your configuration with: pnpm health:check
+# 5. Validate environment with: pnpm typecheck
+#
+# For production deployment:
+# - Use Secret Manager for sensitive values
+# - Set NODE_ENV=production
+# - Enable all security features
+# - Configure monitoring and alerts
+#
+# =============================================================================

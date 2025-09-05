@@ -1,15 +1,8 @@
 "use client";
 
-import {
-  GoogleAuthProvider,
-  getRedirectResult,
-  onAuthStateChanged,
-  signInWithPopup,
-  signInWithRedirect,
-} from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getFirebaseAuth } from "~/lib/firebase/client";
+import { getFirebaseAuth, signInWithGoogle, getGoogleSignInRedirectResult } from "~/lib/firebase.client";
 
 export default function Page() {
   const [busy, setBusy] = useState(false);
@@ -17,46 +10,53 @@ export default function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) return;
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) router.replace("/dashboard");
-    });
-    return () => unsub();
-  }, [router]);
-
-  // Handle redirect result when user comes back from Google auth
-  useEffect(() => {
-    const handleRedirectResult = async () => {
+    const setupAuth = async () => {
       try {
-        const auth = getFirebaseAuth();
-        if (!auth) return;
-        const result = await getRedirectResult(auth);
-
+        await getFirebaseAuth(); // ensures runtime config + client init
+        
+        // Check for redirect result (user coming back from Google auth)
+        const result = await getGoogleSignInRedirectResult();
         if (result?.user) {
-          // User authenticated successfully via redirect
+          console.log("User signed in:", result.user.email);
           router.replace("/dashboard");
+          return;
         }
       } catch (e) {
-        console.error("Redirect result error", e);
-        setErr("Authentication failed");
+        console.error("Auth setup failed:", e);
+        setErr("Authentication setup failed");
       }
     };
 
-    handleRedirectResult();
+    setupAuth();
   }, [router]);
 
   async function login() {
+    console.log("Login button clicked");
     setBusy(true);
     setErr(null);
-    const auth = getFirebaseAuth();
-    const provider = new GoogleAuthProvider();
     try {
-      // Use redirect-based auth to avoid COOP issues
-      if (!auth) return;
-      await signInWithRedirect(auth, provider);
-      // The page will redirect and come back, so we don't need to handle the result here
+      console.log("Calling signInWithGoogle...");
+      const user = await signInWithGoogle();
+      if (user) {
+        console.log("signInWithGoogle completed for user:", user.email);
+        // signInWithPopup completed successfully
+        console.log("Sign-in completed successfully");
+        // Redirect to dashboard after successful popup auth
+        router.replace("/dashboard");
+      } else {
+        setErr("Sign-in failed - no user returned");
+        setBusy(false);
+      }
     } catch (e: unknown) {
+      console.error("Login error:", e);
+      
+      if (e instanceof Error && e.message.includes('Redirecting')) {
+        // User is being redirected to Google for authentication
+        setErr("جاري التوجيه إلى Google للمصادقة. يرجى إكمال عملية تسجيل الدخول.");
+        // Don't set busy to false - let the redirect happen
+        return;
+      }
+      
       setErr(e instanceof Error ? e.message : "Sign-in failed");
       setBusy(false);
     }
@@ -90,10 +90,10 @@ export default function Page() {
           }}
           aria-describedby="login-desc"
         >
-          {busy ? "Signing in…" : "Continue with Google"}
+          {busy ? "Redirecting…" : "Continue with Google"}
         </button>
         <p id="login-desc" style={{ opacity: 0.6, marginTop: "0.75rem" }}>
-          We&apos;ll redirect you to a success page after sign-in.
+          You'll be redirected to Google for authentication.
         </p>
         {err && (
           <p role="alert" style={{ color: "crimson", marginTop: "0.75rem" }}>
@@ -104,3 +104,4 @@ export default function Page() {
     </main>
   );
 }
+
