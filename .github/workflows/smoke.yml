@@ -1,0 +1,111 @@
+name: Production Smoke Tests
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to test'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run smoke tests
+        env:
+          BASE_URL: ${{ github.event.inputs.environment == 'staging' && 'https://staging.siraj.life' || 'https://siraj.life' }}
+          NODE_ENV: production
+        run: |
+          echo "🧪 Running smoke tests against: $BASE_URL"
+          npx tsx scripts/smoke-prod.ts
+          
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 Smoke Test Failure - ${new Date().toISOString()}`;
+            const body = `
+            ## Smoke Test Failure
+            
+            **Environment:** ${{ github.event.inputs.environment || 'production' }}
+            **Time:** ${new Date().toISOString()}
+            **Workflow:** [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            
+            ### Next Steps
+            1. Check the [workflow logs](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            2. Verify the application is responding
+            3. Check for any recent deployments
+            4. Investigate and resolve the issue
+            
+            ### Auto-close
+            This issue will be automatically closed when smoke tests pass again.
+            `;
+            
+            // Check if there's already an open issue for smoke test failures
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'smoke-test-failure'
+            });
+            
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['smoke-test-failure', 'ops', 'urgent']
+              });
+            }
+            
+      - name: Close smoke test issues on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Close any open smoke test failure issues
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'smoke-test-failure'
+            });
+            
+            for (const issue of issues.data) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `✅ Smoke tests are now passing. Closing this issue.`
+              });
+              
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }

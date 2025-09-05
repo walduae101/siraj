@@ -18,7 +18,10 @@ import UsageSnapshot from '~/components/dashboard/UsageSnapshot';
 import SkeletonCard from '~/components/dashboard/SkeletonCard';
 import EmptyState from '~/components/dashboard/EmptyState';
 import VerifiedBadge from '~/components/dashboard/VerifiedBadge';
+import FooterCTA from '~/components/dashboard/FooterCTA';
 import ErrorBoundary from '~/components/common/ErrorBoundary';
+import SupportBanner from '~/components/ops/SupportBanner';
+import ReadOnlyGuard from '~/components/ops/ReadOnlyGuard';
 
 // Icons
 import { User, Crown, Calendar, Bell, Settings, LogOut, MessageSquare, Sparkles } from 'lucide-react';
@@ -219,6 +222,8 @@ export default function DashboardPage() {
       initial="hidden"
       animate="visible"
     >
+      {/* Support Mode Banner */}
+      <SupportBanner userLabel={user.email || user.uid || 'Guest'} />
       {/* Page Header */}
       <motion.div variants={itemVariants}>
         <h1 className="text-3xl font-bold text-white mb-2">لوحة التحكم</h1>
@@ -270,7 +275,9 @@ export default function DashboardPage() {
           {/* Quick Actions - Hidden on mobile (shown in sticky bar) */}
           <motion.div variants={itemVariants} className="hidden lg:block">
             <div className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-sm p-6">
-              <QuickActions />
+              <ReadOnlyGuard>
+                <QuickActions />
+              </ReadOnlyGuard>
             </div>
           </motion.div>
         </div>
@@ -305,7 +312,9 @@ export default function DashboardPage() {
         className="lg:hidden fixed bottom-4 left-4 right-4 z-40"
       >
         <div className="rounded-2xl border border-white/20 bg-black/40 backdrop-blur-md p-4 shadow-2xl">
-          <QuickActions />
+          <ReadOnlyGuard>
+            <QuickActions />
+          </ReadOnlyGuard>
         </div>
       </motion.div>
 
@@ -372,6 +381,19 @@ export default function DashboardPage() {
             </Button>
           </div>
         </Section>
+      </motion.div>
+
+      {/* Contextual Footer CTA */}
+      <motion.div variants={itemVariants}>
+        <FooterCTA
+          plan="pro" // TODO: Get from actual user data
+          usage={{
+            ai: { used: 45, limit: 100 },
+            api: { used: 1200, limit: 5000 },
+            csv: { used: 3, limit: 10 },
+          }}
+          hasOrg={false} // TODO: Get from actual user data
+        />
       </motion.div>
     </motion.div>
   );
