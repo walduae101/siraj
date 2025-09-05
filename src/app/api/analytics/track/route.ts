@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { AnalyticsEvent } from '~/server/analytics/schema';
 import { sendToVendors } from '~/server/analytics/vendors';
+import { redactAnalyticsPayload, redactLogMessage } from '~/lib/redact';
 
 export const runtime = 'nodejs';
 
@@ -47,27 +48,31 @@ export async function POST(request: NextRequest) {
     // Send to vendors (errors are non-fatal)
     const results = await sendToVendors(enrichedEvent);
 
-    // Log in development
+    // Log in development (with redaction)
     if (process.env.NODE_ENV !== 'production') {
+      const redactedEvent = redactAnalyticsPayload({
+        type: enrichedEvent.type,
+        uid: enrichedEvent.uid,
+        keyId: enrichedEvent.keyId,
+        meta: enrichedEvent.meta,
+      });
+      
+      const redactedResults = redactAnalyticsPayload({
+        mixpanel: {
+          ok: results.mixpanel.ok,
+          status: results.mixpanel.status,
+          skipped: results.mixpanel.skipped,
+        },
+        ga4: {
+          ok: results.ga4.ok,
+          status: results.ga4.status,
+          skipped: results.ga4.skipped,
+        },
+      });
+      
       console.log('[ANALYTICS/SERVER]', {
-        event: {
-          type: enrichedEvent.type,
-          uid: enrichedEvent.uid,
-          keyId: enrichedEvent.keyId,
-          meta: enrichedEvent.meta,
-        },
-        results: {
-          mixpanel: {
-            ok: results.mixpanel.ok,
-            status: results.mixpanel.status,
-            skipped: results.mixpanel.skipped,
-          },
-          ga4: {
-            ok: results.ga4.ok,
-            status: results.ga4.status,
-            skipped: results.ga4.skipped,
-          },
-        },
+        event: redactedEvent,
+        results: redactedResults,
       });
     }
 

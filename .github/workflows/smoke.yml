@@ -18,6 +18,11 @@ on:
 jobs:
   smoke-test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [staging, production]
+        exclude:
+          - environment: production # Only run production on schedule, not on manual dispatch
     
     steps:
       - name: Checkout code
@@ -34,41 +39,51 @@ jobs:
         
       - name: Run smoke tests
         env:
-          BASE_URL: ${{ github.event.inputs.environment == 'staging' && 'https://staging.siraj.life' || 'https://siraj.life' }}
+          BASE_URL: ${{ matrix.environment == 'staging' && 'https://staging.siraj.life' || 'https://siraj.life' }}
           NODE_ENV: production
         run: |
           echo "🧪 Running smoke tests against: $BASE_URL"
-          npx tsx scripts/smoke-prod.ts
+          npx tsx scripts/smoke-prod.ts > smoke-results-${{ matrix.environment }}.log 2>&1
+          
+      - name: Upload smoke logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-logs-${{ matrix.environment }}-${{ github.run_number }}
+          path: smoke-results-${{ matrix.environment }}.log
+          retention-days: 30
           
       - name: Create issue on failure
         if: failure()
         uses: actions/github-script@v7
         with:
           script: |
-            const title = `🚨 Smoke Test Failure - ${new Date().toISOString()}`;
+            const title = `🚨 Smoke Test Failure - ${{ matrix.environment }} - ${new Date().toISOString()}`;
             const body = `
             ## Smoke Test Failure
             
-            **Environment:** ${{ github.event.inputs.environment || 'production' }}
+            **Environment:** ${{ matrix.environment }}
             **Time:** ${new Date().toISOString()}
             **Workflow:** [${context.workflow}](${context.payload.repository.html_url}/actions/runs/${context.runId})
+            **Exit Code:** ${{ job.status === 'failure' && '1 (HTTP failure) or 2 (SLO violation)' }}
             
             ### Next Steps
             1. Check the [workflow logs](${context.payload.repository.html_url}/actions/runs/${context.runId})
-            2. Verify the application is responding
-            3. Check for any recent deployments
-            4. Investigate and resolve the issue
+            2. Download smoke logs from artifacts
+            3. Verify the application is responding
+            4. Check for any recent deployments
+            5. Investigate and resolve the issue
             
             ### Auto-close
             This issue will be automatically closed when smoke tests pass again.
             `;
             
-            // Check if there's already an open issue for smoke test failures
+            // Check if there's already an open issue for this environment
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'smoke-test-failure'
+              labels: `smoke-test-failure-${{ matrix.environment }}`
             });
             
             if (issues.data.length === 0) {
@@ -77,7 +92,7 @@ jobs:
                 repo: context.repo.repo,
                 title: title,
                 body: body,
-                labels: ['smoke-test-failure', 'ops', 'urgent']
+                labels: [`smoke-test-failure-${{ matrix.environment }}`, 'ops', 'urgent']
               });
             }
             
@@ -86,12 +101,12 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Close any open smoke test failure issues
+            // Close any open smoke test failure issues for this environment
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              labels: 'smoke-test-failure'
+              labels: `smoke-test-failure-${{ matrix.environment }}`
             });
             
             for (const issue of issues.data) {
@@ -99,7 +114,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `✅ Smoke tests are now passing. Closing this issue.`
+                body: `✅ Smoke tests are now passing for ${{ matrix.environment }}. Closing this issue.`
               });
               
               await github.rest.issues.update({
