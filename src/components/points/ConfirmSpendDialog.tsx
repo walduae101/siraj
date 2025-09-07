@@ -63,7 +63,7 @@ export function ConfirmSpendDialog(props: ConfirmSpendDialogProps) {
       ]);
       onOpenChange(false);
     },
-    onError: (err) => {
+    onError: (err: any) => {
       props.onError?.(err);
     },
   }) || { mutate: () => {}, isPending: false };
@@ -72,9 +72,9 @@ export function ConfirmSpendDialog(props: ConfirmSpendDialogProps) {
   const soonestExpiry = React.useMemo(() => {
     if (!preview?.lots?.length) return null;
     const soonest = preview.lots
-      .map((lot) => lot.expiresAt)
+      .map((lot: any) => lot.expiresAt)
       .filter(Boolean)
-      .sort((a, b) => a - b)[0];
+      .sort((a: any, b: any) => a - b)[0];
     return soonest ? new Date(soonest) : null;
   }, [preview?.lots]);
 

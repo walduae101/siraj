@@ -29,7 +29,7 @@ export default function GiftcardBalanceCard({
       toast(`Gift card balance: ${(data / 100).toFixed(2)}`);
       form.reset();
     },
-    onError: (err) => {
+    onError: (err: any) => {
       toast(err.message);
 
       form.setFocus("code");

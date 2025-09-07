@@ -3,6 +3,7 @@
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useFirebaseUser } from "~/components/auth/useFirebaseUser";
+import DashboardCards from "~/components/dashboard/DashboardCards";
 import { WalletWidget } from "~/components/points/WalletWidget";
 import { Button } from "~/components/ui/button";
 import { features } from "~/config/features";
@@ -30,6 +31,11 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8" dir="rtl">
       <h1 className="mb-8 font-bold text-3xl">لوحة التحكم</h1>
+
+      {/* Dashboard Cards */}
+      <div className="mb-8">
+        <DashboardCards />
+      </div>
 
       {/* Points/Wallet Section */}
       {features.pointsClient && (

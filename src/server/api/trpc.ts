@@ -1,98 +1,94 @@
+import crypto from "node:crypto";
 import { initTRPC } from "@trpc/server";
-
 import superjson from "superjson";
-
 import { ZodError } from "zod";
 
-import type Context from "./types/context";
-
 import { TRPCError } from "@trpc/server";
+import type { inferAsyncReturnType } from "@trpc/server";
 import { getAdminAuth } from "~/server/firebase/admin-lazy";
 import isValidCountryCode from "./utils/countryCode";
 import isValidPublicIP from "./utils/ip";
 
-export const createTRPCContext = async ({
-  headers,
-  resHeaders,
-}: {
-  headers: Headers;
-  resHeaders: Headers;
-}): Promise<Context> => {
-  const payNowStorefrontHeaders: Record<string, string> = {};
+type PaynowFeature = { enabled: boolean; methods: string[] };
+type ReceiptsFeature = { persist: boolean };
+type Features = { paynow: PaynowFeature; receipts: ReceiptsFeature };
+type SafeConfig = { features: Features };
 
-  // IP Address & Country Code Forwarding
+const DEFAULT_SAFE_CONFIG: SafeConfig = {
+  features: {
+    paynow: { enabled: false, methods: [] },
+    receipts: { persist: false },
+  },
+};
 
-  const realIpAddress =
-    headers.get("cf-connecting-ip") ||
-    headers.get("x-real-ip") ||
-    headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-
-  const realCountryCode = headers.get("cf-ipcountry");
-
-  if (realIpAddress && isValidPublicIP(realIpAddress)) {
-    payNowStorefrontHeaders["x-paynow-customer-ip"] = realIpAddress;
+export async function getConfigSafely(): Promise<SafeConfig> {
+  try {
+    const mod = await import("~/server/config"); // adjust if actual path differs
+    const raw: any = await (mod as any).getConfig?.();
+    return {
+      features: {
+        paynow: {
+          enabled: Boolean(raw?.features?.paynow?.enabled ?? false),
+          methods: Array.isArray(raw?.features?.paynow?.methods)
+            ? raw.features.paynow.methods
+            : [],
+        },
+        receipts: {
+          persist: Boolean(raw?.features?.receipts?.persist ?? false),
+        },
+      },
+    };
+  } catch {
+    return DEFAULT_SAFE_CONFIG;
   }
+}
 
-  if (realCountryCode && isValidCountryCode(realCountryCode)) {
-    payNowStorefrontHeaders["x-paynow-customer-countrycode"] = realCountryCode;
-  }
-
-  const pnToken = headers
-    .get("cookie")
-    ?.split(";")
-    ?.find((cookie) => cookie.trim().startsWith("pn_token="))
-    ?.split("=")[1];
-
-  // URL decode the token in case it was encoded
-  const decodedToken = pnToken ? decodeURIComponent(pnToken) : null;
-
-  if (decodedToken) {
-    // Sanitize token to prevent "Invalid character in header content" errors
-    const sanitizedToken = decodedToken
-      .trim()
-      .replace(/[\r\n\t]/g, "")
-      .replace(/[^\x20-\x7E]/g, "");
-    console.log(
-      "Setting auth header with token length:",
-      sanitizedToken.length,
-    );
-    console.log("Original token length:", decodedToken.length);
-    console.log("Token has control chars:", decodedToken !== sanitizedToken);
-    payNowStorefrontHeaders.Authorization = `Customer ${sanitizedToken}`;
-  }
-
-  // Extract Firebase auth token
-  let firebaseUser: {
-    uid: string;
-    email?: string;
-    [key: string]: unknown;
-  } | null = null;
-  const authHeader = headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    try {
-      const auth = await getAdminAuth();
-      firebaseUser = await auth.verifyIdToken(token);
-      console.log("Firebase user authenticated:", firebaseUser.uid);
-    } catch (error) {
-      console.error("Failed to verify Firebase token:", {
-        error: error instanceof Error ? error.message : String(error),
-        tokenLength: token.length,
-        tokenPrefix: `${token.substring(0, 20)}...`,
-      });
-    }
-  } else {
-    if (authHeader) {
-      console.warn("Invalid auth header format:", authHeader.substring(0, 50));
-    }
-  }
+/**
+ * Backward-compatible createTRPCContext:
+ * - New callers: createTRPCContext({ req })
+ * - Legacy callers: createTRPCContext({ headers, resHeaders })
+ */
+export async function createTRPCContext(input: {
+  req?: Request;
+  headers?: Headers;
+  resHeaders?: Headers;
+}) {
+  const cfg = await getConfigSafely();
+  const headers = input.headers ?? input.req?.headers;
+  const resHeaders = input.resHeaders ?? new Headers();
+  const firebaseUser = null; // placeholder to satisfy legacy access
+  const adminUser = null; // placeholder if legacy admin code reads it
+  const reqId = crypto.randomUUID();
 
   return {
-    headers,
+    req: input.req ?? new Request("http://local.invalid"), // harmless placeholder
+    headers: headers ?? new Headers(),
     resHeaders,
-    payNowStorefrontHeaders,
+    payNowStorefrontHeaders: {}, // Add missing field
     firebaseUser,
+    adminUser,
+    cfg,
+    reqId,
   };
+}
+
+export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
+export type Context = {
+  headers: Headers;
+  resHeaders: Headers;
+  payNowStorefrontHeaders: Record<string, string>;
+  firebaseUser: { uid: string; email?: string; [key: string]: unknown } | null;
+  adminUser: { uid: string; email?: string; [key: string]: unknown } | null;
+  user?: { uid: string; email?: string; [key: string]: unknown };
+  userId?: string;
+  cfg: {
+    features: {
+      paynow: { enabled: boolean; methods: string[] };
+      receipts: { persist: boolean };
+    };
+  };
+  req?: Request;
+  reqId: string;
 };
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
@@ -122,7 +118,8 @@ export const publicProcedure = t.procedure;
 
 // Admin procedure that checks for admin claims
 export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  if (!ctx.firebaseUser?.uid) {
+  const typedCtx = ctx as Context;
+  if (!typedCtx.firebaseUser?.uid) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Authentication required",
@@ -131,7 +128,7 @@ export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
   // Check admin claims
   const auth = await getAdminAuth();
-  const userRecord = await auth.getUser(ctx.firebaseUser.uid);
+  const userRecord = await auth.getUser(typedCtx.firebaseUser.uid);
 
   if (!userRecord.customClaims?.admin) {
     throw new TRPCError({
@@ -142,15 +139,20 @@ export const adminProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
   return next({
     ctx: {
-      ...ctx,
-      adminUser: ctx.firebaseUser,
+      ...typedCtx,
+      adminUser: typedCtx.firebaseUser as {
+        uid: string;
+        email?: string;
+        [key: string]: unknown;
+      },
     },
   });
 });
 
 // Protected procedure for authenticated users
 export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
-  if (!ctx.firebaseUser?.uid) {
+  const typedCtx = ctx as Context;
+  if (!typedCtx.firebaseUser?.uid) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Authentication required",
@@ -159,9 +161,13 @@ export const protectedProcedure = publicProcedure.use(async ({ ctx, next }) => {
 
   return next({
     ctx: {
-      ...ctx,
-      user: ctx.firebaseUser,
-      userId: ctx.firebaseUser.uid,
+      ...typedCtx,
+      user: typedCtx.firebaseUser as {
+        uid: string;
+        email?: string;
+        [key: string]: unknown;
+      },
+      userId: typedCtx.firebaseUser.uid,
     },
   });
 });

@@ -41,6 +41,40 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the r
 ## Theming
 The website's color scheme is fully configurable by editing the CSS file located at `/src/styles/globals.css`
 
+## CDN & Security
+
+Siraj is deployed with enterprise-grade CDN and security headers for optimal performance and protection.
+
+### Quick Verification Commands
+
+**HTML (expect no-store + security headers):**
+```bash
+curl -sSI https://siraj.life | egrep -i '^(HTTP|cache-control|content-type|vary|strict-transport|x-content-type-options|x-frame-options|referrer-policy|permissions-policy|content-security-policy)'
+```
+
+**API (expect JSON + no-store):**
+```bash
+curl -sSI https://siraj.life/api/health | egrep -i '^(HTTP|cache-control|content-type)'
+```
+
+**Real chunk (expect immutable, no security headers):**
+```bash
+ASSET=$(curl -s https://siraj.life | grep -oE '/_next/static/(chunks|app)/[^"]+\.js' | head -1)
+curl -sSI "https://siraj.life$ASSET" | egrep -i '^(HTTP|cache-control|content-type|age|etag)'
+```
+
+### Security Features
+- **Immutable static assets** with optimal caching
+- **HTML/API security headers** through CDN
+- **Multi-region parity** with automated enforcement
+- **CSP Report-Only** monitoring (enforcement planned for Sep 6, 2025)
+- **Daily automated checks** via GitHub Actions
+
+### Documentation
+- [**Golden Headers Contract**](./GOLDEN_HEADERS_CONTRACT.md) - Exact header requirements
+- [**CDN Configuration**](./CDN_CONFIGURATION.md) - CDN settings and behavior
+- [**Operational Runbook**](./OPERATIONAL_RUNBOOK.md) - Troubleshooting and monitoring
+
 ## Payments & Webhooks
 
 Siraj integrates with PayNow for secure payment processing with enterprise-grade monitoring and reliability. The webhook system includes comprehensive observability, security hardening, and queue-based architecture for high performance.
@@ -61,6 +95,38 @@ Siraj integrates with PayNow for secure payment processing with enterprise-grade
 
 ## Deployment
 This project can be deployed on various platforms. For detailed deployment instructions, see the [T3 Stack Deployment Guide](https://create.t3.gg/en/deployment).
+
+## Branching Policy
+
+This repository follows a strict branching policy to maintain code quality and streamline development:
+
+### Branch Structure
+- **`main`** - The only long-lived branch, contains production-ready code
+- **Feature branches** - Short-lived branches for development work (e.g., `sprint1/feature-name`, `hotfix/critical-fix`)
+
+### Development Workflow
+1. **Create feature branch** from `main`: `git checkout -b sprint1/feature-name`
+2. **Develop and test** your changes locally
+3. **Push branch** and create a pull request
+4. **Code review** - At least one approval required
+5. **Merge via squash** - Maintains linear history
+6. **Auto-deletion** - Feature branches are automatically deleted after merge
+
+### Branch Protection Rules
+- ✅ Require pull request reviews (minimum 1 approval)
+- ✅ Require status checks to pass before merging
+- ✅ Require branches to be up to date before merging
+- ✅ Require conversation resolution before merging
+- ✅ Require linear history (enforces squash merges)
+- ✅ Restrict direct pushes to `main`
+- ✅ Block force pushes and deletions
+- ✅ Auto-delete head branches after merge
+
+### Naming Conventions
+- `sprint*/` - Sprint-related features
+- `hotfix/` - Critical production fixes
+- `feature/` - General features
+- `bugfix/` - Bug fixes
 
 ## Contributing
 Contributions are welcome! If you'd like to improve Siraj or suggest new features, please fork the repository, make your changes, and submit a pull request.
