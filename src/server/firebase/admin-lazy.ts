@@ -1,4 +1,3 @@
-import "server-only";
 import { getConfig } from "../config";
 
 let cachedApp: import("firebase-admin/app").App | null = null;

@@ -1,0 +1,80 @@
+{
+  "onboarding": {
+    "title": "الإعداد",
+    "subtitle": "أكمل الخطوات التالية للاستفادة القصوى من سراج.",
+    "progress": "نظرة عامة على التقدم",
+    "completed": "مكتمل",
+    "done": "تم",
+    "mark": "تحديد كمكتمل",
+    "marking": "جاري التحديد...",
+    "complete": "تم إكمال الإعداد!",
+    "congratulations": "لقد أكملت بنجاح جميع خطوات الإعداد. أنت الآن جاهز للاستفادة القصوى من سراج!",
+    "go_to_dashboard": "الذهاب إلى لوحة التحكم",
+    "view_api_docs": "عرض وثائق API",
+    "items": {
+      "create_api_key": {
+        "title": "إنشاء مفتاح API",
+        "description": "قم بإنشاء أول مفتاح API لبدء استخدام واجهة برمجة تطبيقات سراج"
+      },
+      "call_ping": {
+        "title": "إجراء أول استدعاء API",
+        "description": "اختبر مفتاح API الخاص بك مع طلب ping بسيط"
+      },
+      "upgrade_plan": {
+        "title": "الترقية إلى Pro",
+        "description": "افتح الميزات المتقدمة وحدود المعدل الأعلى"
+      },
+      "invite_member": {
+        "title": "دعوة زميل",
+        "description": "إنشاء منظمة ودعوة أعضاء الفريق"
+      },
+      "enable_2fa": {
+        "title": "تفعيل المصادقة الثنائية",
+        "description": "تأمين حسابك بالمصادقة الثنائية"
+      }
+    },
+    "actions": {
+      "open_api_keys": "فتح مفاتيح API",
+      "view_plans": "عرض الخطط",
+      "create_organization": "إنشاء منظمة",
+      "coming_soon": "قريباً"
+    }
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "success": "نجح",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "submit": "إرسال",
+    "reset": "إعادة تعيين"
+  },
+  "auth": {
+    "sign_in": "تسجيل الدخول",
+    "sign_up": "إنشاء حساب",
+    "sign_out": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirm_password": "تأكيد كلمة المرور",
+    "forgot_password": "نسيت كلمة المرور؟",
+    "remember_me": "تذكرني"
+  },
+  "api": {
+    "title": "بوابة المطور",
+    "subtitle": "إدارة مفاتيح API والوصول إلى واجهة برمجة تطبيقات سراج",
+    "create_key": "إنشاء مفتاح",
+    "key_name": "اسم المفتاح",
+    "expiration": "تاريخ الانتهاء (اختياري)",
+    "status": {
+      "active": "نشط",
+      "revoked": "ملغي",
+      "expired": "منتهي الصلاحية"
+    }
+  }
+}

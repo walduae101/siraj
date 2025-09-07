@@ -25,6 +25,9 @@ jobs:
         run: |
           PORT=3000 pnpm start &> .next/server.log &
           npx --yes wait-on http://127.0.0.1:3000/api/public-config
+      - name: Run auth guards
+        run: |
+          bash scripts/ci-guard.sh
       - name: Run smoke
         run: |
           export PORT=3000

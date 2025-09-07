@@ -1,0 +1,45 @@
+{
+  "name": "siraj-sdk-js",
+  "version": "0.1.0",
+  "description": "Official JavaScript SDK for the Siraj API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "siraj",
+    "api",
+    "sdk",
+    "javascript",
+    "typescript"
+  ],
+  "author": "Siraj",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/siraj/siraj-sdk-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/siraj/siraj-sdk-js/issues"
+  },
+  "homepage": "https://siraj.life/docs/api",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

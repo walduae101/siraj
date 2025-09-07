@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { RiskEvent } from "~/server/services/riskManagement";
+import type { RiskEvent } from "~/types/risk";
 
 type RiskQueueProps = {};
 
@@ -108,7 +108,7 @@ export default function RiskQueuePage(props: RiskQueueProps) {
           hold.eventType,
           hold.riskScore,
           hold.riskReasons.join(";"),
-          hold.createdAt.toDate().toISOString(),
+          hold.createdAt,
           hold.metadata.amount || 0,
         ].join(","),
       ),
@@ -300,7 +300,7 @@ export default function RiskQueuePage(props: RiskQueueProps) {
                         {hold.metadata.amount || 0} points
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-gray-500 text-sm">
-                        {hold.createdAt.toDate().toLocaleString()}
+                        {hold.createdAt}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 font-medium text-sm">
                         <div className="flex gap-2">
@@ -442,7 +442,7 @@ export default function RiskQueuePage(props: RiskQueueProps) {
                     Created At
                   </label>
                   <div className="mt-1 text-gray-900 text-sm">
-                    {selectedHold.createdAt.toDate().toLocaleString()}
+                    {selectedHold.createdAt}
                   </div>
                 </div>
 
@@ -488,3 +488,4 @@ export default function RiskQueuePage(props: RiskQueueProps) {
     </div>
   );
 }
+

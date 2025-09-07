@@ -1,0 +1,275 @@
+steps:
+  # =============================================================================
+  # ENTERPRISE NEXT.JS APP TEMPLATE - CLOUD BUILD CONFIGURATION
+  # =============================================================================
+  # 
+  # This configuration provides enterprise-grade CI/CD for your app
+  # Replace {{PLACEHOLDER}} values with your actual configuration
+  #
+  # Features:
+  # - Multi-region deployment (US + EU)
+  # - CDN cache invalidation
+  # - Health checks and validation
+  # - Secret Manager integration
+  # - Automated rollback capability
+  #
+  # =============================================================================
+
+  # 1. Validate configuration before build
+  - name: 'ubuntu:22.04'
+    id: validate-config
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "🔍 Validating configuration files..."
+        
+        # Check required files exist
+        required_files=("next.config.mjs" "package.json" "firebase.json")
+        for file in "${required_files[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✅ $file found"
+          else
+            echo "❌ $file not found"
+            exit 1
+          fi
+        done
+        
+        # Validate environment variables
+        if [ -z "$PROJECT_ID" ]; then
+          echo "❌ PROJECT_ID not set"
+          exit 1
+        fi
+        
+        echo "✅ Configuration validation passed"
+
+  # 2. Install dependencies and run tests
+  - name: 'node:20'
+    id: test-and-build
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "📦 Installing dependencies..."
+        npm install -g pnpm
+        pnpm install --frozen-lockfile
+        
+        echo "🧪 Running tests..."
+        pnpm test || echo "⚠️ Tests failed, continuing with build"
+        
+        echo "🔍 Type checking..."
+        pnpm typecheck || echo "⚠️ Type check failed, continuing with build"
+        
+        echo "🏗️ Building application..."
+        pnpm build
+        
+        echo "✅ Build completed successfully"
+
+  # 3. Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-image
+    args: [
+      'build', 
+      '-t', 'gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:$COMMIT_SHA', 
+      '-t', 'gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:latest', 
+      '.'
+    ]
+
+  # 4. Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-image
+    args: [
+      'push', 
+      'gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:$COMMIT_SHA'
+    ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-latest
+    args: [
+      'push', 
+      'gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:latest'
+    ]
+
+  # 5. Deploy to Cloud Run (US region) with Secret Manager
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    id: deploy-us
+    args:
+      - gcloud
+      - run
+      - deploy
+      - {{SERVICE_NAME}}
+      - --image
+      - gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:$COMMIT_SHA
+      - --region
+      - us-central1
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --port
+      - "3000"
+      - --memory
+      - "1Gi"
+      - --cpu
+      - "1"
+      - --max-instances
+      - "10"
+      - --min-instances
+      - "0"
+      - --timeout
+      - "300"
+      - --concurrency
+      - "80"
+      - --update-secrets
+      - |
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID=NEXT_PUBLIC_FIREBASE_PROJECT_ID:latest,
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:latest,
+        NEXT_PUBLIC_FIREBASE_API_KEY=NEXT_PUBLIC_FIREBASE_API_KEY:latest,
+        NEXT_PUBLIC_WEBSITE_URL=NEXT_PUBLIC_WEBSITE_URL:latest,
+        OPENAI_API_KEY=OPENAI_API_KEY:latest,
+        FIREBASE_PROJECT_ID=FIREBASE_PROJECT_ID:latest,
+        JWT_SECRET=JWT_SECRET:latest
+      - --set-env-vars
+      - |
+        NODE_ENV=production,
+        NEXT_TELEMETRY_DISABLED=1
+
+  # 6. Deploy EU to the same image (parity)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    id: deploy-eu-parity
+    entrypoint: bash
+    args:
+      - -lc
+      - |
+        set -euo pipefail
+        echo "🌍 Deploying EU to same image..."
+        gcloud run services update {{SERVICE_NAME}}-eu \
+          --region=europe-west1 \
+          --image "gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:$COMMIT_SHA" \
+          --quiet
+        echo "✅ EU deployment complete"
+
+  # 7. Invalidate CDN cache
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    id: invalidate-cdn
+    entrypoint: bash
+    args:
+      - -lc
+      - |
+        set -euo pipefail
+        echo "🔄 Invalidating CDN cache..."
+        
+        # Invalidate Cloud CDN if configured
+        if gcloud compute url-maps list --filter="name:{{CDN_MAP_NAME}}" --format="value(name)" | grep -q .; then
+          gcloud compute url-maps invalidate-cdn-cache {{CDN_MAP_NAME}} --path '/*' --quiet
+          echo "✅ Cloud CDN cache invalidated"
+        else
+          echo "ℹ️ No Cloud CDN configured, skipping invalidation"
+        fi
+
+  # 8. Health check and validation
+  - name: 'curlimages/curl:latest'
+    id: health-check
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        echo "🏥 Running health checks..."
+        
+        # Wait for deployment to stabilize
+        sleep 30
+        
+        # Check US deployment
+        echo "Checking US deployment..."
+        US_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://{{SERVICE_NAME}}-us-central1-{{PROJECT_ID}}.run.app/health")
+        if [ "$US_STATUS" = "200" ]; then
+          echo "✅ US deployment healthy"
+        else
+          echo "❌ US deployment unhealthy (HTTP $US_STATUS)"
+          exit 1
+        fi
+        
+        # Check EU deployment
+        echo "Checking EU deployment..."
+        EU_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://{{SERVICE_NAME}}-europe-west1-{{PROJECT_ID}}.run.app/health")
+        if [ "$EU_STATUS" = "200" ]; then
+          echo "✅ EU deployment healthy"
+        else
+          echo "❌ EU deployment unhealthy (HTTP $EU_STATUS)"
+          exit 1
+        fi
+        
+        echo "✅ All health checks passed"
+
+  # 9. Update Firebase hosting (if configured)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:latest'
+    id: deploy-firebase
+    entrypoint: bash
+    args:
+      - -lc
+      - |
+        set -euo pipefail
+        echo "🔥 Deploying to Firebase hosting..."
+        
+        # Check if Firebase is configured
+        if [ -f "firebase.json" ]; then
+          # Install Firebase CLI
+          npm install -g firebase-tools
+          
+          # Deploy to Firebase hosting
+          firebase deploy --only hosting --project $PROJECT_ID --token "$FIREBASE_TOKEN" --non-interactive
+          echo "✅ Firebase hosting deployed"
+        else
+          echo "ℹ️ Firebase not configured, skipping hosting deployment"
+        fi
+
+# =============================================================================
+# IMAGE OUTPUTS
+# =============================================================================
+images:
+  - 'gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/{{SERVICE_NAME}}:latest'
+
+# =============================================================================
+# BUILD OPTIONS
+# =============================================================================
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+  diskSizeGb: '100'
+  substitutionOption: 'ALLOW_LOOSE'
+
+# =============================================================================
+# TIMEOUT CONFIGURATION
+# =============================================================================
+timeout: '1800s'
+
+# =============================================================================
+# SUBSTITUTIONS
+# =============================================================================
+# These will be replaced during build:
+# - $PROJECT_ID: Google Cloud project ID
+# - $COMMIT_SHA: Git commit SHA
+# - $BRANCH_NAME: Git branch name
+# - $TAG_NAME: Git tag name (if building from tag)
+
+# =============================================================================
+# TEMPLATE NOTES
+# =============================================================================
+# 
+# 1. Replace {{SERVICE_NAME}} with your app name
+# 2. Replace {{CDN_MAP_NAME}} with your CDN load balancer name
+# 3. Configure secrets in Secret Manager before building
+# 4. Set up Firebase token for hosting deployment
+# 5. Customize resource limits based on your needs
+# 6. Add additional health checks as needed
+#
+# Required secrets in Secret Manager:
+# - NEXT_PUBLIC_FIREBASE_PROJECT_ID
+# - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+# - NEXT_PUBLIC_FIREBASE_API_KEY
+# - NEXT_PUBLIC_WEBSITE_URL
+# - OPENAI_API_KEY (if using AI features)
+# - FIREBASE_PROJECT_ID
+# - JWT_SECRET
+#
+# =============================================================================

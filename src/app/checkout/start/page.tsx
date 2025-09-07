@@ -1,113 +1,133 @@
 "use client";
-import { getAuth } from "firebase/auth";
-import { useRouter, useSearchParams } from "next/navigation";
-import * as React from "react";
-import { Suspense } from "react";
-import { features } from "~/config/features";
-import { getFirebaseApp } from "~/lib/firebase/client";
-import { api } from "~/trpc/react";
+
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, CreditCard, Loader2 } from "lucide-react";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 
 export default function CheckoutStartPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <CheckoutStartContent />
-    </Suspense>
-  );
-}
+  const searchParams = useSearchParams();
+  const sku = searchParams.get('sku');
+  const qty = searchParams.get('qty') || '1';
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
-function CheckoutStartContent() {
-  const sp = useSearchParams();
-  const sku = sp.get("sku") as string | null;
-  const qty = Number(sp.get("qty") ?? 1) || 1;
-  const nonce = React.useMemo(
-    () => crypto.randomUUID().replace(/-/g, "").slice(0, 8),
-    [],
-  );
-  const [uid, setUid] = React.useState<string>("");
-
-  React.useEffect(() => {
-    try {
-      const firebaseApp = getFirebaseApp();
-      if (firebaseApp) {
-        const auth = getAuth(firebaseApp);
-        setUid(auth.currentUser?.uid ?? "");
-      }
-    } catch {
-      // ignore; stays empty if not signed in
-    }
-  }, []);
-
-  const allowedSkus = [
-    "points_20",
-    "points_50",
-    "points_150",
-    "points_500",
-    "sub_basic_monthly",
-    "sub_pro_monthly",
-    "sub_basic_annual",
-    "sub_pro_annual",
-  ] as const;
-  type Sku = (typeof allowedSkus)[number];
-  const validSku = allowedSkus.includes(sku as Sku) ? (sku as Sku) : undefined;
-
-  // Skip preview for live checkout - go directly to PayNow
-  const data = null;
-  const isLoading = false;
-  const error = null;
-
-  const router = useRouter();
-  const createCheckout = api.checkout?.create.useMutation({
-    onSuccess: (data: any) => {
-      if (data.url) {
-        window.location.href = data.url; // Redirect to PayNow hosted checkout
-      }
-    },
-  }) || { mutate: () => {}, isPending: false, error: null };
-
-  // Early returns after all hooks are called
-  if (!api.checkout) {
-    return <p>Checkout system not available</p>;
-  }
-  if (!validSku) {
-    return <p>Invalid SKU</p>;
-  }
-
-  const onConfirm = () => {
-    if (!uid) {
-      alert("Please sign in first.");
+  const handleStartCheckout = async () => {
+    if (!sku) {
+      setError('No SKU provided');
       return;
     }
-    createCheckout.mutate({
-      sku: validSku, // Use SKU mapping
-      qty,
-    });
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/checkout/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sku,
+          qty: parseInt(qty),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Redirect to the checkout URL
+        window.location.href = data.redirectUrl;
+      } else {
+        setError(data.error || 'Failed to start checkout');
+      }
+    } catch (err) {
+      setError('Network error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <main className="container mx-auto max-w-2xl space-y-6 p-6">
-      <h1 className="font-semibold text-2xl">Processing Checkout</h1>
-      <div className="rounded-xl border p-4">
-        <p className="mb-2">
-          Product: <b>{validSku}</b>
-        </p>
-        <p className="mb-2">
-          Quantity: <b>{qty}</b>
-        </p>
+    <div className="container mx-auto px-4 py-16">
+      <div className="max-w-md mx-auto">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
+              <CreditCard className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Start Checkout
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              Complete your purchase securely
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            {sku && (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Product:</span>
+                  <span className="text-sm text-gray-900">{sku}</span>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-sm font-medium text-gray-700">Quantity:</span>
+                  <span className="text-sm text-gray-900">{qty}</span>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <Button 
+                onClick={handleStartCheckout}
+                disabled={isLoading || !sku}
+                className="w-full" 
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Continue to Payment
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                className="w-full"
+                asChild
+              >
+                <a href="/pricing">
+                  Back to Pricing
+                </a>
+              </Button>
+            </div>
+
+            <div className="text-center text-xs text-gray-500">
+              <p>🔒 Secure checkout powered by PayNow</p>
+              <p className="mt-1">
+                Need help? <a href="/support" className="text-blue-600 hover:underline">Contact support</a>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <button
-        type="button"
-        className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
-        onClick={onConfirm}
-        disabled={createCheckout.isPending}
-        aria-busy={createCheckout.isPending}
-      >
-        {createCheckout.isPending
-          ? "Redirecting to PayNow…"
-          : "Proceed to Payment"}
-      </button>
-      {createCheckout.error && (
-        <p className="text-red-600 text-sm">{createCheckout.error.message}</p>
-      )}
-    </main>
+    </div>
   );
 }

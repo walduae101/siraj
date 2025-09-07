@@ -17,3 +17,4 @@ export default function AuthDialog() {
     <AuthDialogGoogle open={authDialog.isOpen} setOpen={authDialog.setOpen} />
   );
 }
+

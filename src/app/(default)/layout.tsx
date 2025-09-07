@@ -6,6 +6,7 @@ import {
   PlayIcon,
 } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
 import AuthCard from "~/components/auth/auth-card";
@@ -16,7 +17,7 @@ import Footer from "~/components/footer/footer";
 import GiftcardBalanceCard from "~/components/modules/giftcard-balance-card";
 import PaymentGoalCard from "~/components/modules/payment-goal-card";
 import RecentPaymentsCard from "~/components/modules/recent-payments-card";
-import { clientEnv } from "~/env-client";
+import { getPublicConfig } from "~/lib/public-config.client";
 import type Module from "~/server/api/types/paynow/module";
 import { api } from "~/trpc/react";
 import Header from "./../../components/header/header";
@@ -24,6 +25,9 @@ import Header from "./../../components/header/header";
 export default function DefaultLayout({
   children,
 }: { children: React.ReactNode }) {
+  const [publicConfig, setPublicConfig] = useState<any>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+
   const { data: store } = api.paynow.getStore.useQuery(undefined, {
     staleTime: 60_000, // Store data changes infrequently
   });
@@ -31,10 +35,24 @@ export default function DefaultLayout({
     staleTime: 60_000, // Modules data changes infrequently
   });
 
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const config = await getPublicConfig();
+        setPublicConfig(config);
+      } catch (error) {
+        console.error("Failed to load public config:", error);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    loadConfig();
+  }, []);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(
-        clientEnv.NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE,
+        publicConfig?.app?.gameserverConnectionMessage || "Connection message not available",
       );
 
       toast("Copied to clipboard");
@@ -43,7 +61,7 @@ export default function DefaultLayout({
     }
   };
 
-  if (!store) {
+  if (!store || configLoading) {
     return null;
   }
 
@@ -68,14 +86,14 @@ export default function DefaultLayout({
           <div
             className="-z-10 pointer-events-none absolute inset-0 bg-center bg-cover bg-fixed bg-no-repeat bg-origin-content opacity-25 blur-xl"
             style={{
-              backgroundImage: `url('${clientEnv.NEXT_PUBLIC_BACKGROUND_IMAGE_URL}')`,
+              backgroundImage: `url('${publicConfig?.app?.backgroundImageUrl || "https://via.placeholder.com/1920x1080"}')`,
             }}
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
           </div>
 
           <div className="relative z-10 flex min-h-screen flex-col">
-            <Header />
+            <Header discordInviteUrl={publicConfig?.app?.discordInviteUrl} />
 
             <section>
               <div className="mx-auto md:max-w-7xl">
@@ -95,7 +113,7 @@ export default function DefaultLayout({
                         />
 
                         <span>
-                          {clientEnv.NEXT_PUBLIC_GAMESERVER_CONNECTION_MESSAGE}
+                          {publicConfig?.app?.gameserverConnectionMessage || "Connection message not available"}
                         </span>
                       </div>
                     </div>
@@ -129,7 +147,7 @@ export default function DefaultLayout({
                   </div>
 
                   <a
-                    href={clientEnv.NEXT_PUBLIC_DISCORD_INVITE_URL}
+                    href={publicConfig?.app?.discordInviteUrl || "https://discord.gg/siraj"}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -140,7 +158,7 @@ export default function DefaultLayout({
 
                       <div>
                         <h3 className="font-bold text-2xl">Discord</h3>
-                        <p>{clientEnv.NEXT_PUBLIC_DISCORD_INVITE_URL}</p>
+                        <p>{publicConfig?.app?.discordInviteUrl || "https://discord.gg/siraj"}</p>
                       </div>
                     </div>
                   </a>
@@ -184,8 +202,9 @@ export default function DefaultLayout({
           </div>
         </div>
 
-        <Footer />
+        <Footer discordInviteUrl={publicConfig?.app?.discordInviteUrl} />
       </div>
     </>
   );
 }
+
