@@ -1,7 +1,8 @@
 "use client";
 
-import { getApps, initializeApp } from "firebase/app";
-import { type User, getAuth, onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "next/navigation";
+import { type User, onAuthStateChanged } from "firebase/auth";
+import { getFirebaseAuth } from "~/lib/firebase.client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "~/components/ui/badge";
@@ -19,25 +20,18 @@ import { Separator } from "~/components/ui/separator";
 import { api } from "~/trpc/react";
 
 // guarded init for client
-function getClientAuthSafely() {
-  const cfg = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-  };
-  if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId)
+async function getClientAuthSafely() {
+  try {
+    return await getFirebaseAuth();
+  } catch {
     return null;
-  const app = getApps()[0] ?? initializeApp(cfg);
-  return getAuth(app);
+  }
 }
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [auth, setAuth] = useState<any>(null);
   const [searchEmail, setSearchEmail] = useState("");
   const [selectedUser, setSelectedUser] = useState<{
     uid: string;
@@ -48,7 +42,10 @@ export default function AdminPage() {
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
 
-  const auth = getClientAuthSafely();
+  // Initialize auth
+  useEffect(() => {
+    getClientAuthSafely().then(setAuth);
+  }, []);
 
   useEffect(() => {
     if (!auth) {
@@ -465,3 +462,4 @@ export default function AdminPage() {
     </div>
   );
 }
+

@@ -55,3 +55,4 @@ export function WalletWidget({ locale = "ar" }: { locale?: string }) {
     </div>
   );
 }
+

@@ -1,0 +1,196 @@
+{
+  "info": {
+    "name": "Siraj API",
+    "description": "Complete API collection for Siraj services including authentication, rate limiting, and core endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    }
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{BASE_URL}}/api/health",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Check API health status without authentication"
+      },
+      "response": []
+    },
+    {
+      "name": "Ping (with API key)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{SIRAJ_API_KEY}}",
+            "type": "text",
+            "description": "Your Siraj API key"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/ping",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "ping"]
+        },
+        "description": "Test your API key and get account information with rate limit details"
+      },
+      "response": []
+    },
+    {
+      "name": "Create API Key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{FIREBASE_TOKEN}}",
+            "type": "text",
+            "description": "Firebase Auth token (for authenticated requests)"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Test Key\",\n  \"expiresAt\": null,\n  \"permissions\": [\"read\", \"write\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/devkeys/create",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "devkeys", "create"]
+        },
+        "description": "Create a new API key (requires Firebase authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "List API Keys",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{FIREBASE_TOKEN}}",
+            "type": "text",
+            "description": "Firebase Auth token"
+          }
+        ],
+        "url": {
+          "raw": "{{BASE_URL}}/api/devkeys",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "devkeys"]
+        },
+        "description": "List all your API keys (requires Firebase authentication)"
+      },
+      "response": []
+    },
+    {
+      "name": "Revoke API Key",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{FIREBASE_TOKEN}}",
+            "type": "text",
+            "description": "Firebase Auth token"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"keyId\": \"{{API_KEY_ID}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{BASE_URL}}/api/devkeys/revoke",
+          "host": ["{{BASE_URL}}"],
+          "path": ["api", "devkeys", "revoke"]
+        },
+        "description": "Revoke an API key (requires Firebase authentication)"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "BASE_URL",
+      "value": "https://siraj.life",
+      "description": "Base URL for the Siraj API"
+    },
+    {
+      "key": "SIRAJ_API_KEY",
+      "value": "siraj_live_<id>.<secret>",
+      "description": "Your Siraj API key in format: siraj_live_<id>.<secret>"
+    },
+    {
+      "key": "FIREBASE_TOKEN",
+      "value": "",
+      "description": "Firebase Auth token for authenticated requests (get from browser dev tools)"
+    },
+    {
+      "key": "API_KEY_ID",
+      "value": "",
+      "description": "API key ID for operations like revoke"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set timestamp for requests",
+          "pm.globals.set('timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Log response details",
+          "console.log('Response Status:', pm.response.status);",
+          "console.log('Response Time:', pm.response.responseTime + 'ms');",
+          "",
+          "// Check for rate limit headers",
+          "if (pm.response.headers.has('X-RateLimit-Remaining')) {",
+          "    console.log('Rate Limit Remaining:', pm.response.headers.get('X-RateLimit-Remaining'));",
+          "}",
+          "",
+          "// Auto-extract API key ID from ping response",
+          "if (pm.response.json() && pm.response.json().keyId) {",
+          "    pm.collectionVariables.set('API_KEY_ID', pm.response.json().keyId);",
+          "    console.log('Auto-set API_KEY_ID:', pm.response.json().keyId);",
+          "}"
+        ]
+      }
+    }
+  ]
+}

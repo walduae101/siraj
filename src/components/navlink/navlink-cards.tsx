@@ -65,3 +65,4 @@ function NavlinkCard({ navlink }: { navlink: Navlink }) {
     </Link>
   );
 }
+

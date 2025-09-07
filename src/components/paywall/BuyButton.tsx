@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import type { PayNowSku } from "~/server/services/paynowProducts";
+import type { PayNowSku } from "~/types/paynow";
 import { api } from "~/trpc/react";
 
 interface BuyButtonProps {
@@ -63,3 +63,4 @@ export function BuyButton({
     </Button>
   );
 }
+

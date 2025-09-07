@@ -1,11 +1,10 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
-// This file contains only client-side environment variables
-// For server-side variables, import from ./env-server.js
 export const env = createEnv({
   /**
-   * Empty server object - server vars are in env-server.js
+   * Specify your server-side environment variables schema here. This way you can ensure the app
+   * isn't built with invalid env vars.
    */
   server: {},
 
@@ -29,17 +28,8 @@ export const env = createEnv({
       .default("Connecting to Siraj Game Server..."),
     NEXT_PUBLIC_WEBSITE_URL: z.string().default("https://siraj.life"),
 
-    // Firebase Web SDK
-    NEXT_PUBLIC_FIREBASE_API_KEY: z
-      .string()
-      .default("AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4"),
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: z
-      .string()
-      .default("walduae-project-20250809071906.firebaseapp.com"),
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: z
-      .string()
-      .default("walduae-project-20250809071906"),
-    NEXT_PUBLIC_FIREBASE_APP_ID: z.string().optional(),
+    // Firebase config is now loaded at runtime via /api/public-config
+    // No more NEXT_PUBLIC_FIREBASE_* variables needed
 
     // PayNow Points Mapping
     NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON: z
@@ -66,16 +56,10 @@ export const env = createEnv({
       "Connecting to Siraj Game Server...",
     NEXT_PUBLIC_WEBSITE_URL:
       process.env.NEXT_PUBLIC_WEBSITE_URL || "https://siraj.life",
-    NEXT_PUBLIC_FIREBASE_API_KEY:
-      process.env.NEXT_PUBLIC_FIREBASE_API_KEY ||
-      "AIzaSyBlAiqH3HaLcgq6ZFqkXrA6WPcGx-EchC4",
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:
-      process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ||
-      "walduae-project-20250809071906.firebaseapp.com",
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID:
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-      "walduae-project-20250809071906",
-    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    
+    // Firebase config is now loaded at runtime via /api/public-config
+    // No more NEXT_PUBLIC_FIREBASE_* variables needed
+    
     NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON:
       process.env.NEXT_PUBLIC_PAYNOW_POINTS_PRODUCT_POINTS_JSON,
     NEXT_PUBLIC_SUB_PLAN_POINTS_JSON:

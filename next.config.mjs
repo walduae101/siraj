@@ -1,8 +1,32 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const isDev = process.env.NODE_ENV !== 'production';
+
+export default {
   reactStrictMode: true,
+  
+  // Turbopack configuration to fix connection issues
+  turbopack: {
+    // Reduce memory usage and improve stability
+    memoryLimit: 4096,
+    // Disable some experimental features that might cause connection issues
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
+  },
 
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production';
+    const security = [
+      { key: "Cross-Origin-Opener-Policy", value: isDev ? "unsafe-none" : "same-origin-allow-popups" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Permissions-Policy", value: "browsing-topics=()" },
+    ];
+
     return [
       // ---- STATIC (immutable, no security headers) - MUST BE FIRST
       {
@@ -34,19 +58,7 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains; preload",
           },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value:
-              "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), publickey-credentials-get=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()",
-          },
-          {
-            key: "Content-Security-Policy-Report-Only",
-            value:
-              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
-          },
+          ...security,
           { key: "Vary", value: "Accept" },
         ],
       },
@@ -61,24 +73,10 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=31536000; includeSubDomains; preload",
           },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value:
-              "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(self), publickey-credentials-get=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()",
-          },
-          {
-            key: "Content-Security-Policy-Report-Only",
-            value:
-              "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; img-src 'self' data: https:; font-src 'self' https: data:; style-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; connect-src 'self' https:; report-uri /api/csp-report;",
-          },
+          ...security,
           { key: "Vary", value: "Accept" },
         ],
       },
     ];
   },
 };
-
-export default nextConfig;
